@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = requireAuth(request, ['PLATFORM_OWNER']);
+  const auth = requireAuth(request, ['PLATFORM_OWNER', 'REFEREE_MANAGER']);
   if (!auth.ok) return auth.response;
 
   try {
@@ -59,6 +59,11 @@ export async function POST(request: NextRequest) {
     }
     if (role === 'TEAM_MANAGER' && !clubId) {
       return NextResponse.json({ success: false, error: 'Team Managers must be assigned a club' }, { status: 400 });
+    }
+
+    // Referee Managers may only register referees, not any other staff role.
+    if (auth.user.role === 'REFEREE_MANAGER' && role !== 'REFEREE') {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     const tempPassword = randomTempPassword();

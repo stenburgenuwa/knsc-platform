@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { getPlayers } from '@/lib/public-api';
 import Pagination from '@/components/Pagination';
 import Avatar from '@/components/Avatar';
+import { SkeletonCards } from '@/components/Skeleton';
 
 export default function PlayersPage() {
   const [players, setPlayers] = useState<any[]>([]);
@@ -33,10 +34,10 @@ export default function PlayersPage() {
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
       <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-6)' }}>Players Directory</h1>
 
-      {loading && <p className="text-muted">Loading players&hellip;</p>}
       {!loading && players.length === 0 && <p className="text-muted">No approved players yet.</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4" style={{ gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+        {loading && <SkeletonCards count={8} />}
         {players.map((player: any) => (
           <div key={player.id} className="card elev-sm" style={{ textAlign: 'center', alignItems: 'center' }}>
             <Avatar

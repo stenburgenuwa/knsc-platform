@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 const ROLES = ['PLATFORM_OWNER', 'LEAGUE_MANAGER', 'TEAM_MANAGER', 'REFEREE', 'REFEREE_MANAGER'];
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
-  const auth = requireAuth(request, ['PLATFORM_OWNER']);
+  const auth = requireAuth(request, ['PLATFORM_OWNER', 'REFEREE_MANAGER']);
   if (!auth.ok) return auth.response;
 
   const existing = await prisma.user.findUnique({ where: { id: params.id } });
@@ -18,8 +18,18 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
   }
 
+  // Referee Managers may only edit referee accounts, and can't change what
+  // role the account holds.
+  if (auth.user.role === 'REFEREE_MANAGER' && existing.role !== 'REFEREE') {
+    return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const { email, firstName, lastName, role, clubId, password } = await request.json();
+
+    if (auth.user.role === 'REFEREE_MANAGER' && role !== undefined && role !== 'REFEREE') {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
 
     if (role !== undefined && !ROLES.includes(role)) {
       return NextResponse.json({ success: false, error: 'Unknown role' }, { status: 400 });
@@ -79,7 +89,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  const auth = requireAuth(request, ['PLATFORM_OWNER']);
+  const auth = requireAuth(request, ['PLATFORM_OWNER', 'REFEREE_MANAGER']);
   if (!auth.ok) return auth.response;
 
   if (params.id === auth.user.sub) {
@@ -92,6 +102,11 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   const existing = await prisma.user.findUnique({ where: { id: params.id } });
   if (!existing) {
     return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
+  }
+
+  // Referee Managers may only remove referee accounts.
+  if (auth.user.role === 'REFEREE_MANAGER' && existing.role !== 'REFEREE') {
+    return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
   }
 
   if (existing.role === 'PLATFORM_OWNER') {

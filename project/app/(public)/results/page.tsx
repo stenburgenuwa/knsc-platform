@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { getResults } from '@/lib/public-api';
 import Pagination from '@/components/Pagination';
 import Avatar from '@/components/Avatar';
+import { SkeletonCards } from '@/components/Skeleton';
 
 function clubName(club: any) {
   return club?.clubName || club?.name || 'TBC';
@@ -44,10 +45,10 @@ export default function ResultsPage() {
     <div style={{ maxWidth: 900, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
       <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-6)' }}>Results</h1>
 
-      {loading && <p className="text-muted">Loading results&hellip;</p>}
       {!loading && results.length === 0 && <p className="text-muted">No results published yet.</p>}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
+        {loading && <SkeletonCards count={5} />}
         {results.map((result: any) => (
           <div key={result.id} className="card elev-sm" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ flex: 1 }}>

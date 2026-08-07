@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getDashboardSummary, getReferees, assignReferee } from '@/lib/admin-api';
+import { Pencil, Trash2 } from 'lucide-react';
+import { getDashboardSummary, getReferees, assignReferee, createUser, updateUser, deleteUser } from '@/lib/admin-api';
 import { getFixtures } from '@/lib/public-api';
 import StatCard from '@/components/StatCard';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 function formatDate(value?: string) {
   if (!value) return '';
@@ -12,6 +14,8 @@ function formatDate(value?: string) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+const EMPTY_FORM = { email: '', firstName: '', lastName: '' };
+
 export default function RefereeManagerDashboard() {
   const [data, setData] = useState<any>(null);
   const [referees, setReferees] = useState<any[]>([]);
@@ -19,6 +23,14 @@ export default function RefereeManagerDashboard() {
   const [loading, setLoading] = useState(true);
   const [picks, setPicks] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<string | null>(null);
+
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [formStatus, setFormStatus] = useState<string | null>(null);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<any>({});
+  const [confirming, setConfirming] = useState<{ id: string; label: string } | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const load = async () => {
     try {
@@ -62,6 +74,55 @@ export default function RefereeManagerDashboard() {
     }
   };
 
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormStatus(null);
+    try {
+      const res = await createUser({ ...form, role: 'REFEREE' });
+      setFormStatus(`Referee registered. Temporary password: ${res.data?.data?.temporaryPassword}`);
+      setForm(EMPTY_FORM);
+      load();
+    } catch (err: any) {
+      setFormStatus(err?.response?.data?.error || 'Failed to register referee.');
+    }
+  };
+
+  const startEdit = (r: any) => {
+    setEditingId(r.id);
+    setDraft({ firstName: r.firstName, lastName: r.lastName, email: r.email });
+    setStatus(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    setBusy(true);
+    try {
+      await updateUser(editingId, draft);
+      setEditingId(null);
+      await load();
+      setStatus('Referee updated.');
+    } catch (err: any) {
+      setStatus(err?.response?.data?.error || 'Failed to update referee.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirming) return;
+    setBusy(true);
+    try {
+      await deleteUser(confirming.id);
+      setConfirming(null);
+      await load();
+      setStatus('Referee removed.');
+    } catch (err: any) {
+      setStatus(err?.response?.data?.error || 'Failed to remove referee.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div style={{ padding: 'var(--space-8)' }}>
       <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-6)' }}>Referee Manager Dashboard</h1>
@@ -77,22 +138,26 @@ export default function RefereeManagerDashboard() {
             <StatCard label="Avg. Performance Rating" value={data?.avgRating || '4.5'} tone="accent" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'var(--space-4)' }}>
-            <div className="card elev-sm">
-              <h3 className="card-title">Referee Roster</h3>
-              {referees.length === 0 ? (
-                <p className="card-meta">No referees registered yet &mdash; ask the Platform Owner to create an account.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {referees.map((r, i) => (
-                    <div key={r.id} style={{ padding: 'var(--space-2) 0', borderBottom: i < referees.length - 1 ? '1px solid var(--color-divider)' : 'none' }}>
-                      <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>{r.firstName} {r.lastName}</p>
-                      <p className="card-meta">{r.email}</p>
-                    </div>
-                  ))}
+          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
+            <form onSubmit={handleRegister} className="card elev-sm">
+              <h3 className="card-title">Register a Referee</h3>
+              <div className="field">
+                <label htmlFor="ref-email">Email</label>
+                <input id="ref-email" type="email" className="input" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2" style={{ gap: 'var(--space-2)' }}>
+                <div className="field">
+                  <label htmlFor="ref-first">First name</label>
+                  <input id="ref-first" className="input" required value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
                 </div>
-              )}
-            </div>
+                <div className="field">
+                  <label htmlFor="ref-last">Last name</label>
+                  <input id="ref-last" className="input" required value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
+                </div>
+              </div>
+              <button type="submit" className="btn btn-primary btn-block">Register Referee</button>
+              {formStatus && <p className="card-meta">{formStatus}</p>}
+            </form>
 
             <div className="card elev-sm">
               <h3 className="card-title">Fixtures Needing a Referee</h3>
@@ -123,6 +188,69 @@ export default function RefereeManagerDashboard() {
               )}
             </div>
           </div>
+
+          <div className="card elev-sm">
+            <h3 className="card-title">Referee Roster ({referees.length})</h3>
+            {referees.length === 0 ? (
+              <p className="card-meta">No referees registered yet &mdash; use the form above to add one.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {referees.map((r, i) => (
+                  <div
+                    key={r.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 'var(--space-3)',
+                      padding: 'var(--space-2) 0',
+                      borderBottom: i < referees.length - 1 ? '1px solid var(--color-divider)' : 'none',
+                    }}
+                  >
+                    {editingId === r.id ? (
+                      <div style={{ display: 'flex', gap: 'var(--space-2)', flex: 1, flexWrap: 'wrap' }}>
+                        <input className="input" value={draft.firstName} onChange={(e) => setDraft({ ...draft, firstName: e.target.value })} placeholder="First name" />
+                        <input className="input" value={draft.lastName} onChange={(e) => setDraft({ ...draft, lastName: e.target.value })} placeholder="Last name" />
+                        <input className="input" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} placeholder="Email" />
+                        <button className="btn btn-primary" disabled={busy} onClick={saveEdit}>Save</button>
+                        <button className="btn btn-secondary" disabled={busy} onClick={() => setEditingId(null)}>Cancel</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>{r.firstName} {r.lastName}</p>
+                          <p className="card-meta">{r.email}</p>
+                        </div>
+                        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                          <button className="btn btn-icon" aria-label="Edit referee" onClick={() => startEdit(r)}>
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            className="btn btn-icon"
+                            aria-label="Remove referee"
+                            onClick={() => setConfirming({ id: r.id, label: `${r.firstName} ${r.lastName}` })}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {confirming && (
+            <ConfirmDialog
+              title="Remove referee?"
+              body={<p>This removes <strong>{confirming.label}</strong>&rsquo;s account and their upcoming referee assignments. This cannot be undone.</p>}
+              confirmLabel="Remove"
+              busy={busy}
+              onConfirm={handleDelete}
+              onCancel={() => setConfirming(null)}
+            />
+          )}
         </>
       )}
     </div>

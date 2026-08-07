@@ -39,10 +39,17 @@ export default function NewsPage() {
     <div style={{ maxWidth: 800, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
       <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-6)' }}>News</h1>
 
-      {loading && <p className="text-muted">Loading news&hellip;</p>}
       {!loading && news.length === 0 && <p className="text-muted">No news published yet.</p>}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+        {loading && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            <span className="skeleton skeleton-text" style={{ width: '30%' }} />
+            <span className="skeleton skeleton-text" style={{ width: '60%', height: 18 }} />
+            <span className="skeleton skeleton-text" style={{ width: '90%' }} />
+            <span className="skeleton skeleton-text" style={{ width: '80%' }} />
+          </div>
+        )}
         {news.map((article: any) => (
           <article key={article.id}>
             <p className="card-kicker">{formatDate(article.startDate || article.createdAt)}</p>

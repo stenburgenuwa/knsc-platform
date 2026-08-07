@@ -123,7 +123,9 @@ figcaption {
   background: transparent; border: 1px solid transparent;
   padding: var(--space-2) calc(var(--space-3) * 1.2);
   border-radius: var(--radius-md);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
+.btn:active:not(:disabled) { transform: translateY(1px); }
 .btn svg { display: block; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn-primary { color: var(--color-accent); border-color: var(--color-accent); }
@@ -183,6 +185,12 @@ textarea.input { min-height: 90px; resize: vertical; }
 .card {
   display: flex; flex-direction: column; gap: var(--space-2);
   padding: var(--space-3); border-radius: var(--radius-md); background: transparent; border: 1px solid var(--color-divider);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.card.elev-sm:hover, .card.elev-md:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--color-accent) 30%, var(--color-divider));
 }
 .card-kicker { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent); }
 .card-title {
@@ -233,7 +241,39 @@ textarea.input { min-height: 90px; resize: vertical; }
   padding: var(--space-2);
   border-bottom: 1px solid var(--color-divider);
 }
+.table tbody tr { transition: background 0.15s ease; }
 .table tbody tr:hover { background: color-mix(in srgb, var(--color-text) 4%, transparent); }
+
+/* — skeleton loaders — */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.skeleton {
+  display: block; border-radius: var(--radius-sm);
+  background: var(--color-neutral-200);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+.skeleton-text { height: 11px; margin-bottom: 8px; }
+.skeleton-text:last-child { margin-bottom: 0; }
+
+/* — hero band — */
+.hero-band {
+  position: relative; overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 20%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 55%),
+    radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--color-accent-2) 8%, transparent), transparent 50%),
+    var(--color-surface);
+  border-bottom: 1px solid var(--color-divider);
+}
+.hero-band::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--color-text) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--color-text) 5%, transparent) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 70% 90% at 50% 0%, black 0%, transparent 75%);
+}
 
 /* — dialog — */
 .dialog-backdrop {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getStandings } from '@/lib/public-api';
 import Avatar from '@/components/Avatar';
+import { SkeletonRows } from '@/components/Skeleton';
 
 export default function StandingsPage() {
   const [standings, setStandings] = useState<any[]>([]);
@@ -26,10 +27,9 @@ export default function StandingsPage() {
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
       <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-6)' }}>League Standings</h1>
 
-      {loading && <p className="text-muted">Loading standings&hellip;</p>}
       {!loading && standings.length === 0 && <p className="text-muted">Standings will appear once fixtures are completed.</p>}
 
-      {!loading && standings.length > 0 && (
+      {(loading || standings.length > 0) && (
         <div style={{ overflowX: 'auto' }}>
           <table className="table">
             <thead>
@@ -47,6 +47,7 @@ export default function StandingsPage() {
               </tr>
             </thead>
             <tbody>
+              {loading && <SkeletonRows rows={8} cols={10} />}
               {standings.map((team: any, index: number) => {
                 const played = Number(team.played || 0);
                 const won = Number(team.won || 0);

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { getFixtures } from '@/lib/public-api';
 import Pagination from '@/components/Pagination';
 import Avatar from '@/components/Avatar';
+import { SkeletonCards } from '@/components/Skeleton';
 
 function clubName(club: any) {
   return club?.clubName || club?.name || 'TBC';
@@ -44,10 +45,10 @@ export default function FixturesPage() {
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
       <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-6)' }}>Fixtures</h1>
 
-      {loading && <p className="text-muted">Loading fixtures&hellip;</p>}
       {!loading && fixtures.length === 0 && <p className="text-muted">No upcoming fixtures scheduled.</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+        {loading && <SkeletonCards count={6} />}
         {fixtures.map((fixture: any) => (
           <div key={fixture.id} className="card elev-sm">
             <p className="card-meta">{formatDate(fixture.fixtureDate || fixture.date)}</p>

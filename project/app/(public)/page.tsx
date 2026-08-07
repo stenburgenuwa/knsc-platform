@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getFixtures, getResults, getStandings, getNews } from '@/lib/public-api';
 import Avatar from '@/components/Avatar';
+import { SkeletonCards, SkeletonRows } from '@/components/Skeleton';
 
 function clubName(club: any) {
   return club?.clubName || club?.name || 'TBC';
@@ -72,19 +73,25 @@ export default function HomePage() {
   return (
     <div>
       {/* Hero */}
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'var(--space-8) var(--space-4)', textAlign: 'center' }}>
-        <p className="card-kicker" style={{ marginBottom: 'var(--space-2)' }}>Official League Platform</p>
-        <h1 style={{ fontWeight: 400 }}>Kilifi North Sub County League</h1>
-        <p className="text-muted" style={{ maxWidth: 560, margin: '0 auto var(--space-4)' }}>
-          Fixtures, results, standings and club news for Kilifi North&rsquo;s football clubs.
-        </p>
-        <Link href="/fixtures" className="btn btn-primary">
-          View Fixtures &rarr;
-        </Link>
-        <div className="hr" style={{ maxWidth: 720, marginInline: 'auto' }} />
+      <div className="hero-band">
+        <div style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', padding: 'var(--space-8) var(--space-4)', textAlign: 'center' }}>
+          <p className="card-kicker" style={{ marginBottom: 'var(--space-2)' }}>Official League Platform</p>
+          <h1 style={{ fontWeight: 400 }}>Kilifi North Sub County League</h1>
+          <p className="text-muted" style={{ maxWidth: 560, margin: '0 auto var(--space-4)' }}>
+            Fixtures, results, standings and club news for Kilifi North&rsquo;s football clubs.
+          </p>
+          <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/fixtures" className="btn btn-primary">
+              View Fixtures &rarr;
+            </Link>
+            <Link href="/standings" className="btn btn-secondary">
+              League Table
+            </Link>
+          </div>
+        </div>
       </div>
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 var(--space-4) var(--space-8)' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
         {/* Featured News */}
         <section style={{ marginBottom: 'var(--space-8)' }}>
           <h6 style={{ color: 'var(--color-accent-700)', marginBottom: 'var(--space-3)' }}>Latest News</h6>
@@ -110,7 +117,7 @@ export default function HomePage() {
             <Link href="/results" className="btn btn-ghost">View all &rarr;</Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-4)' }}>
-            {loading && <p className="text-muted">Loading results&hellip;</p>}
+            {loading && <SkeletonCards count={3} />}
             {!loading && results.length === 0 && <p className="text-muted">No results yet.</p>}
             {results.map((result: any) => (
               <div key={result.id} className="card elev-sm">
@@ -142,7 +149,7 @@ export default function HomePage() {
             <Link href="/fixtures" className="btn btn-ghost">View all &rarr;</Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-4)' }}>
-            {loading && <p className="text-muted">Loading fixtures&hellip;</p>}
+            {loading && <SkeletonCards count={3} />}
             {!loading && fixtures.length === 0 && <p className="text-muted">No fixtures scheduled.</p>}
             {fixtures.map((fixture: any) => (
               <div key={fixture.id} className="card elev-sm">
@@ -186,6 +193,7 @@ export default function HomePage() {
                 </tr>
               </thead>
               <tbody>
+                {loading && <SkeletonRows rows={5} cols={9} />}
                 {standings.slice(0, 5).map((row: any, index: number) => (
                   <tr key={row.id}>
                     <td>{index + 1}</td>
@@ -224,6 +232,7 @@ export default function HomePage() {
                 </tr>
               </thead>
               <tbody>
+                {loading && <SkeletonRows rows={5} cols={3} />}
                 {topScorers.map((scorer: any, index: number) => (
                   <tr key={scorer.id || index}>
                     <td style={{ fontFamily: 'var(--font-heading)' }}>
@@ -242,7 +251,8 @@ export default function HomePage() {
         <section>
           <h2 style={{ fontWeight: 400, marginBottom: 'var(--space-4)' }}>More News</h2>
           <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-4)' }}>
-            {moreNews.length === 0 && <p className="text-muted">More stories will appear here soon.</p>}
+            {loading && <SkeletonCards count={3} />}
+            {!loading && moreNews.length === 0 && <p className="text-muted">More stories will appear here soon.</p>}
             {moreNews.map((item: any) => (
               <div key={item.id} className="card elev-sm">
                 <span className="card-kicker">{formatDate(item.startDate || item.createdAt)}</span>
