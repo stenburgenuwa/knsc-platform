@@ -41,6 +41,7 @@ export async function registerPlayer(data: {
   lastName: string;
   playerNumber?: number;
   position?: string;
+  dateOfBirth?: string;
 }) {
   const client = getApiClient();
   return client.post('/players', data);
@@ -69,4 +70,22 @@ export async function getMyAssignments() {
 export async function respondToAssignment(id: string, status: 'ACCEPTED' | 'DECLINED') {
   const client = getApiClient();
   return client.patch(`/referee-assignments/${id}`, { status });
+}
+
+export async function getMatchEvents(fixtureId: string) {
+  const client = getApiClient();
+  return client.get(`/fixtures/${fixtureId}/events`);
+}
+
+export async function recordMatchEvent(
+  fixtureId: string,
+  data: { playerId: string; type: 'GOAL' | 'YELLOW_CARD' | 'RED_CARD'; minute?: number }
+) {
+  const client = getApiClient();
+  return client.post(`/fixtures/${fixtureId}/events`, data);
+}
+
+export async function deleteMatchEvent(fixtureId: string, eventId: string) {
+  const client = getApiClient();
+  return client.delete(`/fixtures/${fixtureId}/events/${eventId}`);
 }

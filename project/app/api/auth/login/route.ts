@@ -17,7 +17,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Email and password are required' }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { email: String(email).toLowerCase() } });
+    const user = await prisma.user.findUnique({
+      where: { email: String(email).toLowerCase() },
+      include: { club: true },
+    });
     if (!user) {
       return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 401 });
     }
@@ -70,6 +73,7 @@ export async function POST(request: NextRequest) {
           roles: [roleLabel(user.role)],
           permissions: [],
           clubId: user.clubId,
+          clubName: user.club?.name ?? null,
         },
       },
     });

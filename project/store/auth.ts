@@ -9,6 +9,7 @@ interface AuthUser {
   roles: string[];
   permissions: string[];
   clubId?: string | null;
+  clubName?: string | null;
 }
 
 interface AuthStore {

@@ -6,13 +6,21 @@ import { getPlayers } from '@/lib/public-api';
 import { useAuthStore } from '@/store/auth';
 import StatCard from '@/components/StatCard';
 
+function formatDate(value?: string) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 export default function TeamManagerDashboard() {
   const clubId = useAuthStore((s) => s.user?.clubId as string | undefined);
+  const clubName = useAuthStore((s) => s.user?.clubName as string | undefined);
   const [data, setData] = useState<any>(null);
   const [squad, setSquad] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [playerForm, setPlayerForm] = useState({ firstName: '', lastName: '', playerNumber: '', position: '' });
+  const [playerForm, setPlayerForm] = useState({ firstName: '', lastName: '', playerNumber: '', position: '', dateOfBirth: '' });
   const [playerStatus, setPlayerStatus] = useState<string | null>(null);
 
   const load = async () => {
@@ -48,9 +56,10 @@ export default function TeamManagerDashboard() {
         lastName: playerForm.lastName,
         playerNumber: playerForm.playerNumber ? Number(playerForm.playerNumber) : undefined,
         position: playerForm.position || undefined,
+        dateOfBirth: playerForm.dateOfBirth || undefined,
       });
       setPlayerStatus('Player submitted for League Manager approval.');
-      setPlayerForm({ firstName: '', lastName: '', playerNumber: '', position: '' });
+      setPlayerForm({ firstName: '', lastName: '', playerNumber: '', position: '', dateOfBirth: '' });
       load();
     } catch (err: any) {
       setPlayerStatus(err?.response?.data?.error || 'Failed to register player.');
@@ -59,7 +68,8 @@ export default function TeamManagerDashboard() {
 
   return (
     <div style={{ padding: 'var(--space-8)' }}>
-      <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-6)' }}>Team Manager Dashboard</h1>
+      <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-1)' }}>Team Manager Dashboard</h1>
+      <p className="text-muted" style={{ marginBottom: 'var(--space-6)' }}>{clubName || 'No club linked to your account yet'}</p>
 
       {loading ? (
         <p className="text-muted">Loading&hellip;</p>
@@ -92,8 +102,18 @@ export default function TeamManagerDashboard() {
                 </div>
                 <div className="field">
                   <label htmlFor="p-position">Position</label>
-                  <input id="p-position" className="input" value={playerForm.position} onChange={(e) => setPlayerForm({ ...playerForm, position: e.target.value })} />
+                  <select id="p-position" className="input" value={playerForm.position} onChange={(e) => setPlayerForm({ ...playerForm, position: e.target.value })}>
+                    <option value="">Select&hellip;</option>
+                    <option value="Goalkeeper">Goalkeeper</option>
+                    <option value="Defender">Defender</option>
+                    <option value="Midfielder">Midfielder</option>
+                    <option value="Forward">Forward</option>
+                  </select>
                 </div>
+              </div>
+              <div className="field">
+                <label htmlFor="p-dob">Date of birth</label>
+                <input id="p-dob" type="date" className="input" value={playerForm.dateOfBirth} onChange={(e) => setPlayerForm({ ...playerForm, dateOfBirth: e.target.value })} />
               </div>
               <button type="submit" className="btn btn-primary btn-block">Submit for Approval</button>
               {playerStatus && <p className="card-meta">{playerStatus}</p>}
@@ -107,7 +127,14 @@ export default function TeamManagerDashboard() {
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {squad.map((p, i) => (
                     <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-2) 0', borderBottom: i < squad.length - 1 ? '1px solid var(--color-divider)' : 'none' }}>
-                      <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>{p.firstName} {p.lastName}</p>
+                      <div>
+                        <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>
+                          {p.playerNumber ? `#${p.playerNumber} ` : ''}{p.firstName} {p.lastName}
+                        </p>
+                        <p className="card-meta">
+                          {[p.position, p.dateOfBirth ? `Born ${formatDate(p.dateOfBirth)}` : null].filter(Boolean).join(' · ')}
+                        </p>
+                      </div>
                       {p.approved ? <span className="tag tag-accent">Approved</span> : <span className="tag tag-neutral">Pending</span>}
                     </div>
                   ))}

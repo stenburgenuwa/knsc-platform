@@ -1,7 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getDashboardSummary, getMyAssignments, respondToAssignment, submitResult } from '@/lib/admin-api';
+import {
+  getDashboardSummary,
+  getMyAssignments,
+  respondToAssignment,
+  submitResult,
+  getMatchEvents,
+  recordMatchEvent,
+  deleteMatchEvent,
+} from '@/lib/admin-api';
+import { getPlayers } from '@/lib/public-api';
 import StatCard from '@/components/StatCard';
 
 function formatDate(value?: string) {
@@ -11,18 +20,45 @@ function formatDate(value?: string) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+const EVENT_LABELS: Record<string, string> = { GOAL: 'Goal', YELLOW_CARD: 'Yellow card', RED_CARD: 'Red card' };
+
 export default function RefereeDashboard() {
   const [data, setData] = useState<any>(null);
   const [assignments, setAssignments] = useState<any[]>([]);
+  const [squads, setSquads] = useState<Record<string, any[]>>({});
+  const [events, setEvents] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState<Record<string, { home: string; away: string }>>({});
+  const [eventForm, setEventForm] = useState<Record<string, { playerId: string; type: string; minute: string }>>({});
   const [status, setStatus] = useState<string | null>(null);
 
   const load = async () => {
     try {
       const [summary, assignmentsRes] = await Promise.all([getDashboardSummary(), getMyAssignments()]);
       setData(summary.data?.data);
-      setAssignments(assignmentsRes.data?.data || []);
+      const list = assignmentsRes.data?.data || [];
+      setAssignments(list);
+
+      const accepted = list.filter((a: any) => a.status === 'ACCEPTED' || a.status === 'COMPLETED');
+      const squadEntries = await Promise.all(
+        accepted.map(async (a: any) => {
+          const [homeRes, awayRes] = await Promise.all([
+            getPlayers(1, 50, { clubId: a.fixture.homeClubId }),
+            getPlayers(1, 50, { clubId: a.fixture.awayClubId }),
+          ]);
+          const players = [...(homeRes.data?.data || []), ...(awayRes.data?.data || [])];
+          return [a.fixture.id, players] as const;
+        })
+      );
+      setSquads(Object.fromEntries(squadEntries));
+
+      const eventEntries = await Promise.all(
+        accepted.map(async (a: any) => {
+          const res = await getMatchEvents(a.fixture.id);
+          return [a.fixture.id, res.data?.data || []] as const;
+        })
+      );
+      setEvents(Object.fromEntries(eventEntries));
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
@@ -54,6 +90,31 @@ export default function RefereeDashboard() {
     }
   };
 
+  const handleAddEvent = async (fixtureId: string) => {
+    const form = eventForm[fixtureId];
+    if (!form?.playerId || !form?.type) {
+      setStatus('Pick a player and an event type first.');
+      return;
+    }
+    try {
+      await recordMatchEvent(fixtureId, {
+        playerId: form.playerId,
+        type: form.type as 'GOAL' | 'YELLOW_CARD' | 'RED_CARD',
+        minute: form.minute ? Number(form.minute) : undefined,
+      });
+      setStatus(null);
+      setEventForm({ ...eventForm, [fixtureId]: { playerId: '', type: 'GOAL', minute: '' } });
+      load();
+    } catch (err: any) {
+      setStatus(err?.response?.data?.error || 'Failed to record event.');
+    }
+  };
+
+  const handleRemoveEvent = async (fixtureId: string, eventId: string) => {
+    await deleteMatchEvent(fixtureId, eventId);
+    load();
+  };
+
   return (
     <div style={{ padding: 'var(--space-8)' }}>
       <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-6)' }}>Referee Dashboard</h1>
@@ -75,55 +136,122 @@ export default function RefereeDashboard() {
             {assignments.length === 0 ? (
               <p className="card-meta">No assignments yet.</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                {assignments.map((a) => (
-                  <div key={a.id} style={{ borderBottom: '1px solid var(--color-divider)', paddingBottom: 'var(--space-3)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>
-                          {a.fixture.homeClub.name} vs {a.fixture.awayClub.name}
-                        </p>
-                        <p className="card-meta">
-                          {a.fixture.venue?.name || 'Venue TBC'} &bull; {formatDate(a.fixture.fixtureDate)}
-                        </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                {assignments.map((a) => {
+                  const squad = squads[a.fixture.id] || [];
+                  const fixtureEvents = events[a.fixture.id] || [];
+                  const form = eventForm[a.fixture.id] || { playerId: '', type: 'GOAL', minute: '' };
+
+                  return (
+                    <div key={a.id} style={{ borderBottom: '1px solid var(--color-divider)', paddingBottom: 'var(--space-4)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>
+                            {a.fixture.homeClub.name} vs {a.fixture.awayClub.name}
+                          </p>
+                          <p className="card-meta">
+                            {a.fixture.venue?.name || 'Venue TBC'} &bull; {formatDate(a.fixture.fixtureDate)}
+                          </p>
+                        </div>
+                        <span className="tag tag-neutral">{a.status}</span>
                       </div>
-                      <span className="tag tag-neutral">{a.status}</span>
+
+                      {a.status === 'ASSIGNED' && (
+                        <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+                          <button className="btn btn-primary" onClick={() => respond(a.id, 'ACCEPTED')}>Accept</button>
+                          <button className="btn btn-secondary" onClick={() => respond(a.id, 'DECLINED')}>Decline</button>
+                        </div>
+                      )}
+
+                      {(a.status === 'ACCEPTED' || a.status === 'COMPLETED') && (
+                        <div style={{ marginTop: 'var(--space-3)' }}>
+                          <p className="card-kicker" style={{ marginBottom: 'var(--space-2)' }}>Match Events</p>
+
+                          {fixtureEvents.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', marginBottom: 'var(--space-2)' }}>
+                              {fixtureEvents.map((ev: any) => (
+                                <div key={ev.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
+                                  <span>
+                                    {ev.minute ? `${ev.minute}' ` : ''}
+                                    <strong>{EVENT_LABELS[ev.type] || ev.type}</strong> &mdash; {ev.player.firstName} {ev.player.lastName} ({ev.player.club.name})
+                                  </span>
+                                  <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => handleRemoveEvent(a.fixture.id, ev.id)}>
+                                    Remove
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                            <div className="field" style={{ marginBottom: 0, minWidth: 180 }}>
+                              <label>Player</label>
+                              <select
+                                className="input"
+                                value={form.playerId}
+                                onChange={(e) => setEventForm({ ...eventForm, [a.fixture.id]: { ...form, playerId: e.target.value } })}
+                              >
+                                <option value="">Select player&hellip;</option>
+                                {squad.map((p: any) => (
+                                  <option key={p.id} value={p.id}>{p.firstName} {p.lastName} ({p.club?.name})</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="field" style={{ marginBottom: 0 }}>
+                              <label>Event</label>
+                              <select
+                                className="input"
+                                value={form.type}
+                                onChange={(e) => setEventForm({ ...eventForm, [a.fixture.id]: { ...form, type: e.target.value } })}
+                              >
+                                <option value="GOAL">Goal</option>
+                                <option value="YELLOW_CARD">Yellow card</option>
+                                <option value="RED_CARD">Red card</option>
+                              </select>
+                            </div>
+                            <div className="field" style={{ marginBottom: 0 }}>
+                              <label>Minute</label>
+                              <input
+                                type="number"
+                                className="input"
+                                style={{ width: 70 }}
+                                value={form.minute}
+                                onChange={(e) => setEventForm({ ...eventForm, [a.fixture.id]: { ...form, minute: e.target.value } })}
+                              />
+                            </div>
+                            <button className="btn btn-secondary" onClick={() => handleAddEvent(a.fixture.id)}>Add Event</button>
+                          </div>
+                        </div>
+                      )}
+
+                      {a.status === 'ACCEPTED' && a.fixture.status === 'UPCOMING' && (
+                        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', marginTop: 'var(--space-3)' }}>
+                          <div className="field" style={{ marginBottom: 0 }}>
+                            <label>Home score</label>
+                            <input
+                              type="number"
+                              className="input"
+                              style={{ width: 90 }}
+                              value={scores[a.fixture.id]?.home ?? ''}
+                              onChange={(e) => setScores({ ...scores, [a.fixture.id]: { home: e.target.value, away: scores[a.fixture.id]?.away ?? '' } })}
+                            />
+                          </div>
+                          <div className="field" style={{ marginBottom: 0 }}>
+                            <label>Away score</label>
+                            <input
+                              type="number"
+                              className="input"
+                              style={{ width: 90 }}
+                              value={scores[a.fixture.id]?.away ?? ''}
+                              onChange={(e) => setScores({ ...scores, [a.fixture.id]: { home: scores[a.fixture.id]?.home ?? '', away: e.target.value } })}
+                            />
+                          </div>
+                          <button className="btn btn-primary" onClick={() => handleSubmitResult(a.fixture.id)}>Submit Result</button>
+                        </div>
+                      )}
                     </div>
-
-                    {a.status === 'ASSIGNED' && (
-                      <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
-                        <button className="btn btn-primary" onClick={() => respond(a.id, 'ACCEPTED')}>Accept</button>
-                        <button className="btn btn-secondary" onClick={() => respond(a.id, 'DECLINED')}>Decline</button>
-                      </div>
-                    )}
-
-                    {a.status === 'ACCEPTED' && a.fixture.status === 'UPCOMING' && (
-                      <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', marginTop: 'var(--space-2)' }}>
-                        <div className="field" style={{ marginBottom: 0 }}>
-                          <label>Home score</label>
-                          <input
-                            type="number"
-                            className="input"
-                            style={{ width: 90 }}
-                            value={scores[a.fixture.id]?.home ?? ''}
-                            onChange={(e) => setScores({ ...scores, [a.fixture.id]: { home: e.target.value, away: scores[a.fixture.id]?.away ?? '' } })}
-                          />
-                        </div>
-                        <div className="field" style={{ marginBottom: 0 }}>
-                          <label>Away score</label>
-                          <input
-                            type="number"
-                            className="input"
-                            style={{ width: 90 }}
-                            value={scores[a.fixture.id]?.away ?? ''}
-                            onChange={(e) => setScores({ ...scores, [a.fixture.id]: { home: scores[a.fixture.id]?.home ?? '', away: e.target.value } })}
-                          />
-                        </div>
-                        <button className="btn btn-primary" onClick={() => handleSubmitResult(a.fixture.id)}>Submit Result</button>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

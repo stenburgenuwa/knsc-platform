@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const auth = requireAuth(request);
   if (!auth.ok) return auth.response;
 
-  const user = await prisma.user.findUnique({ where: { id: auth.user.sub } });
+  const user = await prisma.user.findUnique({ where: { id: auth.user.sub }, include: { club: true } });
   if (!user) {
     return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
   }
@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
       roles: [roleLabel(user.role)],
       permissions: [],
       clubId: user.clubId,
+      clubName: user.club?.name ?? null,
     },
   });
 }
