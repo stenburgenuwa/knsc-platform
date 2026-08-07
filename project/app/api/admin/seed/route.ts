@@ -7,19 +7,21 @@ export const dynamic = 'force-dynamic';
 
 // One-time production bootstrap: loads starter clubs/players/fixtures/news
 // and 5 demo accounts (one per role) into a freshly-migrated, empty
-// database, without requiring Node/npm on the operator's own machine.
+// database. Supports GET with ?secret=... too (not just POST + header) so
+// it can be triggered by visiting a URL in a browser — no terminal needed.
 //
 // Guarded by SEED_SECRET (set it in Vercel env vars, call this once, then
 // delete the env var — it's not needed again and this route becomes a
 // permanent 401 without it). Idempotent: refuses to run if any club
 // already exists, so it can't be used to wipe or duplicate real data.
-export async function POST(request: NextRequest) {
+async function handleSeed(request: NextRequest) {
   const configuredSecret = process.env.SEED_SECRET;
   if (!configuredSecret) {
     return NextResponse.json({ success: false, error: 'SEED_SECRET is not configured' }, { status: 501 });
   }
 
-  const providedSecret = request.headers.get('x-seed-secret');
+  const { searchParams } = new URL(request.url);
+  const providedSecret = request.headers.get('x-seed-secret') || searchParams.get('secret');
   if (providedSecret !== configuredSecret) {
     return NextResponse.json({ success: false, error: 'Invalid seed secret' }, { status: 401 });
   }
@@ -49,4 +51,12 @@ export async function POST(request: NextRequest) {
       note: 'All 5 accounts share this password. Change them after first login. You can now remove the SEED_SECRET env var.',
     },
   });
+}
+
+export async function GET(request: NextRequest) {
+  return handleSeed(request);
+}
+
+export async function POST(request: NextRequest) {
+  return handleSeed(request);
 }
