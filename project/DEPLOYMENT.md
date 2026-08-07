@@ -69,6 +69,19 @@ seed data step and instead create your first Platform Owner directly
 in the `User` table (password must be a bcrypt hash — see
 `prisma/seed.ts` for how it's generated).
 
+### 4b. Player photos and club crests (optional tuning)
+
+Photo uploads work out of the box with **no extra setup**. Images are
+resized in the browser to 256px WebP (typically 8–20 KB) and stored
+directly on the player/club row.
+
+If you later want images served from a CDN instead of the database —
+worth doing once you have a few hundred players — add a Blob store:
+Vercel → **Storage** → **Create** → **Blob**. Vercel injects the
+`BLOB_READ_WRITE_TOKEN` variable automatically; redeploy and new
+uploads go to the CDN. Existing images keep working either way, so
+it's a safe switch to make at any time.
+
 ### 5. Connect your domain
 
 Vercel → Project → Settings → Domains → add your domain, follow the

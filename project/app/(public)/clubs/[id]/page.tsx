@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getClub } from '@/lib/public-api';
+import Avatar from '@/components/Avatar';
 
 function formatDate(value?: string) {
   if (!value) return '';
@@ -50,7 +51,10 @@ export default function ClubProfilePage({ params }: { params: { id: string } }) 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
       <Link href="/clubs" className="btn btn-ghost" style={{ marginBottom: 'var(--space-3)' }}>&larr; Clubs directory</Link>
-      <h1 style={{ fontWeight: 400 }}>{club.name}</h1>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginBottom: 'var(--space-3)' }}>
+        <Avatar src={club.logoUrl} name={club.name} size={72} rounded="soft" />
+        <h1 style={{ fontWeight: 400, margin: 0 }}>{club.name}</h1>
+      </div>
       <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
         {club.yearFounded && <span className="tag tag-neutral">Founded {club.yearFounded}</span>}
         {club.homeVenue?.name && <span className="tag tag-neutral">{club.homeVenue.name}</span>}
@@ -68,12 +72,20 @@ export default function ClubProfilePage({ params }: { params: { id: string } }) 
                   key={p.id}
                   style={{
                     display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'space-between',
+                    gap: 'var(--space-3)',
                     padding: 'var(--space-2) 0',
                     borderBottom: i < club.players.length - 1 ? '1px solid var(--color-divider)' : 'none',
                   }}
                 >
-                  <span>{p.firstName} {p.lastName}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                    <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={36} />
+                    <span>
+                      {p.firstName} {p.lastName}
+                      {p.position && <span className="text-muted" style={{ fontSize: 12 }}> · {p.position}</span>}
+                    </span>
+                  </span>
                   {p.playerNumber && <span className="text-muted">#{p.playerNumber}</span>}
                 </div>
               ))}

@@ -5,9 +5,35 @@ export async function getDashboardSummary() {
   return client.get('/dashboard-summary');
 }
 
-export async function createClub(data: { name: string; shortName?: string; yearFounded?: number }) {
+export async function uploadImage(blob: Blob, kind: 'player' | 'club') {
+  const client = getApiClient();
+  const form = new FormData();
+  form.append('file', blob, `${kind}.webp`);
+  form.append('kind', kind);
+  return client.post('/uploads', form);
+}
+
+export async function createClub(data: {
+  name: string;
+  shortName?: string;
+  yearFounded?: number;
+  logoUrl?: string | null;
+}) {
   const client = getApiClient();
   return client.post('/clubs', data);
+}
+
+export async function updateClub(id: string, data: { logoUrl?: string | null; name?: string }) {
+  const client = getApiClient();
+  return client.patch(`/clubs/${id}`, data);
+}
+
+export async function updatePlayer(
+  id: string,
+  data: { photoUrl?: string | null; firstName?: string; lastName?: string; playerNumber?: number; position?: string }
+) {
+  const client = getApiClient();
+  return client.patch(`/players/${id}`, data);
 }
 
 export async function createUser(data: { email: string; firstName: string; lastName: string; role: string; clubId?: string }) {
@@ -42,6 +68,7 @@ export async function registerPlayer(data: {
   playerNumber?: number;
   position?: string;
   dateOfBirth?: string;
+  photoUrl?: string | null;
 }) {
   const client = getApiClient();
   return client.post('/players', data);

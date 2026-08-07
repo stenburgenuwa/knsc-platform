@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getDashboardSummary, registerPlayer } from '@/lib/admin-api';
+import { getDashboardSummary, registerPlayer, updatePlayer } from '@/lib/admin-api';
 import { getPlayers } from '@/lib/public-api';
 import { useAuthStore } from '@/store/auth';
 import StatCard from '@/components/StatCard';
+import Avatar from '@/components/Avatar';
+import ImageUpload from '@/components/ImageUpload';
+import PhotoButton from '@/components/PhotoButton';
 
 function formatDate(value?: string) {
   if (!value) return '';
@@ -20,7 +23,14 @@ export default function TeamManagerDashboard() {
   const [squad, setSquad] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [playerForm, setPlayerForm] = useState({ firstName: '', lastName: '', playerNumber: '', position: '', dateOfBirth: '' });
+  const [playerForm, setPlayerForm] = useState<{
+    firstName: string;
+    lastName: string;
+    playerNumber: string;
+    position: string;
+    dateOfBirth: string;
+    photoUrl: string | null;
+  }>({ firstName: '', lastName: '', playerNumber: '', position: '', dateOfBirth: '', photoUrl: null });
   const [playerStatus, setPlayerStatus] = useState<string | null>(null);
 
   const load = async () => {
@@ -57,12 +67,22 @@ export default function TeamManagerDashboard() {
         playerNumber: playerForm.playerNumber ? Number(playerForm.playerNumber) : undefined,
         position: playerForm.position || undefined,
         dateOfBirth: playerForm.dateOfBirth || undefined,
+        photoUrl: playerForm.photoUrl,
       });
       setPlayerStatus('Player submitted for League Manager approval.');
-      setPlayerForm({ firstName: '', lastName: '', playerNumber: '', position: '', dateOfBirth: '' });
+      setPlayerForm({ firstName: '', lastName: '', playerNumber: '', position: '', dateOfBirth: '', photoUrl: null });
       load();
     } catch (err: any) {
       setPlayerStatus(err?.response?.data?.error || 'Failed to register player.');
+    }
+  };
+
+  const handleSquadPhoto = async (playerId: string, photoUrl: string | null) => {
+    setSquad((prev) => prev.map((p) => (p.id === playerId ? { ...p, photoUrl } : p)));
+    try {
+      await updatePlayer(playerId, { photoUrl });
+    } catch {
+      load();
     }
   };
 
@@ -115,6 +135,13 @@ export default function TeamManagerDashboard() {
                 <label htmlFor="p-dob">Date of birth</label>
                 <input id="p-dob" type="date" className="input" value={playerForm.dateOfBirth} onChange={(e) => setPlayerForm({ ...playerForm, dateOfBirth: e.target.value })} />
               </div>
+              <ImageUpload
+                label="Player photo"
+                kind="player"
+                name={`${playerForm.firstName} ${playerForm.lastName}`.trim()}
+                value={playerForm.photoUrl}
+                onChange={(url) => setPlayerForm({ ...playerForm, photoUrl: url })}
+              />
               <button type="submit" className="btn btn-primary btn-block">Submit for Approval</button>
               {playerStatus && <p className="card-meta">{playerStatus}</p>}
             </form>
@@ -126,16 +153,22 @@ export default function TeamManagerDashboard() {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {squad.map((p, i) => (
-                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-2) 0', borderBottom: i < squad.length - 1 ? '1px solid var(--color-divider)' : 'none' }}>
-                      <div>
-                        <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>
-                          {p.playerNumber ? `#${p.playerNumber} ` : ''}{p.firstName} {p.lastName}
-                        </p>
-                        <p className="card-meta">
-                          {[p.position, p.dateOfBirth ? `Born ${formatDate(p.dateOfBirth)}` : null].filter(Boolean).join(' · ')}
-                        </p>
+                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-2) 0', borderBottom: i < squad.length - 1 ? '1px solid var(--color-divider)' : 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
+                        <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={40} />
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>
+                            {p.playerNumber ? `#${p.playerNumber} ` : ''}{p.firstName} {p.lastName}
+                          </p>
+                          <p className="card-meta">
+                            {[p.position, p.dateOfBirth ? `Born ${formatDate(p.dateOfBirth)}` : null].filter(Boolean).join(' · ')}
+                          </p>
+                        </div>
                       </div>
-                      {p.approved ? <span className="tag tag-accent">Approved</span> : <span className="tag tag-neutral">Pending</span>}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        <PhotoButton id={p.id} currentUrl={p.photoUrl} kind="player" onChange={handleSquadPhoto} />
+                        {p.approved ? <span className="tag tag-accent">Approved</span> : <span className="tag tag-neutral">Pending</span>}
+                      </div>
                     </div>
                   ))}
                 </div>

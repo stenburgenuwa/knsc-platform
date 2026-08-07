@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, shortName, yearFounded, homeVenueId, email, phone } = body;
+    const { name, shortName, yearFounded, homeVenueId, email, phone, logoUrl } = body;
 
     if (!name) {
       return NextResponse.json({ success: false, error: 'name is required' }, { status: 400 });
@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
         shortName: shortName || null,
         yearFounded: yearFounded ? Number(yearFounded) : null,
         homeVenueId: homeVenueId || null,
+        logoUrl: logoUrl || null,
         email: email || null,
         phone: phone || null,
       },

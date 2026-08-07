@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getFixtures, getResults, getStandings, getNews } from '@/lib/public-api';
+import Avatar from '@/components/Avatar';
 
 function clubName(club: any) {
   return club?.clubName || club?.name || 'TBC';
@@ -114,13 +115,19 @@ export default function HomePage() {
             {results.map((result: any) => (
               <div key={result.id} className="card elev-sm">
                 <span className="tag tag-neutral" style={{ alignSelf: 'flex-start' }}>Full time</span>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'var(--font-heading)' }}>
-                  <span>{clubName(result.homeClub)}</span>
-                  <strong>{result.matchReport?.homeScore ?? result.homeScore ?? '-'}</strong>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)', fontFamily: 'var(--font-heading)' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
+                    <Avatar src={result.homeClub?.logoUrl} name={clubName(result.homeClub)} size={22} rounded="soft" />
+                    {clubName(result.homeClub)}
+                  </span>
+                  <strong>{result.homeScore ?? '-'}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'var(--font-heading)' }}>
-                  <span>{clubName(result.awayClub)}</span>
-                  <strong>{result.matchReport?.awayScore ?? result.awayScore ?? '-'}</strong>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)', fontFamily: 'var(--font-heading)' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
+                    <Avatar src={result.awayClub?.logoUrl} name={clubName(result.awayClub)} size={22} rounded="soft" />
+                    {clubName(result.awayClub)}
+                  </span>
+                  <strong>{result.awayScore ?? '-'}</strong>
                 </div>
                 <p className="card-meta">{formatDate(result.fixtureDate || result.date)}</p>
               </div>
@@ -140,10 +147,16 @@ export default function HomePage() {
             {fixtures.map((fixture: any) => (
               <div key={fixture.id} className="card elev-sm">
                 <p className="card-meta">{formatDate(fixture.fixtureDate || fixture.date)}</p>
-                <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{clubName(fixture.homeClub)}</span>
-                  <span className="text-muted" style={{ fontSize: 13 }}>vs</span>
-                  <span>{clubName(fixture.awayClub)}</span>
+                <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
+                    <Avatar src={fixture.homeClub?.logoUrl} name={clubName(fixture.homeClub)} size={22} rounded="soft" />
+                    {clubName(fixture.homeClub)}
+                  </span>
+                  <span className="text-muted" style={{ fontSize: 13, flex: 'none' }}>vs</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
+                    <Avatar src={fixture.awayClub?.logoUrl} name={clubName(fixture.awayClub)} size={22} rounded="soft" />
+                    {clubName(fixture.awayClub)}
+                  </span>
                 </div>
                 <p className="card-meta">{fixture.venue?.name || ''}</p>
               </div>
@@ -176,7 +189,12 @@ export default function HomePage() {
                 {standings.slice(0, 5).map((row: any, index: number) => (
                   <tr key={row.id}>
                     <td>{index + 1}</td>
-                    <td style={{ fontFamily: 'var(--font-heading)' }}>{row.clubName || row.name}</td>
+                    <td style={{ fontFamily: 'var(--font-heading)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        <Avatar src={row.logoUrl} name={row.clubName || row.name} size={24} rounded="soft" />
+                        {row.clubName || row.name}
+                      </span>
+                    </td>
                     <td>{row.played}</td>
                     <td>{row.won}</td>
                     <td>{row.drawn}</td>

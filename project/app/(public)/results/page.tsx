@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getResults } from '@/lib/public-api';
 import Pagination from '@/components/Pagination';
+import Avatar from '@/components/Avatar';
 
 function clubName(club: any) {
   return club?.clubName || club?.name || 'TBC';
@@ -51,16 +52,22 @@ export default function ResultsPage() {
           <div key={result.id} className="card elev-sm" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ flex: 1 }}>
               <p className="card-meta" style={{ marginBottom: 'var(--space-1)' }}>{formatDate(result.fixtureDate || result.date)}</p>
-              <p style={{ fontFamily: 'var(--font-heading)' }}>{clubName(result.homeClub)}</p>
+              <p style={{ fontFamily: 'var(--font-heading)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', margin: 0 }}>
+                <Avatar src={result.homeClub?.logoUrl} name={clubName(result.homeClub)} size={24} rounded="soft" />
+                {clubName(result.homeClub)}
+              </p>
             </div>
             <div style={{ textAlign: 'center', padding: '0 var(--space-4)', fontFamily: 'var(--font-heading)', fontSize: 24 }}>
-              {result.matchReport?.homeScore ?? result.homeScore ?? '-'}
+              {result.homeScore ?? '-'}
               <span className="text-muted" style={{ fontSize: 14 }}> &ndash; </span>
-              {result.matchReport?.awayScore ?? result.awayScore ?? '-'}
+              {result.awayScore ?? '-'}
             </div>
-            <div style={{ flex: 1, textAlign: 'right' }}>
+            <div style={{ flex: 1 }}>
               <p className="card-meta" style={{ marginBottom: 'var(--space-1)' }}>&nbsp;</p>
-              <p style={{ fontFamily: 'var(--font-heading)' }}>{clubName(result.awayClub)}</p>
+              <p style={{ fontFamily: 'var(--font-heading)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', justifyContent: 'flex-end', margin: 0 }}>
+                {clubName(result.awayClub)}
+                <Avatar src={result.awayClub?.logoUrl} name={clubName(result.awayClub)} size={24} rounded="soft" />
+              </p>
             </div>
           </div>
         ))}

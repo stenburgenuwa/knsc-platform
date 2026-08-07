@@ -73,6 +73,7 @@ model Club {
   yearFounded Int?
   homeVenueId String?
   homeVenue   Venue?   @relation(fields: [homeVenueId], references: [id])
+  logoUrl     String?  @db.Text
   email       String?
   phone       String?
   createdAt   DateTime @default(now())
@@ -94,6 +95,7 @@ model Player {
   playerNumber Int?
   position     String?
   dateOfBirth  DateTime?
+  photoUrl     String?   @db.Text
   goals        Int       @default(0)
   approved     Boolean   @default(true)
   createdAt    DateTime  @default(now())

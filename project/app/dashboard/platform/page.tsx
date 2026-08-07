@@ -1,8 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getDashboardSummary, createClub, createUser, getPendingPlayers, approvePlayer } from '@/lib/admin-api';
+import { getDashboardSummary, createClub, createUser, getPendingPlayers, approvePlayer, updateClub } from '@/lib/admin-api';
+import { getClubs } from '@/lib/public-api';
 import StatCard from '@/components/StatCard';
+import Avatar from '@/components/Avatar';
+import ImageUpload from '@/components/ImageUpload';
+import PhotoButton from '@/components/PhotoButton';
 
 const ROLE_OPTIONS = ['LEAGUE_MANAGER', 'TEAM_MANAGER', 'REFEREE', 'REFEREE_MANAGER'];
 
@@ -11,7 +15,13 @@ export default function PlatformOwnerDashboard() {
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<any[]>([]);
 
-  const [clubForm, setClubForm] = useState({ name: '', shortName: '', yearFounded: '' });
+  const [clubs, setClubs] = useState<any[]>([]);
+  const [clubForm, setClubForm] = useState<{ name: string; shortName: string; yearFounded: string; logoUrl: string | null }>({
+    name: '',
+    shortName: '',
+    yearFounded: '',
+    logoUrl: null,
+  });
   const [clubStatus, setClubStatus] = useState<string | null>(null);
 
   const [userForm, setUserForm] = useState({ email: '', firstName: '', lastName: '', role: ROLE_OPTIONS[0] });
@@ -19,9 +29,14 @@ export default function PlatformOwnerDashboard() {
 
   const load = async () => {
     try {
-      const [summary, pendingRes] = await Promise.all([getDashboardSummary(), getPendingPlayers()]);
+      const [summary, pendingRes, clubsRes] = await Promise.all([
+        getDashboardSummary(),
+        getPendingPlayers(),
+        getClubs(1, 100),
+      ]);
       setData(summary.data?.data);
       setPending((pendingRes.data?.data || []).filter((p: any) => !p.approved));
+      setClubs(clubsRes.data?.data || []);
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
@@ -41,12 +56,22 @@ export default function PlatformOwnerDashboard() {
         name: clubForm.name,
         shortName: clubForm.shortName || undefined,
         yearFounded: clubForm.yearFounded ? Number(clubForm.yearFounded) : undefined,
+        logoUrl: clubForm.logoUrl,
       });
       setClubStatus(`"${clubForm.name}" created.`);
-      setClubForm({ name: '', shortName: '', yearFounded: '' });
+      setClubForm({ name: '', shortName: '', yearFounded: '', logoUrl: null });
       load();
     } catch (err: any) {
       setClubStatus(err?.response?.data?.error || 'Failed to create club.');
+    }
+  };
+
+  const handleClubLogo = async (clubId: string, logoUrl: string | null) => {
+    setClubs((prev) => prev.map((c) => (c.id === clubId ? { ...c, logoUrl } : c)));
+    try {
+      await updateClub(clubId, { logoUrl });
+    } catch {
+      load();
     }
   };
 
@@ -97,6 +122,14 @@ export default function PlatformOwnerDashboard() {
                 <label htmlFor="club-year">Year founded</label>
                 <input id="club-year" type="number" className="input" value={clubForm.yearFounded} onChange={(e) => setClubForm({ ...clubForm, yearFounded: e.target.value })} />
               </div>
+              <ImageUpload
+                label="Club crest"
+                kind="club"
+                rounded="soft"
+                name={clubForm.name}
+                value={clubForm.logoUrl}
+                onChange={(url) => setClubForm({ ...clubForm, logoUrl: url })}
+              />
               <button type="submit" className="btn btn-primary btn-block">Create Club</button>
               {clubStatus && <p className="card-meta">{clubStatus}</p>}
             </form>
@@ -138,11 +171,34 @@ export default function PlatformOwnerDashboard() {
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {pending.map((p, i) => (
                   <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-2) 0', borderBottom: i < pending.length - 1 ? '1px solid var(--color-divider)' : 'none' }}>
-                    <div>
-                      <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>{p.firstName} {p.lastName}</p>
-                      <p className="card-meta">{p.club?.name}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                      <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={36} />
+                      <div>
+                        <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>{p.firstName} {p.lastName}</p>
+                        <p className="card-meta">{p.club?.name}</p>
+                      </div>
                     </div>
                     <button className="btn btn-primary" onClick={() => handleApprove(p.id)}>Approve</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="card elev-sm" style={{ marginTop: 'var(--space-4)' }}>
+            <h3 className="card-title">Club Crests</h3>
+            <p className="card-meta">Upload a crest for any club — it appears across the public site.</p>
+            {clubs.length === 0 ? (
+              <p className="card-meta">No clubs registered yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'var(--space-2)' }}>
+                {clubs.map((c) => (
+                  <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-3)', padding: 'var(--space-2) 0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
+                      <Avatar src={c.logoUrl} name={c.name} size={40} rounded="soft" />
+                      <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>{c.name}</p>
+                    </div>
+                    <PhotoButton id={c.id} currentUrl={c.logoUrl} kind="club" onChange={handleClubLogo} />
                   </div>
                 ))}
               </div>

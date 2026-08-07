@@ -11,11 +11,13 @@ export interface StandingsFixture {
 export interface StandingsClub {
   id: string;
   name: string;
+  logoUrl?: string | null;
 }
 
 export interface StandingsRow {
   id: string;
   clubName: string;
+  logoUrl: string | null;
   played: number;
   won: number;
   drawn: number;
@@ -33,6 +35,7 @@ export function computeStandings(clubs: StandingsClub[], completedFixtures: Stan
       {
         id: club.id,
         clubName: club.name,
+        logoUrl: club.logoUrl ?? null,
         played: 0,
         won: 0,
         drawn: 0,

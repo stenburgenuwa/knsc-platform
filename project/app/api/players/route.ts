@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { clubId, firstName, lastName, playerNumber, position, dateOfBirth } = body;
+    const { clubId, firstName, lastName, playerNumber, position, dateOfBirth, photoUrl } = body;
 
     if (!clubId || !firstName || !lastName) {
       return NextResponse.json(
@@ -90,6 +90,7 @@ export async function POST(request: NextRequest) {
         playerNumber: playerNumber ? Number(playerNumber) : null,
         position: position || null,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+        photoUrl: photoUrl || null,
         approved,
       },
       include: { club: true },

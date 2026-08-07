@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getStandings } from '@/lib/public-api';
+import Avatar from '@/components/Avatar';
 
 export default function StandingsPage() {
   const [standings, setStandings] = useState<any[]>([]);
@@ -56,7 +57,12 @@ export default function StandingsPage() {
                 return (
                   <tr key={team.id}>
                     <td>{team.position || index + 1}</td>
-                    <td style={{ fontFamily: 'var(--font-heading)' }}>{team.clubName || team.name}</td>
+                    <td style={{ fontFamily: 'var(--font-heading)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        <Avatar src={team.logoUrl} name={team.clubName || team.name} size={24} rounded="soft" />
+                        {team.clubName || team.name}
+                      </span>
+                    </td>
                     <td>{played}</td>
                     <td>{won}</td>
                     <td>{drawn}</td>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getFixtures } from '@/lib/public-api';
 import Pagination from '@/components/Pagination';
+import Avatar from '@/components/Avatar';
 
 function clubName(club: any) {
   return club?.clubName || club?.name || 'TBC';
@@ -50,10 +51,16 @@ export default function FixturesPage() {
         {fixtures.map((fixture: any) => (
           <div key={fixture.id} className="card elev-sm">
             <p className="card-meta">{formatDate(fixture.fixtureDate || fixture.date)}</p>
-            <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>{clubName(fixture.homeClub)}</span>
-              <span className="text-muted" style={{ fontSize: 12 }}>vs</span>
-              <span>{clubName(fixture.awayClub)}</span>
+            <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
+                <Avatar src={fixture.homeClub?.logoUrl} name={clubName(fixture.homeClub)} size={22} rounded="soft" />
+                {clubName(fixture.homeClub)}
+              </span>
+              <span className="text-muted" style={{ fontSize: 12, flex: 'none' }}>vs</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
+                <Avatar src={fixture.awayClub?.logoUrl} name={clubName(fixture.awayClub)} size={22} rounded="soft" />
+                {clubName(fixture.awayClub)}
+              </span>
             </div>
             <p className="card-meta">{fixture.venue?.name || 'Venue TBC'}</p>
             <p className="card-meta">{fixture.kickoffTime || ''}</p>

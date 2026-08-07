@@ -1,7 +1,38 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAuth } from '@/lib/auth-guard';
 
 export const dynamic = 'force-dynamic';
+
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  const auth = requireAuth(request, ['PLATFORM_OWNER', 'LEAGUE_MANAGER']);
+  if (!auth.ok) return auth.response;
+
+  try {
+    const { name, shortName, yearFounded, homeVenueId, email, phone, logoUrl } = await request.json();
+
+    const club = await prisma.club.update({
+      where: { id: params.id },
+      data: {
+        ...(name !== undefined ? { name } : {}),
+        ...(shortName !== undefined ? { shortName: shortName || null } : {}),
+        ...(yearFounded !== undefined ? { yearFounded: yearFounded ? Number(yearFounded) : null } : {}),
+        ...(homeVenueId !== undefined ? { homeVenueId: homeVenueId || null } : {}),
+        ...(email !== undefined ? { email: email || null } : {}),
+        ...(phone !== undefined ? { phone: phone || null } : {}),
+        ...(logoUrl !== undefined ? { logoUrl: logoUrl || null } : {}),
+      },
+      include: { homeVenue: true },
+    });
+
+    return NextResponse.json({ success: true, data: club });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Failed to update club' },
+      { status: 500 }
+    );
+  }
+}
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const club = await prisma.club.findUnique({

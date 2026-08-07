@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getPlayers } from '@/lib/public-api';
 import Pagination from '@/components/Pagination';
+import Avatar from '@/components/Avatar';
 
 export default function PlayersPage() {
   const [players, setPlayers] = useState<any[]>([]);
@@ -37,11 +38,18 @@ export default function PlayersPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4" style={{ gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
         {players.map((player: any) => (
-          <div key={player.id} className="card elev-sm" style={{ textAlign: 'center' }}>
+          <div key={player.id} className="card elev-sm" style={{ textAlign: 'center', alignItems: 'center' }}>
+            <Avatar
+              src={player.photoUrl}
+              name={`${player.firstName || ''} ${player.lastName || ''}`.trim()}
+              size={88}
+            />
             <h4 className="card-title">
-              {player.preferredName || `${player.firstName || ''} ${player.lastName || ''}`.trim() || player.name}
+              {`${player.firstName || ''} ${player.lastName || ''}`.trim()}
             </h4>
-            <p className="card-meta" style={{ justifyContent: 'center' }}>{player.club?.name}</p>
+            <p className="card-meta" style={{ justifyContent: 'center' }}>
+              {[player.club?.name, player.position].filter(Boolean).join(' · ')}
+            </p>
             {player.playerNumber && (
               <span className="tag tag-accent" style={{ alignSelf: 'center' }}>#{player.playerNumber}</span>
             )}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getClubs } from '@/lib/public-api';
+import Avatar from '@/components/Avatar';
 
 export default function ClubsPage() {
   const [clubs, setClubs] = useState<any[]>([]);
@@ -32,7 +33,10 @@ export default function ClubsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: 'var(--space-4)' }}>
         {clubs.map((club: any) => (
           <div key={club.id} className="card elev-sm">
-            <h3 className="card-title">{club.clubName || club.name}</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+              <Avatar src={club.logoUrl} name={club.name} size={48} rounded="soft" />
+              <h3 className="card-title" style={{ margin: 0 }}>{club.name}</h3>
+            </div>
             {club.yearFounded && (
               <p className="card-meta">
                 <strong>Founded:</strong> {club.yearFounded}
