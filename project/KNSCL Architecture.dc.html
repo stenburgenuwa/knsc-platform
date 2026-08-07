@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/classical-223fc214-74fb-4bf9-9d54-47519202d495/styles.css">
+  <script src="_ds/classical-223fc214-74fb-4bf9-9d54-47519202d495/_ds_bundle.js"></script>
+  <script src="./doc-page.js"></script>
+  <style>doc-page:not(:defined){visibility:hidden}
+    .arch-table{width:100%;border-collapse:collapse;margin:var(--space-4) 0}
+    .arch-table th,.arch-table td{text-align:left;padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--color-divider);font-family:var(--font-body);font-size:14px;vertical-align:top}
+    .arch-table th{font-family:var(--font-heading);font-weight:var(--font-heading-weight);color:var(--color-accent-700);border-bottom:1px solid var(--color-text)}
+    .arch-code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.6;white-space:pre;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:var(--space-4);break-inside:avoid}
+    .arch-h1{font-family:var(--font-heading);font-weight:400;font-size:36px;color:var(--color-text);margin:0}
+    .arch-kicker{font-family:var(--font-body);font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-accent-700);margin:0 0 var(--space-2)}
+    .arch-h2{font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:24px;color:var(--color-text);margin:var(--space-8) 0 var(--space-2);border-bottom:1px solid var(--color-divider);padding-bottom:var(--space-2)}
+    .arch-p{font-family:var(--font-body);font-size:15px;line-height:1.7;color:var(--color-text);text-align:justify;text-wrap:pretty;margin:var(--space-2) 0}
+    .arch-note{font-family:var(--font-body);font-style:italic;font-size:14px;color:var(--color-accent-700);border-left:2px solid var(--color-accent);padding-left:var(--space-3);margin:var(--space-4) 0}
+  </style>
+</helmet>
+<doc-page margin="0.85in">
+  <p class="arch-kicker">Kenya National Sub County League — Platform Architecture</p>
+  <h1 class="arch-h1">Software Architecture &amp; Implementation Roadmap</h1>
+  <p class="arch-p">This document specifies the architecture for the KNSCL Platform prior to implementation, per the project's database-first, API-first, and clean-architecture mandates. The Kilifi County pilot is the first deployment, not the design boundary: every entity below scopes through <strong>county → league → season</strong> so additional counties, competitions and federations attach without schema changes.</p>
+
+  <h2 class="arch-h2">1. Layered Architecture</h2>
+  <p class="arch-p">Responsibilities stay strictly separated. Each layer depends only on the one below it, never the reverse.</p>
+  <div class="arch-code">Presentation        Mobile-first web UI (public site + role dashboards)
+        ↓
+Business Logic     Feature use-cases, validation, workflow rules
+        ↓
+Services           Standings calc, notifications, media, auth
+        ↓
+Repositories       Typed data-access layer (one per entity)
+        ↓
+Database           PostgreSQL, county/league-scoped throughout</div>
+  <p class="arch-p">The frontend never queries the database or embeds business rules — it calls versioned REST/GraphQL endpoints and renders their responses. Every write passes through a repository, never raw SQL from a controller.</p>
+
+  <h2 class="arch-h2">2. Project Structure</h2>
+  <div class="arch-code">KNSCL/
+  README.md
+  docs/
+  tasks/
+  src/
+    components/       shared UI: DataTable, Card, StatusTag, FixtureCard,
+                       PlayerCard, ScoreInput, FormField, Dialog, EmptyState
+    layouts/           RoleShell, PublicShell, AuthShell
+    pages/             route-level screens per role
+    features/
+      clubs/ players/ fixtures/ team-sheets/
+      referees/ match-reports/ standings/ news/ notifications/
+    hooks/             useAuth, usePermissions, useLeagueScope
+    services/           business logic + workflow orchestration
+    repositories/       one per entity, DB-agnostic interface
+    database/           migrations, seeders (seed data is never Kilifi-only)
+    api/                route handlers, request/response schemas
+  public/
+  assets/
+  uploads/               player photos, match report attachments
+  notifications/         SMS/templates, delivery log
+  tests/
+  deployment/
+  scripts/</div>
+
+  <h2 class="arch-h2">3. Database Architecture</h2>
+  <p class="arch-p">Core entities, all scoped by county and league so a second county is a new row, not a new deployment.</p>
+  <table class="arch-table">
+    <tr><th>Table</th><th>Key columns</th><th>Notes</th></tr>
+    <tr><td>counties</td><td>id, name, code</td><td>Kilifi is a row here, never a constant</td></tr>
+    <tr><td>leagues</td><td>id, county_id, name, tier, competition_type</td><td>tier/competition_type covers youth, women's, tournament formats</td></tr>
+    <tr><td>seasons</td><td>id, league_id, name, starts_on, ends_on, status</td><td>fixtures, standings and registrations all key off season_id</td></tr>
+    <tr><td>users</td><td>id, name, email, phone, password_hash, role</td><td>role enum: platform_owner, league_manager, referee_manager, team_manager, referee, public</td></tr>
+    <tr><td>clubs</td><td>id, league_id, name, badge_url, manager_user_id</td><td></td></tr>
+    <tr><td>players</td><td>id, club_id, name, dob, position, jersey_number, photo_url, status</td><td>status: pending / registered / suspended</td></tr>
+    <tr><td>referees</td><td>id, user_id, certification_level, county_id</td><td>managed by referee_manager</td></tr>
+    <tr><td>fixtures</td><td>id, season_id, home_club_id, away_club_id, venue, kickoff_at, referee_id, status</td><td>status: scheduled / postponed / completed / abandoned</td></tr>
+    <tr><td>team_sheets</td><td>id, fixture_id, club_id, submitted_by, submitted_at</td><td></td></tr>
+    <tr><td>team_sheet_players</td><td>team_sheet_id, player_id, is_starting, shirt_number</td><td></td></tr>
+    <tr><td>match_reports</td><td>id, fixture_id, referee_id, home_score, away_score, notes, submitted_at</td><td>drives standings recalculation</td></tr>
+    <tr><td>match_events</td><td>id, match_report_id, player_id, type, minute</td><td>type: goal / yellow_card / red_card — feeds top scorers</td></tr>
+    <tr><td>news_posts</td><td>id, league_id, author_id, title, body, published_at</td><td>public-facing, league-scoped</td></tr>
+    <tr><td>notifications</td><td>id, user_id, channel, message, status, sent_at</td><td>channel: sms / in_app</td></tr>
+    <tr><td>audit_log</td><td>id, user_id, action, entity, entity_id, at</td><td>required for security-first mandate</td></tr>
+  </table>
+  <p class="arch-p">League standings and top-scorer lists are not stored — they are derived views computed by the Standings service from match_reports and match_events, so re-running a season's calculation is always safe.</p>
+
+  <h2 class="arch-h2">4. Reusable UI Components</h2>
+  <table class="arch-table">
+    <tr><th>Component</th><th>Used for</th></tr>
+    <tr><td>DataTable</td><td>League tables, referee rosters, admin lists — sortable, paginated</td></tr>
+    <tr><td>FixtureCard</td><td>Upcoming/result display, shared by public site and manager dashboards</td></tr>
+    <tr><td>PlayerCard / PlayerRow</td><td>Squad lists, team-sheet builder, top scorers</td></tr>
+    <tr><td>StatusTag</td><td>Fixture status, player registration status, report state</td></tr>
+    <tr><td>ScoreInput</td><td>Referee match-report scoreline + event entry</td></tr>
+    <tr><td>RoleShell / RoleNav</td><td>Per-role dashboard chrome, permission-aware menu</td></tr>
+    <tr><td>FormField / Dialog / EmptyState</td><td>Shared across every create/edit flow</td></tr>
+  </table>
+
+  <h2 class="arch-h2">5. Backend Services</h2>
+  <table class="arch-table">
+    <tr><th>Service</th><th>Responsibility</th></tr>
+    <tr><td>AuthService</td><td>Login, session/token issuance, password reset</td></tr>
+    <tr><td>PermissionService</td><td>Role + league-scope checks enforced on every request</td></tr>
+    <tr><td>ClubService / PlayerService</td><td>Registration workflows, eligibility rules</td></tr>
+    <tr><td>FixtureService</td><td>Scheduling, postponement, venue conflicts</td></tr>
+    <tr><td>RefereeAssignmentService</td><td>Matches referees to fixtures, conflict checks</td></tr>
+    <tr><td>TeamSheetService</td><td>Submission window rules, squad validation</td></tr>
+    <tr><td>MatchReportService</td><td>Report capture, locks fixture on submission</td></tr>
+    <tr><td>StandingsService</td><td>Computes league table + top scorers from reports</td></tr>
+    <tr><td>NewsService</td><td>Publishing workflow for league news</td></tr>
+    <tr><td>NotificationService</td><td>SMS gateway abstraction (provider-agnostic), in-app alerts</td></tr>
+  </table>
+
+  <h2 class="arch-h2">6. API Groups</h2>
+  <p class="arch-p">All versioned under <code>/api/v1</code>, all authorization-checked server-side regardless of what the client hides.</p>
+  <div class="arch-code">/auth              login, logout, refresh, password-reset
+/counties          list/create (platform owner)
+/leagues           list/create/update, scoped by county
+/seasons           per league
+/clubs             CRUD, scoped by league
+/players           registration, roster, status changes
+/referees          roster, certification
+/fixtures          scheduling, postponement, status
+/fixtures/:id/assignment    referee assignment
+/fixtures/:id/team-sheet    submission + retrieval
+/fixtures/:id/report        match report submission
+/standings         computed league table, per season
+/top-scorers       computed, per season
+/news              CRUD + publish
+/notifications     send + delivery log</div>
+
+  <h2 class="arch-h2">7. User Roles</h2>
+  <table class="arch-table">
+    <tr><th>Role</th><th>Can do</th></tr>
+    <tr><td>Platform Owner</td><td>Create counties/leagues, manage all users, full visibility</td></tr>
+    <tr><td>League Manager</td><td>Manage clubs, seasons, fixtures, news for their league</td></tr>
+    <tr><td>Referee Manager</td><td>Manage referee roster, assign referees to fixtures</td></tr>
+    <tr><td>Team Manager</td><td>Register players, submit team sheets for their club</td></tr>
+    <tr><td>Referee</td><td>View assignments, submit match reports</td></tr>
+    <tr><td>Public Visitor</td><td>Read-only: fixtures, results, tables, news</td></tr>
+  </table>
+
+  <h2 class="arch-h2">8. Implementation Roadmap</h2>
+  <table class="arch-table">
+    <tr><th>Phase</th><th>Delivers</th></tr>
+    <tr><td>0 — Foundations</td><td>Auth, roles, county/league/season data model, permission middleware</td></tr>
+    <tr><td>1 — Clubs &amp; Players</td><td>Club onboarding, player registration and eligibility</td></tr>
+    <tr><td>2 — Fixtures &amp; Referees</td><td>Fixture scheduling, referee roster and assignment</td></tr>
+    <tr><td>3 — Match Day</td><td>Team sheet submission, match report capture</td></tr>
+    <tr><td>4 — Standings &amp; Stats</td><td>League table, top scorers, computed from reports</td></tr>
+    <tr><td>5 — Public Website</td><td>Fixtures, results, table, news, read-only public views</td></tr>
+    <tr><td>6 — Notifications</td><td>SMS delivery for fixtures, results, assignments</td></tr>
+    <tr><td>7 — Kilifi Pilot Launch</td><td>Single league live end-to-end</td></tr>
+    <tr><td>8 — Expansion</td><td>Second county onboarded with zero schema change, validating the architecture</td></tr>
+  </table>
+
+  <h2 class="arch-h2">9. Recommendations Before Development Begins</h2>
+  <p class="arch-p">A few refinements to the brief worth deciding now rather than mid-build:</p>
+  <p class="arch-p"><strong>Multi-tenancy by construction.</strong> Every table above carries a path back to county → league → season. Enforce this scope in the PermissionService, not per-page, so a League Manager literally cannot query another league's data.</p>
+  <p class="arch-p"><strong>Standings as derived data.</strong> Never let editors hand-edit a league table — store match reports and events, compute the table. This also makes corrections (an overturned result) safe and auditable.</p>
+  <p class="arch-p"><strong>Offline-tolerant team sheets.</strong> Team managers and referees will often be at a pitch with poor signal. Team-sheet and match-report forms should queue submissions locally and sync when connectivity returns.</p>
+  <p class="arch-p"><strong>SMS as a swappable provider.</strong> Wrap the SMS gateway behind NotificationService so a Kenyan aggregator (e.g. Africa's Talking) can be swapped without touching calling code.</p>
+  <p class="arch-p"><strong>Seed data stays generic.</strong> Database seeders should generate a fictional county/league/clubs by default; Kilifi's real clubs and fixtures load as a separate, explicitly-loaded pilot dataset.</p>
+</doc-page>
+</x-dc>
+</body>
+</html>

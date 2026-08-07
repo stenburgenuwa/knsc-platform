@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KNSCL - Kenya National Sub County League</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      background: #f5f7fa;
+      color: #2d3748;
+      line-height: 1.6;
+    }
+    
+    /* Header & Navigation */
+    header {
+      background: linear-gradient(135deg, #0f2744 0%, #1a3a52 100%);
+      color: white;
+      padding: 1.5rem 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .logo-icon {
+      font-size: 2rem;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    }
+    
+    nav {
+      display: flex;
+      gap: 3rem;
+    }
+    
+    nav button {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      padding: 0.5rem 0;
+      position: relative;
+      transition: all 0.3s;
+    }
+    
+    nav button:after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: #fbbf24;
+      transition: width 0.3s;
+    }
+    
+    nav button:hover:after {
+      width: 100%;
+    }
+    
+    nav button:hover {
+      color: #fbbf24;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+    
+    /* Hero Section */
+    .hero {
+      background: linear-gradient(135deg, #0f2744 0%, #1a3a52 50%, #2d5a7b 100%);
+      color: white;
+      padding: 5rem 2rem;
+      border-radius: 12px;
+      margin-bottom: 4rem;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(15, 39, 68, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(251, 191, 36, 0.1) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+    
+    .hero h1 {
+      font-size: 3.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      letter-spacing: -1px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    .hero p {
+      font-size: 1.25rem;
+      margin-bottom: 2rem;
+      opacity: 0.95;
+      font-weight: 300;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      color: #0f2744;
+      padding: 1rem 2.5rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3);
+      transition: all 0.3s;
+      display: inline-block;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(251, 191, 36, 0.4);
+    }
+    
+    /* Sections */
+    h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 3rem 0 1.5rem 0;
+      color: #0f2744;
+      position: relative;
+      padding-bottom: 1rem;
+      border-bottom: 3px solid #fbbf24;
+      display: inline-block;
+    }
+    
+    /* News Grid */
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 2rem;
+      margin: 2rem 0 3rem 0;
+    }
+    
+    .news-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: all 0.3s;
+      border-left: 4px solid #fbbf24;
+    }
+    
+    .news-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+    }
+    
+    .news-card-content {
+      padding: 1.5rem;
+    }
+    
+    .news-card h3 {
+      font-size: 1.25rem;
+      color: #0f2744;
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+    
+    .news-card p {
+      color: #4a5568;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+    
+    .news-date {
+      font-size: 0.85rem;
+      color: #a0aec0;
+      font-weight: 500;
+    }
+    
+    /* Results Section */
+    .results-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin: 2rem 0 3rem 0;
+    }
+    
+    .result-match {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      text-align: center;
+      transition: all 0.3s;
+      border-top: 4px solid #0f2744;
+    }
+    
+    .result-match:hover {
+      box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+    }
+    
+    .result-teams {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      margin: 1rem 0;
+    }
+    
+    .result-team {
+      flex: 1;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #2d3748;
+    }
+    
+    .result-score {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #fbbf24;
+      margin: 0 1.5rem;
+      min-width: 80px;
+    }
+    
+    /* Tables */
+    .table-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      overflow: hidden;
+      margin: 2rem 0 3rem 0;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    thead {
+      background: linear-gradient(135deg, #0f2744 0%, #1a3a52 100%);
+      color: white;
+    }
+    
+    th {
+      padding: 1.25rem;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.95rem;
+      letter-spacing: 0.5px;
+    }
+    
+    td {
+      padding: 1.25rem;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.95rem;
+    }
+    
+    tbody tr {
+      transition: background 0.2s;
+    }
+    
+    tbody tr:hover {
+      background: #f7fafc;
+    }
+    
+    tbody tr:nth-child(1) {
+      background: linear-gradient(90deg, rgba(251, 191, 36, 0.1) 0%, transparent 100%);
+    }
+    
+    .rank-1 {
+      font-weight: 700;
+      color: #fbbf24;
+    }
+    
+    /* Fixtures Table */
+    .fixture-match {
+      display: grid;
+      grid-template-columns: 100px 1fr 150px 80px;
+      gap: 1rem;
+      align-items: center;
+      padding: 1.5rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .fixture-match:last-child {
+      border-bottom: none;
+    }
+    
+    .fixture-match:hover {
+      background: #f7fafc;
+    }
+    
+    .fixture-date {
+      font-weight: 600;
+      color: #0f2744;
+    }
+    
+    .fixture-teams {
+      text-align: center;
+    }
+    
+    .fixture-time {
+      text-align: right;
+      color: #718096;
+      font-size: 0.9rem;
+    }
+    
+    /* Clubs Grid */
+    .clubs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin: 2rem 0;
+    }
+    
+    .club-card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: all 0.3s;
+      border-top: 5px solid #0f2744;
+    }
+    
+    .club-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+      border-top-color: #fbbf24;
+    }
+    
+    .club-card h3 {
+      font-size: 1.4rem;
+      color: #0f2744;
+      margin-bottom: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .club-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .club-info p {
+      font-size: 0.95rem;
+      color: #4a5568;
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .club-label {
+      font-weight: 600;
+      color: #0f2744;
+    }
+    
+    .page {
+      display: none;
+    }
+    
+    .page.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      nav { gap: 1rem; }
+      nav button { font-size: 0.85rem; }
+      .hero h1 { font-size: 2.5rem; }
+      h2 { font-size: 1.5rem; }
+      table { font-size: 0.85rem; }
+      th, td { padding: 0.75rem; }
+      .fixture-match { grid-template-columns: 80px 1fr 80px; }
+      .result-score { font-size: 1.75rem; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="header-content">
+      <div class="logo">
+        <span class="logo-icon">⚽</span>
+        <span>KNSCL</span>
+      </div>
+      <nav>
+        <button onclick="showPage('home')">Home</button>
+        <button onclick="showPage('fixtures')">Fixtures</button>
+        <button onclick="showPage('results')">Results</button>
+        <button onclick="showPage('standings')">Standings</button>
+        <button onclick="showPage('clubs')">Clubs</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="container">
+    <!-- Home Page -->
+    <div id="home" class="page active">
+      <div class="hero">
+        <div class="hero-content">
+          <h1>Kenya National Sub County League</h1>
+          <p>Discover the finest competitive football in East Africa</p>
+          <button class="btn-primary" onclick="showPage('fixtures')">Explore Matches</button>
+        </div>
+      </div>
+
+      <h2>Latest News</h2>
+      <div class="news-grid">
+        <div class="news-card">
+          <div class="news-card-content">
+            <h3>Season Momentum Builds</h3>
+            <p>KNSCL 2024 reaches midpoint with thrilling matches and emerging talents capturing hearts across the nation.</p>
+            <div class="news-date">August 18, 2024</div>
+          </div>
+        </div>
+        <div class="news-card">
+          <div class="news-card-content">
+            <h3>Top Scorer Update</h3>
+            <p>Eldoret Rangers' Samuel Kipchoge dominates scoring charts, setting new league records with exceptional form.</p>
+            <div class="news-date">August 17, 2024</div>
+          </div>
+        </div>
+        <div class="news-card">
+          <div class="news-card-content">
+            <h3>Exciting Matchups Ahead</h3>
+            <p>Fixture schedule reveals intense rivalries with five premier matches scheduled for next weekend.</p>
+            <div class="news-date">August 16, 2024</div>
+          </div>
+        </div>
+      </div>
+
+      <h2>Recent Results</h2>
+      <div class="results-container">
+        <div class="result-match">
+          <div class="result-teams">
+            <div class="result-team">Nairobi City</div>
+            <div class="result-score">2-1</div>
+            <div class="result-team">Kisumu FC</div>
+          </div>
+        </div>
+        <div class="result-match">
+          <div class="result-teams">
+            <div class="result-team">Eldoret Rangers</div>
+            <div class="result-score">3-0</div>
+            <div class="result-team">Nyeri FC</div>
+          </div>
+        </div>
+        <div class="result-match">
+          <div class="result-teams">
+            <div class="result-team">Mombasa United</div>
+            <div class="result-score">1-1</div>
+            <div class="result-team">Nakuru Stars</div>
+          </div>
+        </div>
+      </div>
+
+      <h2>Upcoming Fixtures</h2>
+      <div class="table-container">
+        <div class="fixture-match">
+          <div class="fixture-date">Aug 20</div>
+          <div class="fixture-teams"><strong>Nairobi City</strong> vs Mombasa United<br><span style="font-size: 0.85rem; color: #718096;">Nyayo Stadium</span></div>
+          <div class="fixture-time">15:00</div>
+        </div>
+        <div class="fixture-match">
+          <div class="fixture-date">Aug 21</div>
+          <div class="fixture-teams"><strong>Kisumu FC</strong> vs Nakuru Stars<br><span style="font-size: 0.85rem; color: #718096;">Amoset Stadium</span></div>
+          <div class="fixture-time">14:00</div>
+        </div>
+        <div class="fixture-match">
+          <div class="fixture-date">Aug 22</div>
+          <div class="fixture-teams"><strong>Eldoret Rangers</strong> vs Nyeri FC<br><span style="font-size: 0.85rem; color: #718096;">Eldoret Stadium</span></div>
+          <div class="fixture-time">15:30</div>
+        </div>
+      </div>
+
+      <h2>League Table</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 8%;">Pos</th>
+              <th style="width: 40%;">Team</th>
+              <th>P</th>
+              <th>W</th>
+              <th>D</th>
+              <th>L</th>
+              <th style="text-align: right;">Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="rank-1">1</td>
+              <td><strong>Nairobi City</strong></td>
+              <td>12</td>
+              <td>9</td>
+              <td>2</td>
+              <td>1</td>
+              <td style="text-align: right; font-weight: 700;">29</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>Eldoret Rangers</td>
+              <td>12</td>
+              <td>8</td>
+              <td>2</td>
+              <td>2</td>
+              <td style="text-align: right;">26</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>Mombasa United</td>
+              <td>12</td>
+              <td>7</td>
+              <td>3</td>
+              <td>2</td>
+              <td style="text-align: right;">24</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>Nakuru Stars</td>
+              <td>12</td>
+              <td>7</td>
+              <td>1</td>
+              <td>4</td>
+              <td style="text-align: right;">22</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>Kisumu FC</td>
+              <td>12</td>
+              <td>6</td>
+              <td>2</td>
+              <td>4</td>
+              <td style="text-align: right;">20</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Top Scorers</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 8%;">Rank</th>
+              <th style="width: 40%;">Player</th>
+              <th>Club</th>
+              <th style="text-align: right;">Goals</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="rank-1">1</td>
+              <td><strong>Samuel Kipchoge</strong></td>
+              <td>Eldoret Rangers</td>
+              <td style="text-align: right; font-weight: 700;">12</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>John Omondi</td>
+              <td>Nairobi City</td>
+              <td style="text-align: right;">11</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>Ahmed Hassan</td>
+              <td>Mombasa United</td>
+              <td style="text-align: right;">9</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>Peter Kiplagat</td>
+              <td>Nakuru Stars</td>
+              <td style="text-align: right;">8</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>David Ochieng</td>
+              <td>Kisumu FC</td>
+              <td style="text-align: right;">7</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Latest Updates</h2>
+      <div class="news-grid">
+        <div class="news-card">
+          <div class="news-card-content">
+            <h3>Transfer Window Opens</h3>
+            <p>Clubs announce significant signings as they prepare for the critical second half of the season.</p>
+            <div class="news-date">August 15, 2024</div>
+          </div>
+        </div>
+        <div class="news-card">
+          <div class="news-card-content">
+            <h3>Injury Recovery Report</h3>
+            <p>Key players from title contenders showing steady progress in rehabilitation programs.</p>
+            <div class="news-date">August 14, 2024</div>
+          </div>
+        </div>
+        <div class="news-card">
+          <div class="news-card-content">
+            <h3>Awards Ceremony Planned</h3>
+            <p>League announces grand finale celebration scheduled for season end with major awards and recognition.</p>
+            <div class="news-date">August 13, 2024</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Other pages (Fixtures, Results, Standings, Clubs) -->
+    <div id="fixtures" class="page">
+      <h2>All Fixtures</h2>
+      <div class="table-container">
+        <div class="fixture-match">
+          <div class="fixture-date">Aug 20</div>
+          <div class="fixture-teams"><strong>Nairobi City</strong> vs Mombasa United<br><span style="font-size: 0.85rem; color: #718096;">Nyayo Stadium</span></div>
+          <div class="fixture-time">15:00</div>
+        </div>
+        <div class="fixture-match">
+          <div class="fixture-date">Aug 21</div>
+          <div class="fixture-teams"><strong>Kisumu FC</strong> vs Nakuru Stars<br><span style="font-size: 0.85rem; color: #718096;">Amoset Stadium</span></div>
+          <div class="fixture-time">14:00</div>
+        </div>
+        <div class="fixture-match">
+          <div class="fixture-date">Aug 22</div>
+          <div class="fixture-teams"><strong>Eldoret Rangers</strong> vs Nyeri FC<br><span style="font-size: 0.85rem; color: #718096;">Eldoret Stadium</span></div>
+          <div class="fixture-time">15:30</div>
+        </div>
+        <div class="fixture-match">
+          <div class="fixture-date">Aug 23</div>
+          <div class="fixture-teams"><strong>Thika United</strong> vs Kiambu FC<br><span style="font-size: 0.85rem; color: #718096;">Thika Stadium</span></div>
+          <div class="fixture-time">14:30</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="results" class="page">
+      <h2>Match Results</h2>
+      <div class="results-container">
+        <div class="result-match">
+          <div class="result-teams">
+            <div class="result-team">Nairobi City</div>
+            <div class="result-score">2-1</div>
+            <div class="result-team">Kisumu FC</div>
+          </div>
+        </div>
+        <div class="result-match">
+          <div class="result-teams">
+            <div class="result-team">Eldoret Rangers</div>
+            <div class="result-score">3-0</div>
+            <div class="result-team">Nyeri FC</div>
+          </div>
+        </div>
+        <div class="result-match">
+          <div class="result-teams">
+            <div class="result-team">Mombasa United</div>
+            <div class="result-score">1-1</div>
+            <div class="result-team">Nakuru Stars</div>
+          </div>
+        </div>
+        <div class="result-match">
+          <div class="result-teams">
+            <div class="result-team">Thika United</div>
+            <div class="result-score">2-2</div>
+            <div class="result-team">Kiambu FC</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="standings" class="page">
+      <h2>Full League Table</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 8%;">Pos</th>
+              <th style="width: 40%;">Team</th>
+              <th>P</th>
+              <th>W</th>
+              <th>D</th>
+              <th>L</th>
+              <th style="text-align: right;">Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="rank-1">1</td>
+              <td><strong>Nairobi City</strong></td>
+              <td>12</td>
+              <td>9</td>
+              <td>2</td>
+              <td>1</td>
+              <td style="text-align: right; font-weight: 700;">29</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>Eldoret Rangers</td>
+              <td>12</td>
+              <td>8</td>
+              <td>2</td>
+              <td>2</td>
+              <td style="text-align: right;">26</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>Mombasa United</td>
+              <td>12</td>
+              <td>7</td>
+              <td>3</td>
+              <td>2</td>
+              <td style="text-align: right;">24</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>Nakuru Stars</td>
+              <td>12</td>
+              <td>7</td>
+              <td>1</td>
+              <td>4</td>
+              <td style="text-align: right;">22</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>Kisumu FC</td>
+              <td>12</td>
+              <td>6</td>
+              <td>2</td>
+              <td>4</td>
+              <td style="text-align: right;">20</td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td>Nyeri FC</td>
+              <td>12</td>
+              <td>5</td>
+              <td>3</td>
+              <td>4</td>
+              <td style="text-align: right;">18</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="clubs" class="page">
+      <h2>Clubs Directory</h2>
+      <div class="clubs-grid">
+        <div class="club-card">
+          <h3>Nairobi City FC</h3>
+          <div class="club-info">
+            <p><span class="club-label">Founded:</span> 2015</p>
+            <p><span class="club-label">Home:</span> Nyayo Stadium</p>
+            <p><span class="club-label">Manager:</span> John Mwangi</p>
+            <p><span class="club-label">Position:</span> 1st Place</p>
+          </div>
+        </div>
+        <div class="club-card">
+          <h3>Eldoret Rangers</h3>
+          <div class="club-info">
+            <p><span class="club-label">Founded:</span> 2010</p>
+            <p><span class="club-label">Home:</span> Eldoret Stadium</p>
+            <p><span class="club-label">Manager:</span> Samuel Kipchoge</p>
+            <p><span class="club-label">Position:</span> 2nd Place</p>
+          </div>
+        </div>
+        <div class="club-card">
+          <h3>Mombasa United</h3>
+          <div class="club-info">
+            <p><span class="club-label">Founded:</span> 2012</p>
+            <p><span class="club-label">Home:</span> Amoset Stadium</p>
+            <p><span class="club-label">Manager:</span> Ahmed Hassan</p>
+            <p><span class="club-label">Position:</span> 3rd Place</p>
+          </div>
+        </div>
+        <div class="club-card">
+          <h3>Nakuru Stars</h3>
+          <div class="club-info">
+            <p><span class="club-label">Founded:</span> 2013</p>
+            <p><span class="club-label">Home:</span> Afraha Stadium</p>
+            <p><span class="club-label">Manager:</span> David Kiplagat</p>
+            <p><span class="club-label">Position:</span> 4th Place</p>
+          </div>
+        </div>
+        <div class="club-card">
+          <h3>Kisumu FC</h3>
+          <div class="club-info">
+            <p><span class="club-label">Founded:</span> 2014</p>
+            <p><span class="club-label">Home:</span> Kisumu Stadium</p>
+            <p><span class="club-label">Manager:</span> Peter Ochieng</p>
+            <p><span class="club-label">Position:</span> 5th Place</p>
+          </div>
+        </div>
+        <div class="club-card">
+          <h3>Nyeri FC</h3>
+          <div class="club-info">
+            <p><span class="club-label">Founded:</span> 2011</p>
+            <p><span class="club-label">Home:</span> Nyeri Stadium</p>
+            <p><span class="club-label">Manager:</span> James Kariuki</p>
+            <p><span class="club-label">Position:</span> 6th Place</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showPage(pageId) {
+      document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+      });
+      document.getElementById(pageId).classList.add('active');
+      window.scrollTo(0, 0);
+    }
+  </script>
+</body>
+</html>

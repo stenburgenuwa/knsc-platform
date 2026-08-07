@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<link rel="stylesheet" href="_ds/classical-223fc214-74fb-4bf9-9d54-47519202d495/styles.css">
+<script src="_ds/classical-223fb-4bf9-9d54-47519202d495/_ds_bundle.js"></script>
+
+<style>
+  body { background: var(--color-bg); color: var(--color-text); }
+  .nav { background: var(--color-accent); color: white; padding: var(--space-lg); display: flex; justify-content: space-between; align-items: center; }
+  .nav a { color: white; text-decoration: none; margin: 0 var(--space-md); }
+  .hero { background: var(--color-accent); color: white; padding: var(--space-2xl); text-align: center; border-radius: var(--radius-md); margin: var(--space-lg); }
+  .hero h1 { font-size: 3rem; margin: 0; }
+  .hero p { font-size: 1.2rem; margin: var(--space-md) 0; }
+  .btn-hero { background: #fbbf24; color: var(--color-text); padding: var(--space-md) var(--space-lg); border-radius: var(--radius-md); text-decoration: none; display: inline-block; margin-top: var(--space-md); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-lg); margin: var(--space-lg); }
+  .stat-card { border: 1px solid var(--color-neutral-200); padding: var(--space-lg); border-radius: var(--radius-md); text-align: center; }
+  .stat-number { font-size: 2.5rem; font-weight: bold; color: var(--color-accent); }
+  .stat-label { color: var(--color-neutral-600); margin-top: var(--space-sm); }
+  .section { max-width: 1200px; margin: 0 auto; padding: var(--space-2xl) var(--space-lg); }
+  .fixtures { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-lg); }
+  .fixture-card { border: 1px solid var(--color-neutral-200); padding: var(--space-lg); border-radius: var(--radius-md); }
+  .match-teams { display: flex; justify-content: space-between; align-items: center; margin: var(--space-md) 0; font-weight: 600; }
+  .match-time { text-align: center; color: var(--color-neutral-600); font-size: 0.9rem; }
+  .hide { display: none; }
+  .tab-buttons { display: flex; gap: var(--space-md); margin-bottom: var(--space-lg); }
+  .tab-btn { background: var(--color-neutral-100); border: 1px solid var(--color-neutral-200); padding: var(--space-md) var(--space-lg); border-radius: var(--radius-md); cursor: pointer; }
+  .tab-btn.active { background: var(--color-accent); color: white; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: var(--color-neutral-100); padding: var(--space-md); text-align: left; border-bottom: 1px solid var(--color-neutral-300); }
+  td { padding: var(--space-md); border-bottom: 1px solid var(--color-neutral-200); }
+</style>
+
+<nav class="nav">
+  <div style="font-size: 1.5rem; font-weight: bold; color: white;">⚽ KNSCL Platform</div>
+  <div>
+    <a href="#home" onclick="showSection('home')">Home</a>
+    <a href="#fixtures" onclick="showSection('fixtures')">Fixtures</a>
+    <a href="#results" onclick="showSection('results')">Results</a>
+    <a href="#standings" onclick="showSection('standings')">Standings</a>
+    <a href="#clubs" onclick="showSection('clubs')">Clubs</a>
+  </div>
+</nav>
+
+<!-- HOME SECTION -->
+<div id="home" class="section">
+  <div class="hero">
+    <h1>Kenya National Sub County League</h1>
+    <p>Official football league management platform</p>
+    <a href="#fixtures" class="btn-hero" onclick="showSection('fixtures')">View Fixtures →</a>
+  </div>
+
+  <h2 style="text-align: center; margin-top: var(--space-2xl);">League Statistics</h2>
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-number">18</div>
+      <div class="stat-label">Clubs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">450+</div>
+      <div class="stat-label">Players</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">128</div>
+      <div class="stat-label">Matches</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">287</div>
+      <div class="stat-label">Goals</div>
+    </div>
+  </div>
+</div>
+
+<!-- FIXTURES SECTION -->
+<div id="fixtures" class="section hide">
+  <h2>Upcoming Fixtures</h2>
+  <div class="fixtures">
+    <div class="fixture-card">
+      <div class="match-teams">
+        <span>AFC Leopards</span>
+        <span style="color: var(--color-neutral-500);">vs</span>
+        <span>Gor Mahia</span>
+      </div>
+      <div class="match-time">📅 Aug 15, 2026 • 3:00 PM</div>
+      <div class="match-time">📍 Nyayo Stadium</div>
+    </div>
+    <div class="fixture-card">
+      <div class="match-teams">
+        <span>Kariobangi Sharks</span>
+        <span style="color: var(--color-neutral-500);">vs</span>
+        <span>Kenya Police</span>
+      </div>
+      <div class="match-time">📅 Aug 16, 2026 • 4:00 PM</div>
+      <div class="match-time">📍 Camp Toyoyo</div>
+    </div>
+    <div class="fixture-card">
+      <div class="match-teams">
+        <span>Tusker FC</span>
+        <span style="color: var(--color-neutral-500);">vs</span>
+        <span>Bandari FC</span>
+      </div>
+      <div class="match-time">📅 Aug 17, 2026 • 2:00 PM</div>
+      <div class="match-time">📍 Mombasa Stadium</div>
+    </div>
+    <div class="fixture-card">
+      <div class="match-teams">
+        <span>Nzoia Sugar</span>
+        <span style="color: var(--color-neutral-500);">vs</span>
+        <span>Ulinzi Stars</span>
+      </div>
+      <div class="match-time">📅 Aug 18, 2026 • 5:00 PM</div>
+      <div class="match-time">📍 Mumias Sports Complex</div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS SECTION -->
+<div id="results" class="section hide">
+  <h2>Recent Results</h2>
+  <div class="fixtures">
+    <div class="fixture-card">
+      <div class="match-teams">
+        <span>Kaizer Chiefs <strong>2</strong></span>
+        <span style="color: var(--color-neutral-500); font-size: 0.9rem;">Final</span>
+        <span><strong>1</strong> Pirates United</span>
+      </div>
+      <div class="match-time">⚽ Mbombela Stadium • Aug 12, 2026</div>
+    </div>
+    <div class="fixture-card">
+      <div class="match-teams">
+        <span>Sundowns <strong>3</strong></span>
+        <span style="color: var(--color-neutral-500); font-size: 0.9rem;">Final</span>
+        <span><strong>0</strong> Arrows</span>
+      </div>
+      <div class="match-time">⚽ Loftus Park • Aug 11, 2026</div>
+    </div>
+    <div class="fixture-card">
+      <div class="match-teams">
+        <span>Bullets <strong>1</strong></span>
+        <span style="color: var(--color-neutral-500); font-size: 0.9rem;">Final</span>
+        <span><strong>1</strong> CAPS</span>
+      </div>
+      <div class="match-time">⚽ Lilongwe Stadium • Aug 10, 2026</div>
+    </div>
+  </div>
+</div>
+
+<!-- STANDINGS SECTION -->
+<div id="standings" class="section hide">
+  <h2>League Table</h2>
+  <table>
+    <thead>
+      <tr style="background: var(--color-neutral-100);">
+        <th>#</th>
+        <th>Team</th>
+        <th>P</th>
+        <th>W</th>
+        <th>D</th>
+        <th>L</th>
+        <th>GF</th>
+        <th>GA</th>
+        <th>Pts</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><strong>Gor Mahia</strong></td>
+        <td>15</td>
+        <td>11</td>
+        <td>2</td>
+        <td>2</td>
+        <td>34</td>
+        <td>12</td>
+        <td><strong style="color: var(--color-accent);">35</strong></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>AFC Leopards</td>
+        <td>15</td>
+        <td>10</td>
+        <td>2</td>
+        <td>3</td>
+        <td>31</td>
+        <td>15</td>
+        <td>32</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Kariobangi Sharks</td>
+        <td>15</td>
+        <td>9</td>
+        <td>3</td>
+        <td>3</td>
+        <td>28</td>
+        <td>14</td>
+        <td>30</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Kenya Police</td>
+        <td>15</td>
+        <td>8</td>
+        <td>4</td>
+        <td>3</td>
+        <td>25</td>
+        <td>13</td>
+        <td>28</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>Tusker FC</td>
+        <td>15</td>
+        <td>7</td>
+        <td>3</td>
+        <td>5</td>
+        <td>22</td>
+        <td>18</td>
+        <td>24</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- CLUBS SECTION -->
+<div id="clubs" class="section hide">
+  <h2>Clubs Directory</h2>
+  <div class="fixtures">
+    <div class="fixture-card">
+      <h3 style="margin-top: 0; color: var(--color-accent);">Gor Mahia FC</h3>
+      <p><strong>Founded:</strong> 1968</p>
+      <p><strong>Home:</strong> Nyayo Stadium</p>
+      <p><strong>Manager:</strong> McKinstry Omondi</p>
+      <p style="color: var(--color-neutral-600); margin-bottom: 0;">One of Kenya's most successful clubs with multiple league titles.</p>
+    </div>
+    <div class="fixture-card">
+      <h3 style="margin-top: 0; color: var(--color-accent);">AFC Leopards</h3>
+      <p><strong>Founded:</strong> 1964</p>
+      <p><strong>Home:</strong> Nyayo Stadium</p>
+      <p><strong>Manager:</strong> Brandon Ouma</p>
+      <p style="color: var(--color-neutral-600); margin-bottom: 0;">Historic rival with strong youth development program.</p>
+    </div>
+    <div class="fixture-card">
+      <h3 style="margin-top: 0; color: var(--color-accent);">Kariobangi Sharks</h3>
+      <p><strong>Founded:</strong> 2004</p>
+      <p><strong>Home:</strong> Kariobangi Sports Complex</p>
+      <p><strong>Manager:</strong> William Muluya</p>
+      <p style="color: var(--color-neutral-600); margin-bottom: 0;">Emerging force in Kenyan football with exciting young talent.</p>
+    </div>
+    <div class="fixture-card">
+      <h3 style="margin-top: 0; color: var(--color-accent);">Tusker FC</h3>
+      <p><strong>Founded:</strong> 1971</p>
+      <p><strong>Home:</strong> Nyayo Stadium</p>
+      <p><strong>Manager:</strong> Robert Matano</p>
+      <p style="color: var(--color-neutral-600); margin-bottom: 0;">Brewery-backed club known for consistent performance.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showSection(sectionId) {
+    // Hide all sections
+    document.querySelectorAll('.section').forEach(section => {
+      section.classList.add('hide');
+    });
+    // Show selected section
+    const section = document.getElementById(sectionId);
+    if (section) {
+      section.classList.remove('hide');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+  
+  // Show home by default
+  showSection('home');
+</script>
+</x-dc>
+</body>
+</html>

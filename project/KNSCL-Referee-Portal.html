@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KNSCL Referee Portal</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #2d3748; }
+    .login-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #0f2744 0%, #1a3a52 100%); display: flex; align-items: center; justify-content: center; z-index: 2000; }
+    .login-box { background: white; padding: 3rem; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 450px; width: 90%; }
+    .login-box h1 { font-size: 2rem; margin-bottom: 1rem; color: #0f2744; }
+    .login-box input { width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 2px solid #e2e8f0; border-radius: 8px; }
+    .login-box button { width: 100%; padding: 0.875rem; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border: none; border-radius: 8px; color: #0f2744; font-weight: 600; cursor: pointer; }
+    header { background: linear-gradient(135deg, #0f2744 0%, #1a3a52 100%); color: white; padding: 1.5rem 0; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .header-content { max-width: 1400px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 1.8rem; font-weight: 700; }
+    .logout-btn { background: #dc2626; padding: 0.5rem 1rem; border: none; border-radius: 6px; color: white; cursor: pointer; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 3rem 2rem; display: none; }
+    .container.active { display: block; }
+    h2 { font-size: 2rem; margin: 2rem 0 1rem; color: #0f2744; }
+    .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-top: 4px solid #0f2744; max-width: 500px; }
+    .card h3 { color: #0f2744; margin-bottom: 1.5rem; font-size: 1.5rem; }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: #0f2744; }
+    .form-group input { width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; }
+    .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #0f2744; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin: 2rem 0; }
+    th { background: #0f2744; color: white; padding: 1rem; }
+    td { padding: 1rem; border-bottom: 1px solid #e2e8f0; }
+    tr:hover { background: #f7fafc; }
+  </style>
+</head>
+<body>
+  <div class="login-container" id="loginContainer">
+    <div class="login-box">
+      <h1>Referee Portal</h1>
+      <p style="color: #718096; margin-bottom: 2rem;">Login with credentials provided by admin</p>
+      <input type="email" id="username" placeholder="Email" value="samuel@knscl.co.ke">
+      <input type="password" id="password" placeholder="Password" value="REF@123">
+      <button onclick="login()">Login</button>
+    </div>
+  </div>
+
+  <header id="header" style="display: none;">
+    <div class="header-content">
+      <div class="logo">⚽ KNSCL Referee</div>
+      <div>
+        <span id="refName" style="margin-right: 2rem;"></span>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container" id="container">
+    <h2>My Profile</h2>
+    <div class="card">
+      <h3>Referee Information</h3>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" value="Samuel Kipchoge" readonly>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" value="samuel@knscl.co.ke" readonly>
+      </div>
+      <div class="form-group">
+        <label>License</label>
+        <input type="text" value="REF001" readonly>
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="tel" placeholder="Enter phone number">
+      </div>
+      <button class="btn" onclick="alert('Profile updated')">Update Profile</button>
+    </div>
+
+    <h2 style="margin-top: 3rem;">Assigned Matches</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Match</th>
+          <th>Venue</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Aug 20, 2024</td>
+          <td>Nairobi City vs Mombasa</td>
+          <td>Nyayo Stadium</td>
+          <td><span style="background: #fbbf24; color: #0f2744; padding: 0.25rem 0.75rem; border-radius: 4px;">Pending</span></td>
+          <td><button class="btn" onclick="checkIn(1)" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Check In</button></td>
+        </tr>
+        <tr>
+          <td>Aug 22, 2024</td>
+          <td>Eldoret Rangers vs Nyeri</td>
+          <td>Eldoret Stadium</td>
+          <td><span style="background: #e2e8f0; color: #4a5568; padding: 0.25rem 0.75rem; border-radius: 4px;">Upcoming</span></td>
+          <td><button class="btn" style="padding: 0.5rem 1rem; font-size: 0.9rem;">View</button></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Match Report</h2>
+    <div class="card">
+      <h3>Submit Match Report</h3>
+      <div class="form-group">
+        <label>Select Match</label>
+        <select style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px;">
+          <option>Nairobi City vs Mombasa (Aug 20)</option>
+          <option>Eldoret Rangers vs Nyeri (Aug 22)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Home Team Score</label>
+        <input type="number" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Away Team Score</label>
+        <input type="number" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Match Comments</label>
+        <textarea style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; min-height: 100px;"></textarea>
+      </div>
+      <button class="btn" onclick="alert('Match report submitted')">Submit Report</button>
+    </div>
+  </div>
+
+  <script>
+    function login() {
+      const email = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      if (email && password) {
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('header').style.display = 'block';
+        document.getElementById('container').classList.add('active');
+        document.getElementById('refName').textContent = 'Samuel Kipchoge';
+      }
+    }
+    function logout() {
+      document.getElementById('loginContainer').style.display = 'flex';
+      document.getElementById('header').style.display = 'none';
+      document.getElementById('container').classList.remove('active');
+    }
+    function checkIn(id) {
+      alert('You have checked in for the match. You are ready to officiate.');
+    }
+  </script>
+</body>
+</html>

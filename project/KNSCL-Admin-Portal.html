@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KNSCL Admin Portal</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #2d3748; }
+    .login-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #0f2744 0%, #1a3a52 100%); display: flex; align-items: center; justify-content: center; z-index: 2000; }
+    .login-box { background: white; padding: 3rem; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 450px; width: 90%; }
+    .login-box h1 { font-size: 2rem; margin-bottom: 1rem; color: #0f2744; }
+    .login-box input { width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 2px solid #e2e8f0; border-radius: 8px; }
+    .login-box button { width: 100%; padding: 0.875rem; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border: none; border-radius: 8px; color: #0f2744; font-weight: 600; cursor: pointer; }
+    header { background: linear-gradient(135deg, #0f2744 0%, #1a3a52 100%); color: white; padding: 1.5rem 0; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .header-content { max-width: 1400px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 1.8rem; font-weight: 700; }
+    nav { display: flex; gap: 2rem; }
+    nav button { background: none; border: none; color: white; cursor: pointer; font-weight: 500; }
+    nav button:hover { color: #fbbf24; }
+    .logout-btn { background: #dc2626; padding: 0.5rem 1rem; border: none; border-radius: 6px; color: white; cursor: pointer; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 3rem 2rem; display: none; }
+    .container.active { display: block; }
+    h2 { font-size: 2rem; margin: 2rem 0 1rem; color: #0f2744; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; margin: 2rem 0; }
+    .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-top: 4px solid #0f2744; }
+    .card p { font-size: 2.5rem; color: #0f2744; font-weight: 700; margin: 1rem 0; }
+    .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #0f2744; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin: 2rem 0; }
+    th { background: #0f2744; color: white; padding: 1rem; }
+    td { padding: 1rem; border-bottom: 1px solid #e2e8f0; }
+    tr:hover { background: #f7fafc; }
+    .edit-btn { background: #3b82f6; color: white; padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: #0f2744; }
+    .form-group input { width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; }
+    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; padding: 2rem; border-radius: 12px; max-width: 500px; width: 90%; }
+    .modal-header { display: flex; justify-content: space-between; margin-bottom: 1.5rem; }
+    .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+    .page { display: none; }
+    .page.active { display: block; }
+  </style>
+</head>
+<body>
+  <div class="login-container" id="loginContainer">
+    <div class="login-box">
+      <h1>KNSCL Admin</h1>
+      <input type="email" id="username" placeholder="Email" value="admin@knscl.co.ke">
+      <input type="password" id="password" placeholder="Password" value="admin123">
+      <button onclick="login()">Login</button>
+    </div>
+  </div>
+
+  <header id="header" style="display: none;">
+    <div class="header-content">
+      <div class="logo">⚽ KNSCL Admin</div>
+      <nav>
+        <button onclick="showPage('dashboard')">Dashboard</button>
+        <button onclick="showPage('referees')">Referees</button>
+        <button onclick="showPage('teams')">Teams</button>
+        <button onclick="showPage('managers')">Managers</button>
+      </nav>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="container" id="container">
+    <div id="dashboard" class="page active">
+      <h2>Admin Dashboard</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Referees</h3>
+          <p>12</p>
+          <button class="btn" onclick="showPage('referees')">Manage</button>
+        </div>
+        <div class="card">
+          <h3>Teams</h3>
+          <p>18</p>
+          <button class="btn" onclick="showPage('teams')">Manage</button>
+        </div>
+        <div class="card">
+          <h3>Managers</h3>
+          <p>18</p>
+          <button class="btn" onclick="showPage('managers')">Manage</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="referees" class="page">
+      <h2>Referee Management</h2>
+      <button class="btn" onclick="openModal('refModal')">Add Referee</button>
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>License</th><th>Password</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody id="refTable">
+          <tr><td>Samuel Kipchoge</td><td>samuel@knscl.co.ke</td><td>REF001</td><td>REF@123</td><td>Active</td><td><button class="edit-btn">Edit</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="teams" class="page">
+      <h2>Team Management</h2>
+      <button class="btn" onclick="openModal('teamModal')">Add Team</button>
+      <table>
+        <thead><tr><th>Team Name</th><th>Manager</th><th>Home Ground</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody><tr><td>Nairobi City FC</td><td>John Mwangi</td><td>Nyayo Stadium</td><td>Active</td><td><button class="edit-btn">Edit</button></td></tr></tbody>
+      </table>
+    </div>
+
+    <div id="managers" class="page">
+      <h2>Manager Management</h2>
+      <button class="btn" onclick="openModal('mgrModal')">Add Manager</button>
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Team</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody><tr><td>John Mwangi</td><td>john@knscl.co.ke</td><td>Nairobi City FC</td><td>Active</td><td><button class="edit-btn">Edit</button></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="modal" id="refModal">
+    <div class="modal-content">
+      <div class="modal-header"><h2>Add Referee</h2><button class="close-btn" onclick="closeModal('refModal')">&times;</button></div>
+      <div class="form-group"><label>Name</label><input type="text" id="refName" placeholder="Enter name"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="refEmail" placeholder="Enter email"></div>
+      <div class="form-group"><label>License</label><input type="text" id="refLicense" placeholder="Enter license"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="refPassword" placeholder="Create password"></div>
+      <button class="btn" onclick="saveReferee()">Save</button>
+    </div>
+  </div>
+
+  <div class="modal" id="teamModal">
+    <div class="modal-content">
+      <div class="modal-header"><h2>Add Team</h2><button class="close-btn" onclick="closeModal('teamModal')">&times;</button></div>
+      <div class="form-group"><label>Team Name</label><input type="text" placeholder="Enter team name"></div>
+      <div class="form-group"><label>Manager</label><input type="text" placeholder="Enter manager"></div>
+      <div class="form-group"><label>Home Ground</label><input type="text" placeholder="Enter stadium"></div>
+      <button class="btn" onclick="closeModal('teamModal')">Save</button>
+    </div>
+  </div>
+
+  <div class="modal" id="mgrModal">
+    <div class="modal-content">
+      <div class="modal-header"><h2>Add Manager</h2><button class="close-btn" onclick="closeModal('mgrModal')">&times;</button></div>
+      <div class="form-group"><label>Name</label><input type="text" placeholder="Enter name"></div>
+      <div class="form-group"><label>Email</label><input type="email" placeholder="Enter email"></div>
+      <div class="form-group"><label>Team</label><select><option>Select Team</option><option>Nairobi City FC</option></select></div>
+      <button class="btn" onclick="closeModal('mgrModal')">Save</button>
+    </div>
+  </div>
+
+  <script>
+    function login() {
+      const email = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      if (email && password) {
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('header').style.display = 'block';
+        document.getElementById('container').classList.add('active');
+      }
+    }
+    function logout() {
+      document.getElementById('loginContainer').style.display = 'flex';
+      document.getElementById('header').style.display = 'none';
+      document.getElementById('container').classList.remove('active');
+    }
+    function showPage(id) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    function saveReferee() {
+      const name = document.getElementById('refName').value;
+      const email = document.getElementById('refEmail').value;
+      const password = document.getElementById('refPassword').value;
+      if (name && email && password) {
+        alert(`Referee added!\nEmail: ${email}\nPassword: ${password}\nThey can now login to Referee Portal.`);
+        closeModal('refModal');
+      }
+    }
+  </script>
+</body>
+</html>

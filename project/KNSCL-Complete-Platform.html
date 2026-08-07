@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KNSCL Platform - Complete System</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #2d3748; }
+    
+    /* Login */
+    .login-container { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #0f2744 0%, #1a3a52 100%); z-index: 2000; }
+    .login-container.active { display: flex; align-items: center; justify-content: center; }
+    .login-box { background: white; padding: 3rem; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 450px; width: 90%; }
+    .login-box h1 { font-size: 2rem; margin-bottom: 0.5rem; color: #0f2744; }
+    .login-box p { color: #718096; margin-bottom: 2rem; font-size: 0.95rem; }
+    .login-box input { width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; }
+    .login-box input:focus { outline: none; border-color: #fbbf24; background: #fffbeb; }
+    .login-box button { width: 100%; padding: 0.875rem; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border: none; border-radius: 8px; color: #0f2744; font-weight: 600; cursor: pointer; font-size: 1rem; }
+    .role-selector { margin-bottom: 2rem; }
+    .role-selector label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #0f2744; }
+    .role-selector select { width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; }
+    
+    /* Header */
+    header { background: linear-gradient(135deg, #0f2744 0%, #1a3a52 100%); color: white; padding: 1.5rem 0; box-shadow: 0 4px 12px rgba(0,0,0,0.15); position: sticky; top: 0; z-index: 100; }
+    .header-content { max-width: 1400px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 1.8rem; font-weight: 700; }
+    nav { display: flex; gap: 2rem; }
+    nav button { background: none; border: none; color: white; cursor: pointer; font-weight: 500; font-size: 0.95rem; padding: 0.5rem 0; }
+    nav button:hover { color: #fbbf24; }
+    .user-section { display: flex; gap: 2rem; align-items: center; }
+    .logout-btn { background: #dc2626; padding: 0.5rem 1rem; border: none; border-radius: 6px; color: white; cursor: pointer; }
+    
+    .container { max-width: 1400px; margin: 0 auto; padding: 3rem 2rem; }
+    
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #0f2744 0%, #1a3a52 100%); color: white; padding: 4rem 2rem; border-radius: 16px; margin-bottom: 3rem; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+    .hero h1 { font-size: 2.5rem; margin-bottom: 1rem; }
+    .hero p { font-size: 1.1rem; margin-bottom: 2rem; line-height: 1.8; }
+    
+    /* Featured News */
+    .featured-news { background: white; padding: 2rem; border-radius: 12px; margin-bottom: 3rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: grid; grid-template-columns: 1fr 350px; gap: 2rem; align-items: center; }
+    .featured-image { width: 100%; height: 250px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 12px; }
+    
+    h2 { font-size: 2rem; margin: 2rem 0 1rem; color: #0f2744; padding-bottom: 1rem; border-bottom: 3px solid #fbbf24; display: inline-block; }
+    
+    .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+    .btn-primary { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #0f2744; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(251,191,36,0.3); }
+    
+    /* Admin Cards */
+    .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; margin: 2rem 0; }
+    .admin-card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-top: 4px solid #0f2744; }
+    .admin-card h3 { color: #0f2744; margin-bottom: 1rem; font-size: 1.25rem; }
+    .admin-card p { font-size: 2.5rem; color: #0f2744; font-weight: 700; margin: 1rem 0; }
+    
+    /* Forms */
+    .form-group { margin-bottom: 1.5rem; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: #0f2744; }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; }
+    .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #fbbf24; background: #fffbeb; }
+    
+    /* Tables */
+    .table-container { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; margin: 2rem 0; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #0f2744; color: white; padding: 1rem; text-align: left; font-weight: 600; }
+    td { padding: 1rem; border-bottom: 1px solid #e2e8f0; }
+    tr:hover { background: #f7fafc; }
+    
+    .edit-btn { background: #3b82f6; color: white; padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; margin-right: 0.5rem; }
+    .delete-btn { background: #dc2626; color: white; padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; }
+    
+    /* Modal */
+    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
+    .modal.active { display: flex; align-items: center; justify-content: center; }
+    .modal-content { background: white; padding: 2rem; border-radius: 12px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; margin-bottom: 1.5rem; }
+    .modal-header h2 { color: #0f2744; }
+    .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+    
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    
+    .news-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; margin: 2rem 0; }
+    .news-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #fbbf24; }
+    .news-card-content { padding: 1.5rem; }
+    .news-card h3 { color: #0f2744; margin-bottom: 0.75rem; font-size: 1.25rem; }
+    
+    @media (max-width: 768px) {
+      .featured-news { grid-template-columns: 1fr; }
+      nav { gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Login Page -->
+  <div class="login-container active" id="loginContainer">
+    <div class="login-box">
+      <h1>KNSCL Platform</h1>
+      <p>Professional Football League Management</p>
+      
+      <div class="role-selector">
+        <label>Login As:</label>
+        <select id="userRole">
+          <option value="admin">Admin</option>
+          <option value="referee">Referee</option>
+          <option value="manager">Team Manager</option>
+          <option value="public">Public User</option>
+        </select>
+      </div>
+      
+      <input type="text" id="username" placeholder="Email" value="admin@knscl.co.ke">
+      <input type="password" id="password" placeholder="Password" value="admin123">
+      <button onclick="login()">Login</button>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header id="header" style="display: none;">
+    <div class="header-content">
+      <div class="logo">⚽ KNSCL</div>
+      <nav id="mainNav">
+        <button onclick="showPage('home')">Home</button>
+      </nav>
+      <div class="user-section">
+        <div id="userDisplay">Admin</div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Container -->
+  <div class="container" id="mainContainer" style="display: none;">
+    
+    <!-- PUBLIC WEBSITE -->
+    <div id="public-section">
+      <!-- Home -->
+      <div id="home" class="page active">
+        <div class="hero">
+          <h1>Kenya National Sub County League</h1>
+          <p>Discover the finest competitive football in East Africa</p>
+        </div>
+
+        <div class="featured-news">
+          <div>
+            <h2>Latest News</h2>
+            <h3 id="newsTitle">Season Momentum Builds</h3>
+            <p id="newsContent">The KNSCL 2024 season is in full swing with exciting matches and emerging talents.</p>
+          </div>
+          <div class="featured-image"></div>
+        </div>
+
+        <h2>Recent Fixtures</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Match</th><th>Time</th></tr>
+            </thead>
+            <tbody id="fixturesList">
+              <tr><td>Aug 20</td><td>Nairobi City vs Mombasa</td><td>15:00</td></tr>
+              <tr><td>Aug 21</td><td>Kisumu FC vs Nakuru Stars</td><td>14:00</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN SECTION -->
+    <div id="admin-section" style="display: none;">
+      <!-- Admin Dashboard -->
+      <div id="admin-home" class="page active">
+        <h2>Admin Dashboard</h2>
+        <div class="admin-grid">
+          <div class="admin-card">
+            <h3>Referees</h3>
+            <p id="refCount">12</p>
+            <button class="btn btn-primary" onclick="showPage('referees')">Manage</button>
+          </div>
+          <div class="admin-card">
+            <h3>Teams</h3>
+            <p>18</p>
+            <button class="btn btn-primary" onclick="showPage('teams')">Manage</button>
+          </div>
+          <div class="admin-card">
+            <h3>Managers</h3>
+            <p>18</p>
+            <button class="btn btn-primary" onclick="showPage('managers')">Manage</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Referees -->
+      <div id="referees" class="page">
+        <h2>Referee Management</h2>
+        <button class="btn btn-primary" onclick="openModal('refereeModal')">Add Referee</button>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Email</th><th>License</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="refereeTable">
+              <tr>
+                <td>Samuel Kipchoge</td>
+                <td>samuel@knscl.co.ke</td>
+                <td>REF001</td>
+                <td><span style="background: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 4px;">Active</span></td>
+                <td><button class="edit-btn" onclick="editReferee(1)">Edit</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Teams -->
+      <div id="teams" class="page">
+        <h2>Team Management</h2>
+        <button class="btn btn-primary" onclick="openModal('teamModal')">Add Team</button>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>Team</th><th>Manager</th><th>Home</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="teamTable">
+              <tr><td>Nairobi City FC</td><td>John Mwangi</td><td>Nyayo Stadium</td><td><button class="edit-btn">Edit</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Managers -->
+      <div id="managers" class="page">
+        <h2>Manager Management</h2>
+        <button class="btn btn-primary" onclick="openModal('managerModal')">Add Manager</button>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Email</th><th>Team</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="managerTable">
+              <tr><td>John Mwangi</td><td>john@knscl.co.ke</td><td>Nairobi City FC</td><td><button class="edit-btn">Edit</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- REFEREE SECTION -->
+    <div id="referee-section" style="display: none;">
+      <div id="ref-home" class="page active">
+        <h2>My Profile</h2>
+        <div class="admin-card" style="max-width: 500px;">
+          <h3 id="refName">Samuel Kipchoge</h3>
+          <div class="form-group">
+            <label>License:</label>
+            <input type="text" value="REF001" readonly>
+          </div>
+          <div class="form-group">
+            <label>Email:</label>
+            <input type="email" value="samuel@knscl.co.ke">
+          </div>
+          <button class="btn btn-primary" onclick="updateProfile()">Update Profile</button>
+        </div>
+
+        <h2 style="margin-top: 3rem;">My Assigned Matches</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Match</th><th>Venue</th><th>Action</th></tr>
+            </thead>
+            <tbody id="refMatches">
+              <tr><td>Aug 20</td><td>Nairobi City vs Mombasa</td><td>Nyayo Stadium</td><td><button class="btn btn-primary" onclick="checkIn(1)">Check In</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MANAGER SECTION -->
+    <div id="manager-section" style="display: none;">
+      <div id="mgr-home" class="page active">
+        <h2>Team Dashboard</h2>
+        <div class="admin-card" style="max-width: 500px;">
+          <h3>Nairobi City FC</h3>
+          <p>Players: <strong>25</strong></p>
+          <p>Upcoming Matches: <strong>3</strong></p>
+          <button class="btn btn-primary" onclick="alert('Manage squad')">Manage Squad</button>
+        </div>
+
+        <h2 style="margin-top: 3rem;">Upcoming Fixtures</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Opponent</th><th>Venue</th><th>Team Sheet</th></tr>
+            </thead>
+            <tbody id="mgrMatches">
+              <tr><td>Aug 20</td><td>Mombasa United</td><td>Nyayo Stadium</td><td><button class="btn btn-primary" onclick="createTeamSheet(1)">Create</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div class="modal" id="refereeModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add Referee</h2>
+        <button class="close-btn" onclick="closeModal('refereeModal')">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="refNameInput" placeholder="Enter name">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="refEmailInput" placeholder="Enter email">
+      </div>
+      <div class="form-group">
+        <label>License</label>
+        <input type="text" id="refLicenseInput" placeholder="Enter license">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="refPasswordInput" placeholder="Temporary password">
+      </div>
+      <button class="btn btn-primary" onclick="saveReferee()">Save</button>
+    </div>
+  </div>
+
+  <div class="modal" id="teamModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add Team</h2>
+        <button class="close-btn" onclick="closeModal('teamModal')">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>Team Name</label>
+        <input type="text" id="teamNameInput" placeholder="Enter team name">
+      </div>
+      <div class="form-group">
+        <label>Manager</label>
+        <input type="text" id="teamManagerInput" placeholder="Enter manager name">
+      </div>
+      <div class="form-group">
+        <label>Home Ground</label>
+        <input type="text" id="teamGroundInput" placeholder="Enter stadium">
+      </div>
+      <button class="btn btn-primary" onclick="saveTeam()">Save</button>
+    </div>
+  </div>
+
+  <div class="modal" id="managerModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add Manager</h2>
+        <button class="close-btn" onclick="closeModal('managerModal')">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="mgrNameInput" placeholder="Enter name">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="mgrEmailInput" placeholder="Enter email">
+      </div>
+      <div class="form-group">
+        <label>Team</label>
+        <select id="mgrTeamInput">
+          <option>Select Team</option>
+          <option>Nairobi City FC</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="saveManager()">Save</button>
+    </div>
+  </div>
+
+  <script>
+    let isLoggedIn = false;
+    let userRole = null;
+
+    function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      userRole = document.getElementById('userRole').value;
+      
+      if (username && password) {
+        isLoggedIn = true;
+        document.getElementById('loginContainer').classList.remove('active');
+        document.getElementById('header').style.display = 'block';
+        document.getElementById('mainContainer').style.display = 'block';
+        document.getElementById('userDisplay').textContent = username;
+
+        document.getElementById('public-section').style.display = 'none';
+        document.getElementById('admin-section').style.display = 'none';
+        document.getElementById('referee-section').style.display = 'none';
+        document.getElementById('manager-section').style.display = 'none';
+
+        if (userRole === 'admin') {
+          document.getElementById('admin-section').style.display = 'block';
+          document.getElementById('mainNav').innerHTML = '<button onclick="showPage(\'admin-home\')">Dashboard</button><button onclick="showPage(\'referees\')">Referees</button><button onclick="showPage(\'teams\')">Teams</button>';
+          showPage('admin-home');
+        } else if (userRole === 'referee') {
+          document.getElementById('referee-section').style.display = 'block';
+          document.getElementById('mainNav').innerHTML = '<button onclick="showPage(\'ref-home\')">My Matches</button>';
+          showPage('ref-home');
+        } else if (userRole === 'manager') {
+          document.getElementById('manager-section').style.display = 'block';
+          document.getElementById('mainNav').innerHTML = '<button onclick="showPage(\'mgr-home\')">Team Dashboard</button>';
+          showPage('mgr-home');
+        } else {
+          document.getElementById('public-section').style.display = 'block';
+          showPage('home');
+        }
+      }
+    }
+
+    function logout() {
+      isLoggedIn = false;
+      userRole = null;
+      document.getElementById('loginContainer').classList.add('active');
+      document.getElementById('header').style.display = 'none';
+      document.getElementById('mainContainer').style.display = 'none';
+    }
+
+    function showPage(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      const page = document.getElementById(pageId);
+      if (page) page.classList.add('active');
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    function saveReferee() {
+      const name = document.getElementById('refNameInput').value;
+      const email = document.getElementById('refEmailInput').value;
+      const password = document.getElementById('refPasswordInput').value;
+      if (name && email && password) {
+        alert(`Referee "${name}" added. They can login with:\nEmail: ${email}\nPassword: ${password}`);
+        closeModal('refereeModal');
+      }
+    }
+
+    function saveTeam() {
+      const name = document.getElementById('teamNameInput').value;
+      if (name) {
+        alert('Team added: ' + name);
+        closeModal('teamModal');
+      }
+    }
+
+    function saveManager() {
+      const name = document.getElementById('mgrNameInput').value;
+      if (name) {
+        alert('Manager added: ' + name);
+        closeModal('managerModal');
+      }
+    }
+
+    function editReferee(id) { alert('Edit referee'); }
+    function updateProfile() { alert('Profile updated'); }
+    function checkIn(id) { alert('Checked in for match'); }
+    function createTeamSheet(id) { alert('Team sheet created'); }
+  </script>
+</body>
+</html>

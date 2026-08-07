@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KNSCL Platform - Admin & Public</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; background: #f5f7fa; color: #2d3748; }
+    
+    /* Login Page */
+    .login-container { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #0f2744 0%, #1a3a52 100%); z-index: 2000; }
+    .login-container.active { display: flex; align-items: center; justify-content: center; }
+    .login-box { background: white; padding: 3rem; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 400px; width: 90%; }
+    .login-box h1 { font-size: 2rem; margin-bottom: 2rem; color: #0f2744; }
+    .login-box input { width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; }
+    .login-box input:focus { outline: none; border-color: #fbbf24; }
+    .login-box button { width: 100%; padding: 0.875rem; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border: none; border-radius: 8px; color: #0f2744; font-weight: 600; cursor: pointer; font-size: 1rem; }
+    .login-box button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(251,191,36,0.3); }
+    
+    /* Main Layout */
+    header { background: linear-gradient(135deg, #0f2744 0%, #1a3a52 100%); color: white; padding: 1.5rem 0; box-shadow: 0 4px 12px rgba(0,0,0,0.15); position: sticky; top: 0; z-index: 100; }
+    .header-content { max-width: 1400px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 1.8rem; font-weight: 700; }
+    .user-section { display: flex; gap: 2rem; align-items: center; }
+    .user-info { font-size: 0.95rem; }
+    .logout-btn { background: #dc2626; padding: 0.5rem 1rem; border: none; border-radius: 6px; color: white; cursor: pointer; }
+    .logout-btn:hover { background: #991b1b; }
+    
+    nav { display: flex; gap: 3rem; }
+    nav button { background: none; border: none; color: white; cursor: pointer; font-weight: 500; font-size: 0.95rem; }
+    nav button:hover { color: #fbbf24; }
+    
+    .container { max-width: 1400px; margin: 0 auto; padding: 3rem 2rem; }
+    
+    /* Hero with Featured News */
+    .featured-news { background: linear-gradient(135deg, #0f2744 0%, #1a3a52 100%); color: white; padding: 4rem 2rem; border-radius: 16px; margin-bottom: 3rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+    .featured-content h1 { font-size: 2.5rem; margin-bottom: 1rem; }
+    .featured-content p { font-size: 1.1rem; margin-bottom: 2rem; line-height: 1.8; }
+    .featured-image { width: 100%; height: 300px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 12px; }
+    
+    /* Admin Dashboard */
+    .admin-dashboard { display: none; }
+    .admin-dashboard.active { display: block; }
+    .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin: 2rem 0; }
+    .admin-card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-top: 4px solid #0f2744; }
+    .admin-card h2 { font-size: 1.5rem; margin-bottom: 1rem; color: #0f2744; }
+    
+    /* Forms */
+    .form-group { margin-bottom: 1.5rem; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: #0f2744; }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; }
+    .form-group textarea { resize: vertical; min-height: 120px; }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: #fbbf24; background: #fffbeb; }
+    .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+    .btn-primary { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #0f2744; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(251,191,36,0.3); }
+    
+    /* Tables */
+    .table-container { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #0f2744; color: white; padding: 1rem; text-align: left; font-weight: 600; }
+    td { padding: 1rem; border-bottom: 1px solid #e2e8f0; }
+    tr:hover { background: #f7fafc; }
+    
+    .edit-btn, .delete-btn { padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; margin-right: 0.5rem; }
+    .edit-btn { background: #3b82f6; color: white; }
+    .delete-btn { background: #dc2626; color: white; }
+    
+    /* Modal */
+    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; padding: 2rem; border-radius: 12px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .modal-header h2 { color: #0f2744; }
+    .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+    
+    /* Page Sections */
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    
+    h2 { font-size: 2rem; margin: 2rem 0 1rem; color: #0f2744; padding-bottom: 1rem; border-bottom: 3px solid #fbbf24; display: inline-block; }
+    
+    .news-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; margin: 2rem 0; }
+    .news-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #fbbf24; }
+    .news-card-content { padding: 1.5rem; }
+    .news-card h3 { color: #0f2744; margin-bottom: 0.75rem; font-size: 1.25rem; }
+    
+    @media (max-width: 768px) {
+      .featured-news { grid-template-columns: 1fr; }
+      .featured-content h1 { font-size: 1.75rem; }
+      nav { gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Login Page -->
+  <div class="login-container active" id="loginContainer">
+    <div class="login-box">
+      <h1>KNSCL Admin</h1>
+      <input type="text" id="username" placeholder="Email" value="admin@knscl.co.ke">
+      <input type="password" id="password" placeholder="Password" value="admin123">
+      <button onclick="login()">Login</button>
+      <p style="margin-top: 1rem; text-align: center; font-size: 0.9rem;">
+        <button onclick="switchToPublic()" style="background: none; border: none; color: #3b82f6; cursor: pointer; text-decoration: underline;">View Public Site</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header id="header" style="display: none;">
+    <div class="header-content">
+      <div class="logo">⚽ KNSCL</div>
+      <nav>
+        <button onclick="showPage('home')">Dashboard</button>
+        <button onclick="showPage('referees')">Referees</button>
+        <button onclick="showPage('teams')">Teams</button>
+        <button onclick="showPage('managers')">Managers</button>
+        <button onclick="showPage('news')">News</button>
+      </nav>
+      <div class="user-section">
+        <div class="user-info">
+          <div id="userDisplay">Admin</div>
+        </div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="container" id="mainContainer" style="display: none;">
+    <!-- Dashboard Page -->
+    <div id="home" class="page active">
+      <h2>Admin Dashboard</h2>
+      <div class="admin-grid">
+        <div class="admin-card">
+          <h2 style="border: none; font-size: 1.3rem; margin: 0;">Total Referees</h2>
+          <p style="font-size: 2.5rem; color: #0f2744; font-weight: 700; margin: 1rem 0;">12</p>
+          <button class="btn btn-primary" onclick="showPage('referees')">Manage Referees</button>
+        </div>
+        <div class="admin-card">
+          <h2 style="border: none; font-size: 1.3rem; margin: 0;">Total Teams</h2>
+          <p style="font-size: 2.5rem; color: #0f2744; font-weight: 700; margin: 1rem 0;">18</p>
+          <button class="btn btn-primary" onclick="showPage('teams')">Manage Teams</button>
+        </div>
+        <div class="admin-card">
+          <h2 style="border: none; font-size: 1.3rem; margin: 0;">Team Managers</h2>
+          <p style="font-size: 2.5rem; color: #0f2744; font-weight: 700; margin: 1rem 0;">18</p>
+          <button class="btn btn-primary" onclick="showPage('managers')">Manage Managers</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Referees Management -->
+    <div id="referees" class="page">
+      <h2>Referee Management</h2>
+      <button class="btn btn-primary" onclick="openRefereeModal()">Add New Referee</button>
+      <div class="table-container" style="margin-top: 2rem;">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>License</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="refereeTable">
+            <tr>
+              <td>Samuel Kipchoge</td>
+              <td>samuel@knscl.co.ke</td>
+              <td>REF001</td>
+              <td><span style="background: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 4px;">Active</span></td>
+              <td>
+                <button class="edit-btn" onclick="editReferee(1)">Edit</button>
+                <button class="delete-btn" onclick="deleteReferee(1)">Delete</button>
+              </td>
+            </tr>
+            <tr>
+              <td>John Omondi</td>
+              <td>john@knscl.co.ke</td>
+              <td>REF002</td>
+              <td><span style="background: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 4px;">Active</span></td>
+              <td>
+                <button class="edit-btn" onclick="editReferee(2)">Edit</button>
+                <button class="delete-btn" onclick="deleteReferee(2)">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Teams Management -->
+    <div id="teams" class="page">
+      <h2>Team Management</h2>
+      <button class="btn btn-primary" onclick="openTeamModal()">Add New Team</button>
+      <div class="table-container" style="margin-top: 2rem;">
+        <table>
+          <thead>
+            <tr>
+              <th>Team Name</th>
+              <th>Manager</th>
+              <th>Home Ground</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="teamTable">
+            <tr>
+              <td>Nairobi City FC</td>
+              <td>John Mwangi</td>
+              <td>Nyayo Stadium</td>
+              <td><span style="background: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 4px;">Active</span></td>
+              <td>
+                <button class="edit-btn" onclick="editTeam(1)">Edit</button>
+                <button class="delete-btn" onclick="deleteTeam(1)">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Managers Management -->
+    <div id="managers" class="page">
+      <h2>Team Managers</h2>
+      <button class="btn btn-primary" onclick="openManagerModal()">Add New Manager</button>
+      <div class="table-container" style="margin-top: 2rem;">
+        <table>
+          <thead>
+            <tr>
+              <th>Manager Name</th>
+              <th>Email</th>
+              <th>Team</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="managerTable">
+            <tr>
+              <td>John Mwangi</td>
+              <td>john.manager@knscl.co.ke</td>
+              <td>Nairobi City FC</td>
+              <td><span style="background: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 4px;">Active</span></td>
+              <td>
+                <button class="edit-btn" onclick="editManager(1)">Edit</button>
+                <button class="delete-btn" onclick="deleteManager(1)">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- News Management -->
+    <div id="news" class="page">
+      <h2>News Management</h2>
+      <button class="btn btn-primary" onclick="openNewsModal()">Add News Article</button>
+      <div class="table-container" style="margin-top: 2rem;">
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="newsTable">
+            <tr>
+              <td>Season Momentum Builds</td>
+              <td>Aug 18, 2024</td>
+              <td><span style="background: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 4px;">Published</span></td>
+              <td>
+                <button class="edit-btn" onclick="editNews(1)">Edit</button>
+                <button class="delete-btn" onclick="deleteNews(1)">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div class="modal" id="refereeModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add Referee</h2>
+        <button class="close-btn" onclick="closeModal('refereeModal')">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="refName" placeholder="Enter referee name">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="refEmail" placeholder="Enter email">
+      </div>
+      <div class="form-group">
+        <label>License Number</label>
+        <input type="text" id="refLicense" placeholder="Enter license number">
+      </div>
+      <button class="btn btn-primary" onclick="saveReferee()">Save Referee</button>
+    </div>
+  </div>
+
+  <div class="modal" id="teamModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add Team</h2>
+        <button class="close-btn" onclick="closeModal('teamModal')">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>Team Name</label>
+        <input type="text" id="teamName" placeholder="Enter team name">
+      </div>
+      <div class="form-group">
+        <label>Manager</label>
+        <input type="text" id="teamManager" placeholder="Enter manager name">
+      </div>
+      <div class="form-group">
+        <label>Home Ground</label>
+        <input type="text" id="teamGround" placeholder="Enter stadium name">
+      </div>
+      <button class="btn btn-primary" onclick="saveTeam()">Save Team</button>
+    </div>
+  </div>
+
+  <div class="modal" id="managerModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add Manager</h2>
+        <button class="close-btn" onclick="closeModal('managerModal')">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>Manager Name</label>
+        <input type="text" id="managerName" placeholder="Enter manager name">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="managerEmail" placeholder="Enter email">
+      </div>
+      <div class="form-group">
+        <label>Team</label>
+        <select id="managerTeam">
+          <option>Select Team</option>
+          <option>Nairobi City FC</option>
+          <option>Eldoret Rangers</option>
+          <option>Mombasa United</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="saveManager()">Save Manager</button>
+    </div>
+  </div>
+
+  <div class="modal" id="newsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add News</h2>
+        <button class="close-btn" onclick="closeModal('newsModal')">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" id="newsTitle" placeholder="Enter news title">
+      </div>
+      <div class="form-group">
+        <label>Content</label>
+        <textarea id="newsContent" placeholder="Enter news content"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveNews()">Publish News</button>
+    </div>
+  </div>
+
+  <script>
+    let isLoggedIn = false;
+    let currentUser = null;
+
+    function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      
+      if (username && password) {
+        isLoggedIn = true;
+        currentUser = username;
+        document.getElementById('loginContainer').classList.remove('active');
+        document.getElementById('header').style.display = 'block';
+        document.getElementById('mainContainer').style.display = 'block';
+        document.getElementById('userDisplay').textContent = username;
+        showPage('home');
+      }
+    }
+
+    function logout() {
+      isLoggedIn = false;
+      currentUser = null;
+      document.getElementById('loginContainer').classList.add('active');
+      document.getElementById('header').style.display = 'none';
+      document.getElementById('mainContainer').style.display = 'none';
+      document.getElementById('username').value = '';
+      document.getElementById('password').value = '';
+    }
+
+    function switchToPublic() {
+      window.location.href = '#public';
+    }
+
+    function showPage(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+    }
+
+    function openRefereeModal() { document.getElementById('refereeModal').classList.add('active'); }
+    function openTeamModal() { document.getElementById('teamModal').classList.add('active'); }
+    function openManagerModal() { document.getElementById('managerModal').classList.add('active'); }
+    function openNewsModal() { document.getElementById('newsModal').classList.add('active'); }
+
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    function saveReferee() {
+      const name = document.getElementById('refName').value;
+      if (name) {
+        alert('Referee added: ' + name);
+        closeModal('refereeModal');
+      }
+    }
+
+    function saveTeam() {
+      const name = document.getElementById('teamName').value;
+      if (name) {
+        alert('Team added: ' + name);
+        closeModal('teamModal');
+      }
+    }
+
+    function saveManager() {
+      const name = document.getElementById('managerName').value;
+      if (name) {
+        alert('Manager added: ' + name);
+        closeModal('managerModal');
+      }
+    }
+
+    function saveNews() {
+      const title = document.getElementById('newsTitle').value;
+      if (title) {
+        alert('News published: ' + title);
+        closeModal('newsModal');
+      }
+    }
+
+    function editReferee(id) { alert('Edit referee ' + id); }
+    function deleteReferee(id) { alert('Delete referee ' + id); }
+    function editTeam(id) { alert('Edit team ' + id); }
+    function deleteTeam(id) { alert('Delete team ' + id); }
+    function editManager(id) { alert('Edit manager ' + id); }
+    function deleteManager(id) { alert('Delete manager ' + id); }
+    function editNews(id) { alert('Edit news ' + id); }
+    function deleteNews(id) { alert('Delete news ' + id); }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && document.getElementById('password') === document.activeElement) {
+        login();
+      }
+    });
+  </script>
+</body>
+</html>

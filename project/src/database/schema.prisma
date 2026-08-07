@@ -1,0 +1,1999 @@
+// KNSCL Football Management Platform - Prisma Schema
+// This schema implements the complete database architecture defined in 01_DATABASE.md
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ============================================================================
+// CHAPTER 1: IDENTITY & ACCESS MANAGEMENT
+// ============================================================================
+
+model User {
+  id                  String    @id @default(uuid()) @db.Uuid
+  firstName           String    @db.VarChar(100)
+  middleName          String?   @db.VarChar(100)
+  lastName            String    @db.VarChar(100)
+  email               String    @unique @db.VarChar(255)
+  phoneNumber         String    @unique @db.VarChar(20)
+  passwordHash        String    @db.Text
+  profilePhoto        String?   @db.Text
+  nationalId          String?   @db.VarChar(30)
+  gender              String?   @db.VarChar(20)
+  dateOfBirth         DateTime? @db.Date
+  isEmailVerified     Boolean   @default(false)
+  isPhoneVerified     Boolean   @default(false)
+  isActive            Boolean   @default(true)
+  isLocked            Boolean   @default(false)
+  lastLoginAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
+  createdBy           String?   @db.Uuid
+  updatedBy           String?   @db.Uuid
+  deletedBy           String?   @db.Uuid
+
+  // Relationships
+  roles               UserRole[]
+  sessions            UserSession[]
+  passwordResetTokens PasswordResetToken[]
+  loginHistory        LoginHistory[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  createdByUser       User?     @relation("CreatedBy", fields: [createdBy], references: [id])
+  updatedByUser       User?     @relation("UpdatedBy", fields: [updatedBy], references: [id])
+  deletedByUser       User?     @relation("DeletedBy", fields: [deletedBy], references: [id])
+  usersByCreated      User[]    @relation("CreatedBy")
+  usersByUpdated      User[]    @relation("UpdatedBy")
+  usersByDeleted      User[]    @relation("DeletedBy")
+  teamManager         TeamManager?
+  referee             Referee?
+  notificationPreferences UserNotificationPreferences?
+
+  @@index([email])
+  @@index([phoneNumber])
+  @@index([isActive])
+  @@index([lastLoginAt])
+}
+
+model Role {
+  id            String   @id @default(uuid()) @db.Uuid
+  roleName      String   @unique @db.VarChar(100)
+  description   String?  @db.Text
+  isSystemRole  Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relationships
+  userRoles     UserRole[]
+  permissions   RolePermission[]
+}
+
+model Permission {
+  id              String   @id @default(uuid()) @db.Uuid
+  permissionName  String   @unique @db.VarChar(150)
+  module          String   @db.VarChar(100)
+  description     String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  // Relationships
+  rolePermissions RolePermission[]
+
+  @@index([module])
+}
+
+model UserRole {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  roleId      String    @db.Uuid
+  assignedBy  String?   @db.Uuid
+  assignedAt  DateTime  @default(now())
+  expiresAt   DateTime?
+
+  // Relationships
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+model RolePermission {
+  id           String   @id @default(uuid()) @db.Uuid
+  roleId       String   @db.Uuid
+  permissionId String   @db.Uuid
+  grantedAt    DateTime @default(now())
+  grantedBy    String?  @db.Uuid
+
+  // Relationships
+  role         Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+}
+
+model UserSession {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @db.Uuid
+  deviceName      String?   @db.VarChar(255)
+  browser         String?   @db.VarChar(255)
+  operatingSystem String?   @db.VarChar(255)
+  ipAddress       String?   @db.VarChar(100)
+  loginTime       DateTime  @default(now())
+  logoutTime      DateTime?
+  refreshToken    String?   @db.Text
+  isActive        Boolean   @default(true)
+
+  // Relationships
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isActive])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  token     String    @unique @db.Text
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  // Relationships
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+model LoginHistory {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String?   @db.Uuid
+  emailAttempted  String    @db.VarChar(255)
+  ipAddress       String?   @db.VarChar(100)
+  browser         String?   @db.VarChar(255)
+  operatingSystem String?   @db.VarChar(255)
+  success         Boolean
+  failureReason   String?   @db.Text
+  loginTime       DateTime  @default(now())
+
+  // Relationships
+  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([emailAttempted])
+  @@index([loginTime])
+}
+
+model Notification {
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String    @db.Uuid
+  title             String    @db.VarChar(255)
+  message           String    @db.Text
+  notificationType  String    @db.VarChar(100)
+  deliveryChannel   String    @db.VarChar(50)
+  isRead            Boolean   @default(false)
+  sentAt            DateTime  @default(now())
+  readAt            DateTime?
+
+  // Relationships
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([sentAt])
+}
+
+model AuditLog {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String?   @db.Uuid
+  module         String    @db.VarChar(100)
+  action         String    @db.VarChar(255)
+  entityType     String    @db.VarChar(100)
+  entityId       String?   @db.Uuid
+  previousValues Json?
+  newValues      Json?
+  ipAddress      String?   @db.VarChar(100)
+  userAgent      String?   @db.Text
+  createdAt      DateTime  @default(now())
+
+  // Relationships
+  user           User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([module])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid()) @db.Uuid
+  settingKey  String   @unique @db.VarChar(255)
+  settingValue String  @db.Text
+  description String?  @db.Text
+  updatedBy   String?  @db.Uuid
+  updatedAt   DateTime @updatedAt
+
+  @@index([settingKey])
+}
+
+model UserNotificationPreferences {
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String    @unique @db.Uuid
+  smsEnabled        Boolean   @default(true)
+  emailEnabled      Boolean   @default(true)
+  pushEnabled       Boolean   @default(true)
+  inAppEnabled      Boolean   @default(true)
+  whatsappEnabled   Boolean   @default(false)
+  marketingEnabled  Boolean   @default(false)
+
+  // Relationships
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ============================================================================
+// CHAPTER 2: COMPETITION & LEAGUE MANAGEMENT
+// ============================================================================
+
+model County {
+  id            String   @id @default(uuid()) @db.Uuid
+  countyCode    String   @unique @db.VarChar(10)
+  countyName    String   @unique @db.VarChar(100)
+  headquarters  String?  @db.VarChar(150)
+  region        String?  @db.VarChar(100)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  // Relationships
+  seasons       Season[]
+  competitions  Competition[]
+  clubs         Club[]
+  venues        Venue[]
+
+  @@index([countyName])
+  @@index([countyCode])
+  @@index([isActive])
+}
+
+model Season {
+  id                   String   @id @default(uuid()) @db.Uuid
+  seasonName           String   @db.VarChar(100)
+  startDate            DateTime @db.Date
+  endDate              DateTime @db.Date
+  registrationDeadline DateTime @db.Date
+  fixtureStartDate     DateTime @db.Date
+  fixtureEndDate       DateTime @db.Date
+  status               String   @db.VarChar(30) @default("Planning")
+  countyId             String?  @db.Uuid
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relationships
+  county               County?  @relation(fields: [countyId], references: [id])
+  competitions         Competition[]
+  fixtures             Fixture[]
+  playerRegistrations  PlayerRegistration[]
+  leagueTables         LeagueTable[]
+  clubRegistrations    ClubRegistration[]
+  playerSeasonStats    PlayerSeasonStatistics[]
+  clubSeasonStats      ClubSeasonStatistics[]
+  refereeSeasonStats   RefereeSeasonStatistics[]
+  playerRankings       PlayerRanking[]
+  clubRankings         ClubRanking[]
+  seasonSummaries      SeasonSummary[]
+  playerDisciplinary   PlayerDisciplinaryHistory[]
+
+  @@index([seasonName])
+  @@index([status])
+  @@index([countyId])
+}
+
+model Competition {
+  id              String   @id @default(uuid()) @db.Uuid
+  countyId        String   @db.Uuid
+  seasonId        String   @db.Uuid
+  competitionName String   @db.VarChar(150)
+  description     String?  @db.Text
+  competitionType String   @db.VarChar(50)
+  logoUrl         String?  @db.Text
+  status          String   @db.VarChar(30) @default("Draft")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  county          County   @relation(fields: [countyId], references: [id])
+  season          Season   @relation(fields: [seasonId], references: [id])
+  divisions       Division[]
+  fixtures        Fixture[]
+  leagueTables    LeagueTable[]
+
+  @@index([competitionName])
+  @@index([countyId])
+  @@index([seasonId])
+  @@index([status])
+}
+
+model Division {
+  id               String   @id @default(uuid()) @db.Uuid
+  competitionId    String   @db.Uuid
+  divisionName     String   @db.VarChar(100)
+  level            Int
+  maxTeams         Int?
+  promotionSlots   Int?
+  relegationSlots  Int?
+  createdAt        DateTime @default(now())
+
+  // Relationships
+  competition      Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  leagues          League[]
+
+  @@index([competitionId])
+  @@index([level])
+}
+
+model League {
+  id              String   @id @default(uuid()) @db.Uuid
+  divisionId      String   @db.Uuid
+  leagueName      String   @db.VarChar(150)
+  shortName       String?  @db.VarChar(50)
+  description     String?  @db.Text
+  totalTeams      Int?
+  homeAndAway     Boolean  @default(true)
+  pointsWin       Int      @default(3)
+  pointsDraw      Int      @default(1)
+  pointsLoss      Int      @default(0)
+  status          String   @db.VarChar(30) @default("Draft")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  division        Division @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  clubs           Club[]
+  fixtures        Fixture[]
+  leagueTables    LeagueTable[]
+
+  @@index([leagueName])
+  @@index([status])
+  @@index([divisionId])
+}
+
+model Venue {
+  id              String   @id @default(uuid()) @db.Uuid
+  countyId        String   @db.Uuid
+  venueName       String   @db.VarChar(150)
+  town            String   @db.VarChar(100)
+  ward            String?  @db.VarChar(100)
+  latitude        Decimal? @db.Decimal(10, 8)
+  longitude       Decimal? @db.Decimal(11, 8)
+  seatingCapacity Int?
+  pitchType       String?  @db.VarChar(50)
+  changingRooms   Boolean  @default(false)
+  floodlights     Boolean  @default(false)
+  contactPerson   String?  @db.VarChar(150)
+  contactPhone    String?  @db.VarChar(30)
+  status          String   @db.VarChar(30) @default("Active")
+
+  // Relationships
+  county          County   @relation(fields: [countyId], references: [id])
+  fixtures        Fixture[]
+  clubHomeVenue   Club[]
+
+  @@index([venueName])
+  @@index([countyId])
+  @@index([status])
+}
+
+model Fixture {
+  id                String   @id @default(uuid()) @db.Uuid
+  leagueId          String   @db.Uuid
+  seasonId          String   @db.Uuid
+  venueId           String   @db.Uuid
+  homeClubId        String   @db.Uuid
+  awayClubId        String   @db.Uuid
+  fixtureDate       DateTime @db.Date
+  kickoffTime       DateTime @db.Time
+  matchday          Int?
+  fixtureStatus     String   @db.VarChar(30) @default("Draft")
+  postponementReason String? @db.Text
+  attendance        Int?
+  weatherConditions String?  @db.VarChar(100)
+  createdBy         String?  @db.Uuid
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relationships
+  league            League   @relation(fields: [leagueId], references: [id])
+  season            Season   @relation(fields: [seasonId], references: [id])
+  venue             Venue    @relation(fields: [venueId], references: [id])
+  homeClub          Club     @relation("HomeFixtures", fields: [homeClubId], references: [id])
+  awayClub          Club     @relation("AwayFixtures", fields: [awayClubId], references: [id])
+  teamSheets        TeamSheet[]
+  matchReport       MatchReport?
+  refereeAssignments RefereeAssignment[]
+  matchEvents       MatchEvent[]
+  goals             Goal[]
+  yellowCards       YellowCard[]
+  redCards          RedCard[]
+  substitutions     Substitution[]
+  matchAttachments  MatchAttachment[]
+
+  @@index([fixtureDate])
+  @@index([fixtureStatus])
+  @@index([leagueId])
+  @@index([seasonId])
+  @@index([venueId])
+  @@index([homeClubId])
+  @@index([awayClubId])
+}
+
+// ============================================================================
+// CHAPTER 3: CLUB MANAGEMENT
+// ============================================================================
+
+model Club {
+  id                String   @id @default(uuid()) @db.Uuid
+  countyId          String   @db.Uuid
+  leagueId          String   @db.Uuid
+  clubName          String   @db.VarChar(150)
+  shortName         String?  @db.VarChar(50)
+  registrationNumber String? @unique @db.VarChar(50)
+  yearFounded       Int?
+  clubType          String   @db.VarChar(50)
+  status            String   @db.VarChar(30) @default("Draft")
+  homeVenueId       String?  @db.Uuid
+  email             String?  @db.VarChar(255)
+  phoneNumber       String?  @db.VarChar(30)
+  website           String?  @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+  createdBy         String?  @db.Uuid
+  updatedBy         String?  @db.Uuid
+  deletedBy         String?  @db.Uuid
+
+  // Relationships
+  county            County   @relation(fields: [countyId], references: [id])
+  league            League   @relation(fields: [leagueId], references: [id])
+  homeVenue         Venue?   @relation(fields: [homeVenueId], references: [id])
+  branding          ClubBranding?
+  teamManagers      TeamManager[]
+  officials         ClubOfficial[]
+  documents         ClubDocument[]
+  registrations     ClubRegistration[]
+  sponsors          ClubSponsor[]
+  history           ClubHistory[]
+  players           Player[]
+  homeFixtures      Fixture[]  @relation("HomeFixtures")
+  awayFixtures      Fixture[]  @relation("AwayFixtures")
+  leagueTables      LeagueTable[]
+  clubSeasonStats   ClubSeasonStatistics[]
+
+  @@index([clubName])
+  @@index([leagueId])
+  @@index([countyId])
+  @@index([registrationNumber])
+  @@index([status])
+}
+
+model ClubBranding {
+  id              String   @id @default(uuid()) @db.Uuid
+  clubId          String   @unique @db.Uuid
+  logoUrl         String?  @db.Text
+  primaryColor    String?  @db.VarChar(20)
+  secondaryColor  String?  @db.VarChar(20)
+  accentColor     String?  @db.VarChar(20)
+  website         String?  @db.Text
+  facebook        String?  @db.Text
+  instagram       String?  @db.Text
+  xAccount        String?  @db.Text
+  youtube         String?  @db.Text
+  slogan          String?  @db.Text
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  club            Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+}
+
+model TeamManager {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @db.Uuid
+  clubId          String   @db.Uuid
+  appointmentDate DateTime @db.Date
+  endDate         DateTime? @db.Date
+  status          String   @db.VarChar(30) @default("Active")
+  createdAt       DateTime @default(now())
+
+  // Relationships
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  club            Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([clubId])
+  @@index([userId])
+}
+
+model ClubOfficial {
+  id              String   @id @default(uuid()) @db.Uuid
+  clubId          String   @db.Uuid
+  fullName        String   @db.VarChar(150)
+  position        String   @db.VarChar(100)
+  phoneNumber     String?  @db.VarChar(30)
+  email           String?  @db.VarChar(255)
+  nationalId      String?  @db.VarChar(30)
+  certification   String?  @db.Text
+  appointmentDate DateTime @db.Date
+  status          String   @db.VarChar(30) @default("Active")
+  createdAt       DateTime @default(now())
+
+  // Relationships
+  club            Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([clubId])
+  @@index([status])
+}
+
+model ClubDocument {
+  id                String   @id @default(uuid()) @db.Uuid
+  clubId            String   @db.Uuid
+  documentType      String   @db.VarChar(100)
+  fileName          String   @db.VarChar(255)
+  fileUrl           String   @db.Text
+  uploadedBy        String?  @db.Uuid
+  uploadedAt        DateTime @default(now())
+  expiryDate        DateTime? @db.Date
+  verificationStatus String  @db.VarChar(30) @default("Pending")
+
+  // Relationships
+  club              Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([clubId])
+  @@index([documentType])
+}
+
+model ClubRegistration {
+  id               String   @id @default(uuid()) @db.Uuid
+  clubId           String   @db.Uuid
+  seasonId         String   @db.Uuid
+  registrationDate DateTime @db.Date
+  registrationFee  Decimal  @db.Decimal(12, 2)
+  paymentStatus    String   @db.VarChar(30) @default("Pending")
+  approvalStatus   String   @db.VarChar(30) @default("Pending")
+  approvedBy       String?  @db.Uuid
+  approvedAt       DateTime?
+
+  // Relationships
+  club             Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  season           Season   @relation(fields: [seasonId], references: [id])
+
+  @@unique([clubId, seasonId])
+  @@index([clubId])
+  @@index([seasonId])
+  @@index([approvalStatus])
+}
+
+model ClubSponsor {
+  id               String   @id @default(uuid()) @db.Uuid
+  clubId           String   @db.Uuid
+  sponsorName      String   @db.VarChar(255)
+  sponsorLogo      String?  @db.Text
+  sponsorshipLevel String   @db.VarChar(100)
+  contractStart    DateTime @db.Date
+  contractEnd      DateTime @db.Date
+  website          String?  @db.Text
+
+  // Relationships
+  club             Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([clubId])
+}
+
+model ClubHistory {
+  id              String   @id @default(uuid()) @db.Uuid
+  clubId          String   @db.Uuid
+  seasonId        String   @db.Uuid
+  leaguePosition  Int?
+  matchesPlayed   Int      @default(0)
+  wins            Int      @default(0)
+  draws           Int      @default(0)
+  losses          Int      @default(0)
+  goalsFor        Int      @default(0)
+  goalsAgainst    Int      @default(0)
+  points          Int      @default(0)
+  trophiesWon     String?  @db.Text
+
+  // Relationships
+  club            Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  season          Season   @relation(fields: [seasonId], references: [id])
+
+  @@index([clubId])
+  @@index([seasonId])
+}
+
+// ============================================================================
+// CHAPTER 4: PLAYER MANAGEMENT
+// ============================================================================
+
+model Player {
+  id                        String   @id @default(uuid()) @db.Uuid
+  clubId                    String   @db.Uuid
+  playerNumber              String   @unique @db.VarChar(30)
+  firstName                 String   @db.VarChar(100)
+  middleName                String?  @db.VarChar(100)
+  lastName                  String   @db.VarChar(100)
+  preferredName             String?  @db.VarChar(100)
+  gender                    String?  @db.VarChar(20)
+  dateOfBirth               DateTime? @db.Date
+  nationality               String?  @db.VarChar(100)
+  nationalId                String?  @unique @db.VarChar(30)
+  passportNumber            String?  @unique @db.VarChar(30)
+  phoneNumber               String?  @db.VarChar(30)
+  email                     String?  @db.VarChar(255)
+  heightCm                  Int?
+  weightKg                  Int?
+  dominantFoot              String?  @db.VarChar(20)
+  profilePhoto              String?  @db.Text
+  status                    String   @db.VarChar(30) @default("Draft")
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  deletedAt                 DateTime?
+
+  // Relationships
+  club                      Club     @relation(fields: [clubId], references: [id])
+  registrations             PlayerRegistration[]
+  transfers                 PlayerTransfer[] @relation("FromClub")
+  transfersTo               PlayerTransfer[] @relation("ToClub")
+  medicalRecords            PlayerMedicalRecord?
+  emergencyContacts         PlayerEmergencyContact[]
+  disciplinaryHistory       PlayerDisciplinaryHistory[]
+  statistics                PlayerSeasonStatistics[]
+  awards                    PlayerAward[]
+  documents                 PlayerDocument[]
+  teamSheetPlayers          TeamSheetPlayer[]
+  matchEvents               MatchEvent[]
+  goalScorer                Goal[] @relation("Scorer")
+  goalAssist                Goal[] @relation("Assist")
+  yellowCards               YellowCard[]
+  redCards                  RedCard[]
+  substitutionsOut          Substitution[] @relation("Out")
+  substitutionsIn           Substitution[] @relation("In")
+
+  @@index([clubId])
+  @@index([playerNumber])
+  @@index([status])
+}
+
+model PlayerRegistration {
+  id               String   @id @default(uuid()) @db.Uuid
+  playerId         String   @db.Uuid
+  clubId           String   @db.Uuid
+  seasonId         String   @db.Uuid
+  jerseyNumber     Int?
+  playingPosition  String?  @db.VarChar(50)
+  registrationDate DateTime @db.Date
+  eligibilityStatus String  @db.VarChar(30) @default("Pending")
+  approvedBy       String?  @db.Uuid
+  approvedAt       DateTime?
+
+  // Relationships
+  player           Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  club             Club     @relation(fields: [clubId], references: [id])
+  season           Season   @relation(fields: [seasonId], references: [id])
+
+  @@unique([playerId, clubId, seasonId])
+  @@index([playerId])
+  @@index([clubId])
+  @@index([seasonId])
+  @@index([eligibilityStatus])
+}
+
+model PlayerPosition {
+  id              String   @id @default(uuid()) @db.Uuid
+  positionName    String   @unique @db.VarChar(100)
+  abbreviation    String?  @db.VarChar(10)
+  createdAt       DateTime @default(now())
+}
+
+model PlayerTransfer {
+  id              String   @id @default(uuid()) @db.Uuid
+  playerId        String   @db.Uuid
+  fromClubId      String   @db.Uuid
+  toClubId        String   @db.Uuid
+  transferDate    DateTime @db.Date
+  transferType    String   @db.VarChar(50)
+  transferFee     Decimal? @db.Decimal(12, 2)
+  approvedBy      String?  @db.Uuid
+  approvalDate    DateTime?
+
+  // Relationships
+  player          Player   @relation("FromClub", fields: [playerId], references: [id], onDelete: Cascade)
+  fromClub        Club     @relation(fields: [fromClubId], references: [id])
+  toClub          Club     @relation(fields: [toClubId], references: [id])
+
+  @@index([playerId])
+  @@index([fromClubId])
+  @@index([toClubId])
+}
+
+model PlayerMedicalRecord {
+  id                String   @id @default(uuid()) @db.Uuid
+  playerId          String   @unique @db.Uuid
+  bloodGroup        String?  @db.VarChar(10)
+  allergies         String?  @db.Text
+  chronicConditions String?  @db.Text
+  medications       String?  @db.Text
+  medicalNotes      String?  @db.Text
+  doctorName        String?  @db.VarChar(150)
+  lastMedicalDate   DateTime? @db.Date
+
+  // Relationships
+  player            Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+}
+
+model PlayerEmergencyContact {
+  id               String   @id @default(uuid()) @db.Uuid
+  playerId         String   @db.Uuid
+  fullName         String   @db.VarChar(150)
+  relationship     String   @db.VarChar(100)
+  phoneNumber      String   @db.VarChar(30)
+  alternativePhone String?  @db.VarChar(30)
+  address          String?  @db.Text
+
+  // Relationships
+  player           Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+}
+
+model PlayerDisciplinaryHistory {
+  id                String   @id @default(uuid()) @db.Uuid
+  playerId          String   @db.Uuid
+  seasonId          String   @db.Uuid
+  offence           String   @db.Text
+  sanction          String   @db.Text
+  suspensionMatches Int?
+  fineAmount        Decimal? @db.Decimal(12, 2)
+  decisionDate      DateTime @db.Date
+
+  // Relationships
+  player            Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  season            Season   @relation(fields: [seasonId], references: [id])
+
+  @@index([playerId])
+  @@index([seasonId])
+}
+
+model PlayerSeasonStatistics {
+  id                      String   @id @default(uuid()) @db.Uuid
+  playerId                String   @db.Uuid
+  seasonId                String   @db.Uuid
+  clubId                  String   @db.Uuid
+  leagueId                String   @db.Uuid
+  matchesPlayed           Int      @default(0)
+  starts                  Int      @default(0)
+  substituteAppearances   Int      @default(0)
+  minutesPlayed           Int      @default(0)
+  goals                   Int      @default(0)
+  assists                 Int      @default(0)
+  cleanSheets             Int      @default(0)
+  yellowCards             Int      @default(0)
+  redCards                Int      @default(0)
+  penaltiesScored         Int      @default(0)
+  penaltiesMissed         Int      @default(0)
+  ownGoals                Int      @default(0)
+  playerOfMatchAwards     Int      @default(0)
+
+  // Relationships
+  player                  Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  season                  Season   @relation(fields: [seasonId], references: [id])
+  club                    Club     @relation(fields: [clubId], references: [id])
+  league                  League   @relation(fields: [leagueId], references: [id])
+
+  @@unique([playerId, seasonId, clubId])
+  @@index([playerId])
+  @@index([seasonId])
+  @@index([clubId])
+}
+
+model PlayerAward {
+  id             String   @id @default(uuid()) @db.Uuid
+  playerId       String   @db.Uuid
+  awardName      String   @db.VarChar(255)
+  seasonId       String?  @db.Uuid
+  awardedDate    DateTime @db.Date
+
+  // Relationships
+  player         Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+}
+
+model PlayerDocument {
+  id               String   @id @default(uuid()) @db.Uuid
+  playerId         String   @db.Uuid
+  documentType     String   @db.VarChar(100)
+  fileName         String   @db.VarChar(255)
+  fileUrl          String   @db.Text
+  uploadedBy       String?  @db.Uuid
+  uploadedAt       DateTime @default(now())
+
+  // Relationships
+  player           Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@index([documentType])
+}
+
+// ============================================================================
+// CHAPTER 5: REFEREE & MATCH OFFICIALS MANAGEMENT
+// ============================================================================
+
+model Referee {
+  id                      String   @id @default(uuid()) @db.Uuid
+  userId                  String   @unique @db.Uuid
+  refereeNumber           String   @unique @db.VarChar(30)
+  firstName               String   @db.VarChar(100)
+  middleName              String?  @db.VarChar(100)
+  lastName                String   @db.VarChar(100)
+  phoneNumber             String   @db.VarChar(30)
+  email                   String?  @db.VarChar(255)
+  gender                  String?  @db.VarChar(20)
+  dateOfBirth             DateTime? @db.Date
+  countyId                String?  @db.Uuid
+  highestCertification    String?  @db.VarChar(100)
+  yearsOfExperience       Int?
+  currentLevel            String?  @db.VarChar(100)
+  profilePhoto            String?  @db.Text
+  status                  String   @db.VarChar(30) @default("Pending Approval")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  // Relationships
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  county                  County?  @relation(fields: [countyId], references: [id])
+  certifications          RefereeCertification[]
+  availability            RefereeAvailability[]
+  assignments             RefereeAssignment[]
+  evaluations             RefereeEvaluation[]
+  disciplinaryActions     RefereeDisciplinaryAction[]
+  payments                RefereePayment[]
+  statistics              RefereeSeasonStatistics[]
+
+  @@index([refereeNumber])
+  @@index([status])
+  @@index([countyId])
+}
+
+model RefereeCertification {
+  id                String   @id @default(uuid()) @db.Uuid
+  refereeId         String   @db.Uuid
+  certificationName String   @db.VarChar(255)
+  issuingBody       String   @db.VarChar(255)
+  issueDate         DateTime @db.Date
+  expiryDate        DateTime? @db.Date
+  certificateNumber String?  @db.VarChar(100)
+  documentUrl       String?  @db.Text
+
+  // Relationships
+  referee           Referee  @relation(fields: [refereeId], references: [id], onDelete: Cascade)
+
+  @@index([refereeId])
+}
+
+model RefereeAvailability {
+  id                String   @id @default(uuid()) @db.Uuid
+  refereeId         String   @db.Uuid
+  availableDate     DateTime @db.Date
+  availableFrom     DateTime @db.Time
+  availableTo       DateTime @db.Time
+  availabilityStatus String  @db.VarChar(30)
+  remarks           String?  @db.Text
+
+  // Relationships
+  referee           Referee  @relation(fields: [refereeId], references: [id], onDelete: Cascade)
+
+  @@index([refereeId])
+  @@index([availableDate])
+}
+
+model RefereeAssignment {
+  id                String   @id @default(uuid()) @db.Uuid
+  fixtureId         String   @db.Uuid
+  refereeId         String   @db.Uuid
+  assignmentRole    String   @db.VarChar(50)
+  assignedBy        String?  @db.Uuid
+  assignmentDate    DateTime @default(now())
+  acceptanceStatus  String   @db.VarChar(30) @default("Pending")
+  acceptedAt        DateTime?
+  declinedReason    String?  @db.Text
+  smsSent           Boolean  @default(false)
+  smsSentAt         DateTime?
+  emailSent         Boolean  @default(false)
+  emailSentAt       DateTime?
+
+  // Relationships
+  fixture           Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  referee           Referee  @relation(fields: [refereeId], references: [id], onDelete: Cascade)
+  evaluations       RefereeEvaluation[]
+  payments          RefereePayment[]
+  matchReport       MatchReport?
+
+  @@unique([fixtureId, refereeId])
+  @@index([fixtureId])
+  @@index([refereeId])
+  @@index([assignmentRole])
+}
+
+model RefereeEvaluation {
+  id                      String   @id @default(uuid()) @db.Uuid
+  refereeAssignmentId     String   @db.Uuid
+  evaluatorId             String?  @db.Uuid
+  positioningScore        Int?
+  fitnessScore            Int?
+  communicationScore      Int?
+  decisionAccuracy        Int?
+  disciplinaryControl     Int?
+  comments                String?  @db.Text
+  finalScore              Decimal? @db.Decimal(5, 2)
+
+  // Relationships
+  refereeAssignment       RefereeAssignment @relation(fields: [refereeAssignmentId], references: [id], onDelete: Cascade)
+
+  @@index([refereeAssignmentId])
+}
+
+model RefereeDisciplinaryAction {
+  id               String   @id @default(uuid()) @db.Uuid
+  refereeId        String   @db.Uuid
+  reason           String   @db.Text
+  sanction         String   @db.Text
+  decisionDate     DateTime @db.Date
+  decidedBy        String?  @db.Uuid
+
+  // Relationships
+  referee          Referee  @relation(fields: [refereeId], references: [id], onDelete: Cascade)
+
+  @@index([refereeId])
+}
+
+model RefereePayment {
+  id                String   @id @default(uuid()) @db.Uuid
+  refereeAssignmentId String @db.Uuid
+  refereeId         String   @db.Uuid
+  fixtureId         String   @db.Uuid
+  grossAmount       Decimal  @db.Decimal(12, 2)
+  deductions        Decimal  @default(0) @db.Decimal(12, 2)
+  netAmount         Decimal  @db.Decimal(12, 2)
+  paymentStatus     String   @db.VarChar(30) @default("Pending")
+  paymentDate       DateTime? @db.Date
+  paymentReference  String?  @db.VarChar(100)
+
+  // Relationships
+  refereeAssignment RefereeAssignment @relation(fields: [refereeAssignmentId], references: [id], onDelete: Cascade)
+  referee           Referee  @relation(fields: [refereeId], references: [id], onDelete: Cascade)
+  fixture           Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
+  @@index([refereeAssignmentId])
+  @@index([refereeId])
+  @@index([fixtureId])
+}
+
+model RefereeSeasonStatistics {
+  id                String   @id @default(uuid()) @db.Uuid
+  refereeId         String   @db.Uuid
+  seasonId          String   @db.Uuid
+  matchesOfficiated Int      @default(0)
+  averageRating     Decimal? @db.Decimal(5, 2)
+  yellowCardsGiven  Int      @default(0)
+  redCardsGiven     Int      @default(0)
+  penaltiesAwarded  Int      @default(0)
+
+  // Relationships
+  referee           Referee  @relation(fields: [refereeId], references: [id], onDelete: Cascade)
+  season            Season   @relation(fields: [seasonId], references: [id])
+
+  @@unique([refereeId, seasonId])
+  @@index([refereeId])
+  @@index([seasonId])
+}
+
+// ============================================================================
+// CHAPTER 6: MATCH OPERATIONS & MATCH DAY MANAGEMENT
+// ============================================================================
+
+model TeamSheet {
+  id                String   @id @default(uuid()) @db.Uuid
+  fixtureId         String   @db.Uuid
+  clubId            String   @db.Uuid
+  submittedBy       String?  @db.Uuid
+  submissionTime    DateTime @default(now())
+  formation         String?  @db.VarChar(30)
+  captainPlayerId   String?  @db.Uuid
+  viceCaptainPlayerId String? @db.Uuid
+  status            String   @db.VarChar(30) @default("Draft")
+  approvedByReferee Boolean  @default(false)
+  approvedAt        DateTime?
+
+  // Relationships
+  fixture           Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  club              Club     @relation(fields: [clubId], references: [id])
+  players           TeamSheetPlayer[]
+
+  @@unique([fixtureId, clubId])
+  @@index([fixtureId])
+  @@index([clubId])
+  @@index([status])
+}
+
+model TeamSheetPlayer {
+  id                  String   @id @default(uuid()) @db.Uuid
+  teamSheetId         String   @db.Uuid
+  playerRegistrationId String @db.Uuid
+  jerseyNumber        Int?
+  position            String?  @db.VarChar(50)
+  isStarting          Boolean  @default(false)
+  isSubstitute        Boolean  @default(false)
+  isCaptain           Boolean  @default(false)
+
+  // Relationships
+  teamSheet           TeamSheet @relation(fields: [teamSheetId], references: [id], onDelete: Cascade)
+  playerRegistration  PlayerRegistration @relation(fields: [playerRegistrationId], references: [id])
+
+  @@unique([teamSheetId, playerRegistrationId])
+  @@index([teamSheetId])
+}
+
+model MatchEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  fixtureId       String   @db.Uuid
+  minute          Int
+  extraTime       Int?
+  eventType       String   @db.VarChar(50)
+  playerId        String?  @db.Uuid
+  clubId          String?  @db.Uuid
+  refereeId       String?  @db.Uuid
+  description     String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  // Relationships
+  fixture         Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  player          Player?  @relation(fields: [playerId], references: [id])
+  club            Club?    @relation(fields: [clubId], references: [id])
+
+  @@index([fixtureId])
+  @@index([eventType])
+  @@index([minute])
+}
+
+model Goal {
+  id              String   @id @default(uuid()) @db.Uuid
+  fixtureId       String   @db.Uuid
+  scorerId        String   @db.Uuid
+  clubId          String   @db.Uuid
+  assistPlayerId  String?  @db.Uuid
+  goalType        String   @db.VarChar(50)
+  minute          Int
+  addedTime       Int?
+
+  // Relationships
+  fixture         Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  scorer          Player   @relation("Scorer", fields: [scorerId], references: [id])
+  club            Club     @relation(fields: [clubId], references: [id])
+  assist          Player?  @relation("Assist", fields: [assistPlayerId], references: [id])
+
+  @@index([fixtureId])
+  @@index([scorerId])
+  @@index([clubId])
+}
+
+model YellowCard {
+  id              String   @id @default(uuid()) @db.Uuid
+  fixtureId       String   @db.Uuid
+  playerId        String   @db.Uuid
+  minute          Int
+  reason          String?  @db.Text
+  refereeId       String?  @db.Uuid
+
+  // Relationships
+  fixture         Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  player          Player   @relation(fields: [playerId], references: [id])
+
+  @@index([fixtureId])
+  @@index([playerId])
+}
+
+model RedCard {
+  id              String   @id @default(uuid()) @db.Uuid
+  fixtureId       String   @db.Uuid
+  playerId        String   @db.Uuid
+  minute          Int
+  offence         String   @db.Text
+  refereeId       String?  @db.Uuid
+
+  // Relationships
+  fixture         Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  player          Player   @relation(fields: [playerId], references: [id])
+
+  @@index([fixtureId])
+  @@index([playerId])
+}
+
+model Substitution {
+  id              String   @id @default(uuid()) @db.Uuid
+  fixtureId       String   @db.Uuid
+  playerOutId     String   @db.Uuid
+  playerInId      String   @db.Uuid
+  minute          Int
+  reason          String?  @db.VarChar(100)
+
+  // Relationships
+  fixture         Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  playerOut       Player   @relation("Out", fields: [playerOutId], references: [id])
+  playerIn        Player   @relation("In", fields: [playerInId], references: [id])
+
+  @@index([fixtureId])
+  @@index([playerOutId])
+  @@index([playerInId])
+}
+
+model MatchReport {
+  id              String   @id @default(uuid()) @db.Uuid
+  fixtureId       String   @unique @db.Uuid
+  refereeAssignmentId String @unique @db.Uuid
+  refereeId       String?  @db.Uuid
+  homeScore       Int?
+  awayScore       Int?
+  matchStarted    DateTime?
+  matchFinished   DateTime?
+  attendance      Int?
+  weather         String?  @db.VarChar(100)
+  pitchCondition  String?  @db.VarChar(100)
+  incidents       String?  @db.Text
+  refereeComments String?  @db.Text
+  submittedAt     DateTime @default(now())
+  approvedAt      DateTime?
+
+  // Relationships
+  fixture         Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  refereeAssignment RefereeAssignment @relation(fields: [refereeAssignmentId], references: [id], onDelete: Cascade)
+  referee         Referee? @relation(fields: [refereeId], references: [id])
+
+  @@index([fixtureId])
+  @@index([refereeAssignmentId])
+}
+
+model MatchAttachment {
+  id              String   @id @default(uuid()) @db.Uuid
+  fixtureId       String   @db.Uuid
+  attachmentType  String   @db.VarChar(100)
+  fileName        String   @db.VarChar(255)
+  fileUrl         String   @db.Text
+  uploadedBy      String?  @db.Uuid
+  uploadedAt      DateTime @default(now())
+
+  // Relationships
+  fixture         Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
+  @@index([fixtureId])
+  @@index([attachmentType])
+}
+
+// ============================================================================
+// CHAPTER 7: STATISTICS & COMPETITION INTELLIGENCE
+// ============================================================================
+
+model LeagueTable {
+  id              String   @id @default(uuid()) @db.Uuid
+  seasonId        String   @db.Uuid
+  competitionId   String   @db.Uuid
+  leagueId        String   @db.Uuid
+  clubId          String   @db.Uuid
+  matchesPlayed   Int      @default(0)
+  wins            Int      @default(0)
+  draws           Int      @default(0)
+  losses          Int      @default(0)
+  goalsFor        Int      @default(0)
+  goalsAgainst    Int      @default(0)
+  goalDifference  Int      @default(0)
+  points          Int      @default(0)
+  position        Int?
+  formLastFive    String?  @db.VarChar(20)
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  season          Season   @relation(fields: [seasonId], references: [id])
+  competition     Competition @relation(fields: [competitionId], references: [id])
+  league          League   @relation(fields: [leagueId], references: [id])
+  club            Club     @relation(fields: [clubId], references: [id])
+
+  @@unique([seasonId, leagueId, clubId])
+  @@index([seasonId])
+  @@index([leagueId])
+  @@index([clubId])
+  @@index([position])
+}
+
+model ClubSeasonStatistics {
+  id              String   @id @default(uuid()) @db.Uuid
+  clubId          String   @db.Uuid
+  seasonId        String   @db.Uuid
+  leagueId        String   @db.Uuid
+  matchesPlayed   Int      @default(0)
+  wins            Int      @default(0)
+  draws           Int      @default(0)
+  losses          Int      @default(0)
+  goalsFor        Int      @default(0)
+  goalsAgainst    Int      @default(0)
+  cleanSheets     Int      @default(0)
+  yellowCards     Int      @default(0)
+  redCards        Int      @default(0)
+  possessionAverage Decimal? @db.Decimal(5, 2)
+  attendanceTotal Int?
+  attendanceAverage Int?
+
+  // Relationships
+  club            Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  season          Season   @relation(fields: [seasonId], references: [id])
+  league          League   @relation(fields: [leagueId], references: [id])
+
+  @@unique([clubId, seasonId])
+  @@index([clubId])
+  @@index([seasonId])
+}
+
+model DisciplinaryTable {
+  id              String   @id @default(uuid()) @db.Uuid
+  seasonId        String   @db.Uuid
+  clubId          String   @db.Uuid
+  yellowCards     Int      @default(0)
+  redCards        Int      @default(0)
+  suspensions     Int      @default(0)
+  fines           Decimal? @db.Decimal(12, 2)
+
+  // Relationships
+  season          Season   @relation(fields: [seasonId], references: [id])
+  club            Club     @relation(fields: [clubId], references: [id])
+
+  @@unique([seasonId, clubId])
+  @@index([seasonId])
+  @@index([clubId])
+}
+
+model PlayerRanking {
+  id              String   @id @default(uuid()) @db.Uuid
+  seasonId        String   @db.Uuid
+  rankingType     String   @db.VarChar(100)
+  playerId        String   @db.Uuid
+  rankingPosition Int
+  rankingValue    Decimal? @db.Decimal(10, 2)
+
+  // Relationships
+  season          Season   @relation(fields: [seasonId], references: [id])
+  player          Player   @relation(fields: [playerId], references: [id])
+
+  @@index([seasonId])
+  @@index([rankingType])
+  @@index([rankingPosition])
+}
+
+model ClubRanking {
+  id              String   @id @default(uuid()) @db.Uuid
+  seasonId        String   @db.Uuid
+  rankingType     String   @db.VarChar(100)
+  clubId          String   @db.Uuid
+  rankingPosition Int
+  rankingValue    Decimal? @db.Decimal(10, 2)
+
+  // Relationships
+  season          Season   @relation(fields: [seasonId], references: [id])
+  club            Club     @relation(fields: [clubId], references: [id])
+
+  @@index([seasonId])
+  @@index([rankingType])
+}
+
+model SeasonSummary {
+  id              String   @id @default(uuid()) @db.Uuid
+  seasonId        String   @unique @db.Uuid
+  totalMatches    Int      @default(0)
+  totalGoals      Int      @default(0)
+  averageGoals    Decimal? @db.Decimal(5, 2)
+  totalYellowCards Int     @default(0)
+  totalRedCards   Int      @default(0)
+  totalAttendance Int      @default(0)
+  averageAttendance Int?
+  championsClubId String?  @db.Uuid
+  runnersUpClubId String?  @db.Uuid
+
+  // Relationships
+  season          Season   @relation(fields: [seasonId], references: [id])
+  championsClub   Club?    @relation(fields: [championsClubId], references: [id])
+  runnersUpClub   Club?    @relation(fields: [runnersUpClubId], references: [id])
+
+  @@index([seasonId])
+}
+
+model Award {
+  id              String   @id @default(uuid()) @db.Uuid
+  seasonId        String   @db.Uuid
+  awardName       String   @db.VarChar(255)
+  awardCategory   String   @db.VarChar(100)
+  recipientId     String?  @db.Uuid
+  awardedDate     DateTime @db.Date
+
+  @@index([seasonId])
+  @@index([awardCategory])
+}
+
+model AnalyticsCache {
+  id              String   @id @default(uuid()) @db.Uuid
+  cacheKey        String   @unique @db.VarChar(255)
+  cacheData       Json
+  generatedAt     DateTime @default(now())
+  expiresAt       DateTime
+
+  @@index([cacheKey])
+  @@index([expiresAt])
+}
+
+// ============================================================================
+// CHAPTER 8: CONTENT MANAGEMENT, PUBLIC WEBSITE & MEDIA
+// ============================================================================
+
+model NewsArticle {
+  id              String   @id @default(uuid()) @db.Uuid
+  title           String   @db.VarChar(255)
+  slug            String   @unique @db.VarChar(255)
+  summary         String?  @db.Text
+  content         String   @db.Text
+  featuredImage   String?  @db.Text
+  authorId        String?  @db.Uuid
+  categoryId      String?  @db.Uuid
+  publishDate     DateTime @default(now())
+  status          String   @db.VarChar(30) @default("Draft")
+  featured        Boolean  @default(false)
+  views           Int      @default(0)
+  seoTitle        String?  @db.VarChar(255)
+  seoDescription  String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  category        NewsCategory? @relation(fields: [categoryId], references: [id])
+
+  @@index([slug])
+  @@index([status])
+  @@index([publishDate])
+  @@index([categoryId])
+}
+
+model NewsCategory {
+  id              String   @id @default(uuid()) @db.Uuid
+  categoryName    String   @unique @db.VarChar(100)
+  slug            String   @unique @db.VarChar(100)
+  description     String?  @db.Text
+
+  // Relationships
+  articles        NewsArticle[]
+}
+
+model Announcement {
+  id              String   @id @default(uuid()) @db.Uuid
+  title           String   @db.VarChar(255)
+  message         String   @db.Text
+  startDate       DateTime @db.Date
+  endDate         DateTime @db.Date
+  priority        String   @db.VarChar(30)
+  audience        String   @db.VarChar(50)
+  publishedBy     String?  @db.Uuid
+  createdAt       DateTime @default(now())
+
+  @@index([priority])
+  @@index([audience])
+  @@index([startDate])
+}
+
+model Gallery {
+  id              String   @id @default(uuid()) @db.Uuid
+  title           String   @db.VarChar(255)
+  description     String?  @db.Text
+  imageUrl        String   @db.Text
+  fixtureId       String?  @db.Uuid
+  clubId          String?  @db.Uuid
+  uploadedBy      String?  @db.Uuid
+  uploadDate      DateTime @default(now())
+
+  // Relationships
+  fixture         Fixture? @relation(fields: [fixtureId], references: [id])
+  club            Club?    @relation(fields: [clubId], references: [id])
+
+  @@index([fixtureId])
+  @@index([clubId])
+  @@index([uploadDate])
+}
+
+model Video {
+  id              String   @id @default(uuid()) @db.Uuid
+  title           String   @db.VarChar(255)
+  description     String?  @db.Text
+  videoUrl        String   @db.Text
+  thumbnailUrl    String?  @db.Text
+  duration        Int?
+  fixtureId       String?  @db.Uuid
+  uploadedBy      String?  @db.Uuid
+
+  // Relationships
+  fixture         Fixture? @relation(fields: [fixtureId], references: [id])
+
+  @@index([fixtureId])
+}
+
+model Download {
+  id              String   @id @default(uuid()) @db.Uuid
+  title           String   @db.VarChar(255)
+  description     String?  @db.Text
+  fileUrl         String   @db.Text
+  fileType        String   @db.VarChar(50)
+  downloadCount   Int      @default(0)
+  uploadedBy      String?  @db.Uuid
+
+  @@index([fileType])
+}
+
+model Sponsor {
+  id              String   @id @default(uuid()) @db.Uuid
+  sponsorName     String   @db.VarChar(255)
+  logoUrl         String?  @db.Text
+  website         String?  @db.Text
+  sponsorshipLevel String  @db.VarChar(100)
+  startDate       DateTime @db.Date
+  endDate         DateTime @db.Date
+  displayOrder    Int      @default(0)
+  active          Boolean  @default(true)
+
+  @@index([sponsorshipLevel])
+  @@index([active])
+  @@index([displayOrder])
+}
+
+model StaticPage {
+  id              String   @id @default(uuid()) @db.Uuid
+  pageTitle       String   @db.VarChar(255)
+  slug            String   @unique @db.VarChar(255)
+  content         String   @db.Text
+  seoTitle        String?  @db.VarChar(255)
+  seoDescription  String?  @db.Text
+  published       Boolean  @default(false)
+
+  @@index([slug])
+  @@index([published])
+}
+
+model WebsiteBanner {
+  id              String   @id @default(uuid()) @db.Uuid
+  title           String   @db.VarChar(255)
+  subtitle        String?  @db.Text
+  imageUrl        String   @db.Text
+  buttonText      String?  @db.VarChar(100)
+  buttonUrl       String?  @db.Text
+  displayOrder    Int      @default(0)
+  active          Boolean  @default(true)
+
+  @@index([active])
+  @@index([displayOrder])
+}
+
+model MediaLibrary {
+  id              String   @id @default(uuid()) @db.Uuid
+  fileName        String   @db.VarChar(255)
+  originalName    String   @db.VarChar(255)
+  mimeType        String   @db.VarChar(100)
+  fileSize        BigInt
+  storagePath     String   @db.Text
+  uploadedBy      String?  @db.Uuid
+  uploadedAt      DateTime @default(now())
+
+  @@index([fileName])
+  @@index([mimeType])
+  @@index([uploadedAt])
+}
+
+model SeoMetadata {
+  id              String   @id @default(uuid()) @db.Uuid
+  entityType      String   @db.VarChar(100)
+  entityId        String?  @db.Uuid
+  metaTitle       String?  @db.VarChar(255)
+  metaDescription String?  @db.Text
+  keywords        String?  @db.Text
+  canonicalUrl    String?  @db.Text
+  ogImage         String?  @db.Text
+
+  @@index([entityType])
+  @@index([entityId])
+}
+
+model WebsiteSearchIndex {
+  id              String   @id @default(uuid()) @db.Uuid
+  searchableType  String   @db.VarChar(100)
+  searchableId    String   @db.Uuid
+  searchableText  String   @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([searchableType])
+  @@index([searchableId])
+  @@fulltext([searchableText])
+}
+
+// ============================================================================
+// CHAPTER 9: NOTIFICATIONS & COMMUNICATIONS
+// ============================================================================
+
+model NotificationTemplate {
+  id              String   @id @default(uuid()) @db.Uuid
+  templateName    String   @db.VarChar(255)
+  notificationType String  @db.VarChar(50)
+  subject         String?  @db.VarChar(255)
+  messageBody     String   @db.Text
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([notificationType])
+  @@index([active])
+}
+
+model CommunicationLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  notificationId  String?  @db.Uuid
+  channel         String   @db.VarChar(50)
+  provider        String   @db.VarChar(100)
+  providerReference String? @db.VarChar(255)
+  responseCode    String?  @db.VarChar(50)
+  responseMessage String?  @db.Text
+  retryCount      Int      @default(0)
+  successful      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([channel])
+  @@index([provider])
+  @@index([successful])
+}
+
+model SystemEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  eventName       String   @db.VarChar(255)
+  eventSource     String   @db.VarChar(100)
+  entityType      String   @db.VarChar(100)
+  entityId        String?  @db.Uuid
+  payload         Json?
+  triggeredBy     String?  @db.Uuid
+  createdAt       DateTime @default(now())
+
+  @@index([eventName])
+  @@index([eventSource])
+  @@index([entityType])
+  @@index([createdAt])
+}
+
+model Webhook {
+  id              String   @id @default(uuid()) @db.Uuid
+  webhookName     String   @db.VarChar(255)
+  endpointUrl     String   @db.Text
+  eventName       String   @db.VarChar(255)
+  authenticationType String @db.VarChar(50)
+  active          Boolean  @default(true)
+
+  @@index([eventName])
+  @@index([active])
+}
+
+model ApiKey {
+  id              String   @id @default(uuid()) @db.Uuid
+  applicationName String   @db.VarChar(255)
+  apiKey          String   @unique @db.Text
+  permissions     Json?
+  expiresAt       DateTime?
+  active          Boolean  @default(true)
+
+  @@index([apiKey])
+  @@index([active])
+}
+
+model ThirdPartyIntegration {
+  id              String   @id @default(uuid()) @db.Uuid
+  providerName    String   @db.VarChar(255)
+  integrationType String   @db.VarChar(100)
+  configuration   Json
+  status          String   @db.VarChar(30)
+  lastSuccessfulSync DateTime?
+
+  @@index([providerName])
+  @@index([integrationType])
+  @@index([status])
+}
+
+// ============================================================================
+// CHAPTER 10: FINANCIAL MANAGEMENT & PAYMENTS
+// ============================================================================
+
+model PaymentMethod {
+  id              String   @id @default(uuid()) @db.Uuid
+  methodName      String   @db.VarChar(100)
+  provider        String   @db.VarChar(100)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+}
+
+model Invoice {
+  id              String   @id @default(uuid()) @db.Uuid
+  invoiceNumber   String   @unique @db.VarChar(50)
+  customerType    String   @db.VarChar(50)
+  customerId      String?  @db.Uuid
+  invoiceDate     DateTime @db.Date
+  dueDate         DateTime @db.Date
+  subtotal        Decimal  @db.Decimal(12, 2)
+  taxAmount       Decimal? @db.Decimal(12, 2)
+  totalAmount     Decimal  @db.Decimal(12, 2)
+  currency        String   @db.VarChar(10) @default("KES")
+  invoiceStatus   String   @db.VarChar(30) @default("Draft")
+  createdBy       String?  @db.Uuid
+  createdAt       DateTime @default(now())
+
+  // Relationships
+  payments        Payment[]
+
+  @@index([invoiceNumber])
+  @@index([invoiceStatus])
+  @@index([customerId])
+  @@index([dueDate])
+}
+
+model Payment {
+  id              String   @id @default(uuid()) @db.Uuid
+  invoiceId       String   @db.Uuid
+  paymentMethodId String?  @db.Uuid
+  payerName       String   @db.VarChar(255)
+  payerPhone      String?  @db.VarChar(30)
+  transactionReference String @unique @db.VarChar(100)
+  amountPaid      Decimal  @db.Decimal(12, 2)
+  paymentDate     DateTime @default(now())
+  paymentStatus   String   @db.VarChar(30) @default("Pending")
+  verifiedBy      String?  @db.Uuid
+  verifiedAt      DateTime?
+
+  // Relationships
+  invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  receipts        Receipt[]
+
+  @@index([invoiceId])
+  @@index([paymentStatus])
+  @@index([transactionReference])
+}
+
+model Receipt {
+  id              String   @id @default(uuid()) @db.Uuid
+  receiptNumber   String   @unique @db.VarChar(50)
+  paymentId       String   @db.Uuid
+  receiptDate     DateTime @default(now())
+  issuedBy        String?  @db.Uuid
+  receiptUrl      String?  @db.Text
+
+  // Relationships
+  payment         Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([receiptNumber])
+  @@index([paymentId])
+}
+
+model ClubFee {
+  id              String   @id @default(uuid()) @db.Uuid
+  clubId          String   @db.Uuid
+  seasonId        String   @db.Uuid
+  feeType         String   @db.VarChar(100)
+  amount          Decimal  @db.Decimal(12, 2)
+  dueDate         DateTime @db.Date
+  paymentStatus   String   @db.VarChar(30) @default("Pending")
+
+  // Relationships
+  club            Club     @relation(fields: [clubId], references: [id])
+  season          Season   @relation(fields: [seasonId], references: [id])
+
+  @@index([clubId])
+  @@index([seasonId])
+  @@index([paymentStatus])
+}
+
+model DisciplinaryFine {
+  id              String   @id @default(uuid()) @db.Uuid
+  clubId          String?  @db.Uuid
+  playerId        String?  @db.Uuid
+  refereeId       String?  @db.Uuid
+  offence         String   @db.Text
+  fineAmount      Decimal  @db.Decimal(12, 2)
+  imposedBy       String?  @db.Uuid
+  decisionDate    DateTime @db.Date
+  paymentStatus   String   @db.VarChar(30) @default("Pending")
+
+  // Relationships
+  club            Club?    @relation(fields: [clubId], references: [id])
+  player          Player?  @relation(fields: [playerId], references: [id])
+  referee         Referee? @relation(fields: [refereeId], references: [id])
+
+  @@index([clubId])
+  @@index([playerId])
+  @@index([refereeId])
+}
+
+model SponsorshipRevenue {
+  id              String   @id @default(uuid()) @db.Uuid
+  sponsorName     String   @db.VarChar(255)
+  sponsorshipLevel String  @db.VarChar(100)
+  contractValue   Decimal  @db.Decimal(14, 2)
+  amountReceived  Decimal  @db.Decimal(14, 2)
+  balance         Decimal  @db.Decimal(14, 2)
+  contractStart   DateTime @db.Date
+  contractEnd     DateTime @db.Date
+
+  @@index([sponsorName])
+}
+
+model Donation {
+  id              String   @id @default(uuid()) @db.Uuid
+  donorName       String   @db.VarChar(255)
+  donorType       String   @db.VarChar(100)
+  amount          Decimal  @db.Decimal(12, 2)
+  purpose         String?  @db.Text
+  donationDate    DateTime @db.Date
+  receiptId       String?  @db.Uuid
+
+  @@index([donorType])
+  @@index([donationDate])
+}
+
+model FinancialLedger {
+  id              String   @id @default(uuid()) @db.Uuid
+  transactionDate DateTime
+  transactionType String   @db.VarChar(100)
+  referenceTable  String   @db.VarChar(100)
+  referenceId     String?  @db.Uuid
+  debit           Decimal? @db.Decimal(14, 2)
+  credit          Decimal? @db.Decimal(14, 2)
+  balance         Decimal  @db.Decimal(14, 2)
+  narration       String?  @db.Text
+  createdBy       String?  @db.Uuid
+
+  @@index([transactionDate])
+  @@index([transactionType])
+  @@index([referenceTable])
+}
+
+model Refund {
+  id              String   @id @default(uuid()) @db.Uuid
+  paymentId       String   @db.Uuid
+  refundAmount    Decimal  @db.Decimal(12, 2)
+  refundReason    String?  @db.Text
+  approvedBy      String?  @db.Uuid
+  refundDate      DateTime @default(now())
+  refundStatus    String   @db.VarChar(30) @default("Pending")
+
+  // Relationships
+  payment         Payment  @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
+  @@index([refundStatus])
+}
+
+// ============================================================================
+// CHAPTER 11: REPORTING & BUSINESS INTELLIGENCE
+// ============================================================================
+
+model ReportDefinition {
+  id              String   @id @default(uuid()) @db.Uuid
+  reportName      String   @db.VarChar(255)
+  reportCode      String   @unique @db.VarChar(100)
+  category        String   @db.VarChar(100)
+  description     String?  @db.Text
+  reportType      String   @db.VarChar(50)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  // Relationships
+  executions      ReportExecution[]
+
+  @@index([reportCode])
+  @@index([category])
+  @@index([active])
+}
+
+model ReportExecution {
+  id              String   @id @default(uuid()) @db.Uuid
+  reportDefinitionId String @db.Uuid
+  generatedBy     String?  @db.Uuid
+  filters         Json?
+  exportFormat    String   @db.VarChar(30)
+  fileLocation    String?  @db.Text
+  executionTimeMs Int?
+  generatedAt     DateTime @default(now())
+
+  // Relationships
+  reportDefinition ReportDefinition @relation(fields: [reportDefinitionId], references: [id], onDelete: Cascade)
+
+  @@index([reportDefinitionId])
+  @@index([generatedAt])
+}
+
+model DashboardWidget {
+  id              String   @id @default(uuid()) @db.Uuid
+  widgetName      String   @db.VarChar(255)
+  widgetType      String   @db.VarChar(100)
+  dataSource      String   @db.VarChar(255)
+  refreshInterval Int?
+  active          Boolean  @default(true)
+}
+
+model KpiDefinition {
+  id              String   @id @default(uuid()) @db.Uuid
+  kpiName         String   @db.VarChar(255)
+  formula         String   @db.Text
+  targetValue     Decimal? @db.Decimal(12, 2)
+  warningThreshold Decimal? @db.Decimal(12, 2)
+  criticalThreshold Decimal? @db.Decimal(12, 2)
+  active          Boolean  @default(true)
+
+  @@index([active])
+}
+
+model SavedReport {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @db.Uuid
+  reportName      String   @db.VarChar(255)
+  filters         Json?
+  defaultExportFormat String @db.VarChar(30)
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+}
+
+model ScheduledReport {
+  id              String   @id @default(uuid()) @db.Uuid
+  reportDefinitionId String @db.Uuid
+  scheduleType    String   @db.VarChar(50)
+  scheduleExpression String @db.VarChar(255)
+  recipients      Json
+  exportFormat    String   @db.VarChar(30)
+  enabled         Boolean  @default(true)
+
+  @@index([reportDefinitionId])
+  @@index([enabled])
+}
+
+// ============================================================================
+// CHAPTER 12: ADMINISTRATION, GOVERNANCE & SYSTEM MANAGEMENT
+// ============================================================================
+
+model FeatureFlag {
+  id              String   @id @default(uuid()) @db.Uuid
+  featureName     String   @unique @db.VarChar(255)
+  enabled         Boolean  @default(false)
+  rolloutPercentage Int    @default(0)
+  description     String?  @db.Text
+  updatedBy       String?  @db.Uuid
+  updatedAt       DateTime @updatedAt
+
+  @@index([featureName])
+  @@index([enabled])
+}
+
+model SystemMaintenance {
+  id              String   @id @default(uuid()) @db.Uuid
+  title           String   @db.VarChar(255)
+  description     String?  @db.Text
+  startTime       DateTime
+  endTime         DateTime
+  maintenanceType String   @db.VarChar(100)
+  notifyUsers     Boolean  @default(true)
+  createdBy       String?  @db.Uuid
+
+  @@index([startTime])
+  @@index([maintenanceType])
+}
+
+model SystemBackup {
+  id              String   @id @default(uuid()) @db.Uuid
+  backupType      String   @db.VarChar(100)
+  storageLocation String   @db.Text
+  backupSize      BigInt?
+  startedAt       DateTime
+  completedAt     DateTime?
+  status          String   @db.VarChar(30)
+  initiatedBy     String?  @db.Uuid
+
+  @@index([backupType])
+  @@index([status])
+  @@index([startedAt])
+}
+
+model SystemHealth {
+  id              String   @id @default(uuid()) @db.Uuid
+  cpuUsage        Decimal? @db.Decimal(5, 2)
+  memoryUsage     Decimal? @db.Decimal(5, 2)
+  storageUsage    Decimal? @db.Decimal(5, 2)
+  activeUsers     Int?
+  responseTimeMs  Int?
+  recordedAt      DateTime @default(now())
+
+  @@index([recordedAt])
+}
+
+// ============================================================================
+// Test Case and Defect Management
+// ============================================================================
+
+model TestCase {
+  id              String   @id @default(uuid()) @db.Uuid
+  module          String   @db.VarChar(100)
+  testCaseNumber  String   @unique @db.VarChar(50)
+  title           String   @db.VarChar(255)
+  description     String?  @db.Text
+  expectedResult  String?  @db.Text
+  priority        String   @db.VarChar(20)
+  automated       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  // Relationships
+  executions      TestExecution[]
+
+  @@index([module])
+  @@index([priority])
+}
+
+model TestExecution {
+  id              String   @id @default(uuid()) @db.Uuid
+  testCaseId      String   @db.Uuid
+  executedBy      String?  @db.Uuid
+  executionDate   DateTime @default(now())
+  result          String   @db.VarChar(20)
+  executionTimeMs Int?
+  notes           String?  @db.Text
+
+  // Relationships
+  testCase        TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  @@index([testCaseId])
+  @@index([executionDate])
+}
+
+model Defect {
+  id              String   @id @default(uuid()) @db.Uuid
+  defectNumber    String   @unique @db.VarChar(50)
+  title           String   @db.VarChar(255)
+  description     String?  @db.Text
+  module          String   @db.VarChar(100)
+  severity        String   @db.VarChar(30)
+  priority        String   @db.VarChar(30)
+  status          String   @db.VarChar(30) @default("Open")
+  assignedTo      String?  @db.Uuid
+  reportedBy      String?  @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([defectNumber])
+  @@index([status])
+  @@index([module])
+  @@index([severity])
+}
