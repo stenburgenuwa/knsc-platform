@@ -11,15 +11,20 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '12');
     const skip = (page - 1) * limit;
 
+    // Public pages want only upcoming games; the admin console passes
+    // status=all to manage completed and postponed ones too.
+    const statusParam = searchParams.get('status');
+    const where = statusParam === 'all' ? {} : { status: (statusParam as any) || 'UPCOMING' };
+
     const [fixtures, total] = await Promise.all([
       prisma.fixture.findMany({
-        where: { status: 'UPCOMING' },
+        where,
         include: { homeClub: true, awayClub: true, venue: true, refereeAssignment: { include: { referee: true } } },
-        orderBy: { fixtureDate: 'asc' },
+        orderBy: { fixtureDate: statusParam === 'all' ? 'desc' : 'asc' },
         skip,
         take: limit,
       }),
-      prisma.fixture.count({ where: { status: 'UPCOMING' } }),
+      prisma.fixture.count({ where }),
     ]);
 
     return NextResponse.json({

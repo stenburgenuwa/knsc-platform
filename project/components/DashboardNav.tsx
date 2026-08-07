@@ -7,12 +7,15 @@ import { LogOut, Menu } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { DASHBOARD_BY_LABEL } from '@/lib/roles';
 
-// Each role currently has exactly one dashboard page that holds its stats
-// and all its forms/actions inline — no separate sub-pages exist yet, so the
-// nav only ever links to that one real route (plus the public site).
+// Most roles have a single dashboard page holding their stats and actions
+// inline. The Platform Owner additionally gets the management console, where
+// every record can be edited or deleted. Only real routes are ever linked.
 function navLinksFor(role: string): { label: string; href: string }[] {
   const dashboardHref = DASHBOARD_BY_LABEL[role];
   const links = dashboardHref ? [{ label: 'Dashboard', href: dashboardHref }] : [];
+  if (role === 'Platform Owner') {
+    links.push({ label: 'Manage Data', href: '/dashboard/platform/manage' });
+  }
   return [...links, { label: 'Public Site', href: '/' }];
 }
 

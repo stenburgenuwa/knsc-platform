@@ -23,9 +23,67 @@ export async function createClub(data: {
   return client.post('/clubs', data);
 }
 
-export async function updateClub(id: string, data: { logoUrl?: string | null; name?: string }) {
+export async function updateClub(
+  id: string,
+  data: { logoUrl?: string | null; name?: string; shortName?: string; yearFounded?: number | null }
+) {
   const client = getApiClient();
   return client.patch(`/clubs/${id}`, data);
+}
+
+export async function deleteClub(id: string) {
+  const client = getApiClient();
+  return client.delete(`/clubs/${id}`);
+}
+
+export async function getAllUsers() {
+  const client = getApiClient();
+  return client.get('/users');
+}
+
+export async function updateUser(
+  id: string,
+  data: { email?: string; firstName?: string; lastName?: string; role?: string; clubId?: string | null; password?: string }
+) {
+  const client = getApiClient();
+  return client.patch(`/users/${id}`, data);
+}
+
+export async function deleteUser(id: string) {
+  const client = getApiClient();
+  return client.delete(`/users/${id}`);
+}
+
+export async function deletePlayer(id: string) {
+  const client = getApiClient();
+  return client.delete(`/players/${id}`);
+}
+
+export async function updateFixture(
+  id: string,
+  data: {
+    homeClubId?: string;
+    awayClubId?: string;
+    venueId?: string | null;
+    fixtureDate?: string;
+    kickoffTime?: string;
+    status?: string;
+    homeScore?: number | null;
+    awayScore?: number | null;
+  }
+) {
+  const client = getApiClient();
+  return client.patch(`/fixtures/${id}`, data);
+}
+
+export async function deleteFixture(id: string) {
+  const client = getApiClient();
+  return client.delete(`/fixtures/${id}`);
+}
+
+export async function resetAllData(confirmation: string) {
+  const client = getApiClient();
+  return client.post('/admin/reset', { confirmation });
 }
 
 export async function updatePlayer(

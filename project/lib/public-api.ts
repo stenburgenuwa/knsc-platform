@@ -1,9 +1,11 @@
 import { getApiClient } from '@/lib/api-client';
 
 // Routes served under app/api/*, mounted at NEXT_PUBLIC_API_URL (default /api) — no /public prefix.
-export async function getFixtures(page = 1, limit = 12) {
+export async function getFixtures(page = 1, limit = 12, opts?: { status?: 'all' | 'UPCOMING' | 'COMPLETED' | 'POSTPONED' }) {
   const client = getApiClient();
-  return client.get(`/fixtures?page=${page}&limit=${limit}`);
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (opts?.status) params.set('status', opts.status);
+  return client.get(`/fixtures?${params.toString()}`);
 }
 
 export async function getResults(page = 1, limit = 12) {
