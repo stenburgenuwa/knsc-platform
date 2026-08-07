@@ -11,7 +11,7 @@ export default function StandingsPage() {
     const fetchStandings = async () => {
       try {
         const response = await getStandings();
-        setStandings(response.data?.standings || []);
+        setStandings(response.data?.data?.standings || []);
       } catch (error) {
         console.error('Error loading standings:', error);
       } finally {
@@ -22,52 +22,56 @@ export default function StandingsPage() {
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-4xl font-bold mb-8">League Standings</h1>
+    <div style={{ maxWidth: 1000, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
+      <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-6)' }}>League Standings</h1>
 
-      {loading ? (
-        <div className="bg-gray-200 h-96 rounded animate-pulse"></div>
-      ) : (
-        <div className="bg-white rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-100 border-b">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold">Pos</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold">Team</th>
-                  <th className="px-4 py-3 text-center text-sm font-semibold">P</th>
-                  <th className="px-4 py-3 text-center text-sm font-semibold">W</th>
-                  <th className="px-4 py-3 text-center text-sm font-semibold">D</th>
-                  <th className="px-4 py-3 text-center text-sm font-semibold">L</th>
-                  <th className="px-4 py-3 text-center text-sm font-semibold">GF</th>
-                  <th className="px-4 py-3 text-center text-sm font-semibold">GA</th>
-                  <th className="px-4 py-3 text-center text-sm font-semibold">GD</th>
-                  <th className="px-4 py-3 text-center text-sm font-semibold">Pts</th>
-                </tr>
-              </thead>
-              <tbody>
-                {standings.map((team: any) => (
-                  <tr key={team.id} className="border-t hover:bg-gray-50">
-                    <td className="px-4 py-3 font-bold">{team.position}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <img src={team.clubLogo || '/placeholder.png'} alt="" className="w-6 h-6 rounded" />
-                        <span className="font-semibold">{team.clubName}</span>
-                      </div>
+      {loading && <p className="text-muted">Loading standings&hellip;</p>}
+      {!loading && standings.length === 0 && <p className="text-muted">Standings will appear once fixtures are completed.</p>}
+
+      {!loading && standings.length > 0 && (
+        <div style={{ overflowX: 'auto' }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Pos</th>
+                <th>Club</th>
+                <th>P</th>
+                <th>W</th>
+                <th>D</th>
+                <th>L</th>
+                <th>GF</th>
+                <th>GA</th>
+                <th>GD</th>
+                <th>Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+              {standings.map((team: any, index: number) => {
+                const played = Number(team.played || 0);
+                const won = Number(team.won || 0);
+                const drawn = Number(team.drawn || 0);
+                const lost = Number(team.lost || 0);
+                const goalsFor = Number(team.goalsFor || 0);
+                const goalsAgainst = Number(team.goalsAgainst || 0);
+                return (
+                  <tr key={team.id}>
+                    <td>{team.position || index + 1}</td>
+                    <td style={{ fontFamily: 'var(--font-heading)' }}>{team.clubName || team.name}</td>
+                    <td>{played}</td>
+                    <td>{won}</td>
+                    <td>{drawn}</td>
+                    <td>{lost}</td>
+                    <td>{goalsFor}</td>
+                    <td>{goalsAgainst}</td>
+                    <td>{goalsFor - goalsAgainst}</td>
+                    <td style={{ color: 'var(--color-accent-700)', fontWeight: 600 }}>
+                      {team.points ?? won * 3 + drawn}
                     </td>
-                    <td className="px-4 py-3 text-center">{team.played}</td>
-                    <td className="px-4 py-3 text-center">{team.won}</td>
-                    <td className="px-4 py-3 text-center">{team.drawn}</td>
-                    <td className="px-4 py-3 text-center">{team.lost}</td>
-                    <td className="px-4 py-3 text-center">{team.goalsFor}</td>
-                    <td className="px-4 py-3 text-center">{team.goalsAgainst}</td>
-                    <td className="px-4 py-3 text-center">{team.goalDifference}</td>
-                    <td className="px-4 py-3 text-center font-bold text-lg">{team.points}</td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

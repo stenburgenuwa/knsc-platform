@@ -1,39 +1,32 @@
-import { PrismaClient } from '@prisma/client';
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
-const prisma = new PrismaClient();
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const stats = await prisma.$queryRaw`
-      SELECT 
-        (SELECT COUNT(*) FROM Club) as clubs,
-        (SELECT COUNT(*) FROM Player WHERE approved = true) as players,
-        (SELECT COUNT(*) FROM Fixture WHERE status = 'completed') as matches,
-        COALESCE(SUM(homeScore + awayScore), 0) as goals
-      FROM Fixture
-      WHERE status = 'completed'
-    `;
+    const [clubs, players, completedFixtures, topScorer] = await Promise.all([
+      prisma.club.count(),
+      prisma.player.count({ where: { approved: true } }),
+      prisma.fixture.findMany({ where: { status: 'COMPLETED' }, select: { homeScore: true, awayScore: true } }),
+      prisma.player.findFirst({
+        where: { approved: true },
+        orderBy: { goals: 'desc' },
+        include: { club: true },
+      }),
+    ]);
 
-    const topScorer = await prisma.player.findFirst({
-      where: { approved: true },
-      orderBy: { goals: 'desc' },
-      include: { club: true },
-    });
+    const goals = completedFixtures.reduce((sum, f) => sum + (f.homeScore ?? 0) + (f.awayScore ?? 0), 0);
 
-    const leaderClub = await prisma.club.findFirst({
-      orderBy: { wins: 'desc' },
-    });
-
-    return Response.json({
+    return NextResponse.json({
       success: true,
       data: {
-        statistics: stats?.[0] || { clubs: 0, players: 0, matches: 0, goals: 0 },
+        statistics: { clubs, players, matches: completedFixtures.length, goals },
         topScorer,
-        leaderClub,
       },
     });
   } catch (error) {
-    return Response.json(
+    return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Failed to fetch statistics' },
       { status: 500 }
     );

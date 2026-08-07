@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { getClubs } from '@/lib/public-api';
 
 export default function ClubsPage() {
@@ -11,7 +12,7 @@ export default function ClubsPage() {
     const fetchClubs = async () => {
       try {
         const response = await getClubs(1, 12);
-        setClubs(response.data?.clubs || []);
+        setClubs(response.data?.data || []);
       } catch (error) {
         console.error('Error loading clubs:', error);
       } finally {
@@ -22,47 +23,32 @@ export default function ClubsPage() {
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-4xl font-bold mb-8">Clubs Directory</h1>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
+      <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-6)' }}>Clubs Directory</h1>
 
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-gray-200 h-48 rounded animate-pulse"></div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {clubs.map((club: any) => (
-            <div key={club.id} className="bg-white rounded-lg overflow-hidden border hover:shadow-lg transition">
-              <div className="h-32 bg-gray-100 flex items-center justify-center">
-                <img 
-                  src={club.banner || '/placeholder.png'} 
-                  alt={club.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="text-lg font-bold mb-2">{club.name}</h3>
-                <p className="text-sm text-gray-600 mb-2">
-                  <strong>Home Ground:</strong> {club.homeGround}
-                </p>
-                <p className="text-sm text-gray-600 mb-2">
-                  <strong>Manager:</strong> {club.manager}
-                </p>
-                <p className="text-sm text-gray-600 mb-2">
-                  <strong>Founded:</strong> {club.founded}
-                </p>
-                <div className="mt-4">
-                  <a href={`/clubs/${club.id}`} className="text-green-600 hover:underline text-sm">
-                    View Profile →
-                  </a>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {loading && <p className="text-muted">Loading clubs&hellip;</p>}
+      {!loading && clubs.length === 0 && <p className="text-muted">No clubs registered yet.</p>}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: 'var(--space-4)' }}>
+        {clubs.map((club: any) => (
+          <div key={club.id} className="card elev-sm">
+            <h3 className="card-title">{club.clubName || club.name}</h3>
+            {club.yearFounded && (
+              <p className="card-meta">
+                <strong>Founded:</strong> {club.yearFounded}
+              </p>
+            )}
+            {club.homeVenue?.name && (
+              <p className="card-meta">
+                <strong>Home:</strong> {club.homeVenue.name}
+              </p>
+            )}
+            <Link href={`/clubs/${club.id}`} className="btn btn-ghost" style={{ alignSelf: 'flex-start' }}>
+              View Profile &rarr;
+            </Link>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

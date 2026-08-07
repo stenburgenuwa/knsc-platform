@@ -1,0 +1,140 @@
+// Kilifi North Sub County League — lean schema covering exactly what the
+// public site and the 5 role dashboards read and write. Trimmed down from an
+// earlier 100+ table draft that had drifted out of sync with the app code.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PLATFORM_OWNER
+  LEAGUE_MANAGER
+  TEAM_MANAGER
+  REFEREE
+  REFEREE_MANAGER
+}
+
+enum FixtureStatus {
+  UPCOMING
+  COMPLETED
+  POSTPONED
+}
+
+enum AssignmentStatus {
+  ASSIGNED
+  ACCEPTED
+  DECLINED
+  COMPLETED
+}
+
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  passwordHash        String
+  firstName           String
+  lastName            String
+  role                Role
+  clubId              String?
+  club                Club?     @relation(fields: [clubId], references: [id])
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  refereeAssignments RefereeAssignment[]
+
+  @@index([role])
+  @@index([clubId])
+}
+
+model Venue {
+  id         String    @id @default(uuid())
+  name       String
+  location   String?
+  fixtures   Fixture[]
+  homeClubs  Club[]
+}
+
+model Club {
+  id          String   @id @default(uuid())
+  name        String
+  shortName   String?
+  yearFounded Int?
+  homeVenueId String?
+  homeVenue   Venue?   @relation(fields: [homeVenueId], references: [id])
+  email       String?
+  phone       String?
+  createdAt   DateTime @default(now())
+
+  players      Player[]
+  managers     User[]
+  homeFixtures Fixture[] @relation("HomeClub")
+  awayFixtures Fixture[] @relation("AwayClub")
+
+  @@index([name])
+}
+
+model Player {
+  id           String    @id @default(uuid())
+  clubId       String
+  club         Club      @relation(fields: [clubId], references: [id])
+  firstName    String
+  lastName     String
+  playerNumber Int?
+  position     String?
+  dateOfBirth  DateTime?
+  goals        Int       @default(0)
+  approved     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+
+  @@index([clubId])
+}
+
+model Fixture {
+  id          String        @id @default(uuid())
+  homeClubId  String
+  awayClubId  String
+  homeClub    Club          @relation("HomeClub", fields: [homeClubId], references: [id])
+  awayClub    Club          @relation("AwayClub", fields: [awayClubId], references: [id])
+  venueId     String?
+  venue       Venue?        @relation(fields: [venueId], references: [id])
+  fixtureDate DateTime
+  kickoffTime String?
+  status      FixtureStatus @default(UPCOMING)
+  homeScore   Int?
+  awayScore   Int?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  refereeAssignment RefereeAssignment?
+
+  @@index([status])
+  @@index([fixtureDate])
+  @@index([homeClubId])
+  @@index([awayClubId])
+}
+
+model RefereeAssignment {
+  id        String           @id @default(uuid())
+  fixtureId String           @unique
+  fixture   Fixture          @relation(fields: [fixtureId], references: [id])
+  refereeId String
+  referee   User             @relation(fields: [refereeId], references: [id])
+  status    AssignmentStatus @default(ASSIGNED)
+  createdAt DateTime         @default(now())
+
+  @@index([refereeId])
+}
+
+model Announcement {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  startDate DateTime @default(now())
+  createdAt DateTime @default(now())
+}

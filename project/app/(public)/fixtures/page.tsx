@@ -2,7 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { getFixtures } from '@/lib/public-api';
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import Pagination from '@/components/Pagination';
+
+function clubName(club: any) {
+  return club?.clubName || club?.name || 'TBC';
+}
+
+function formatDate(value?: string) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
 
 export default function FixturesPage() {
   const [fixtures, setFixtures] = useState<any[]>([]);
@@ -15,7 +26,7 @@ export default function FixturesPage() {
       setLoading(true);
       try {
         const response = await getFixtures(page, 12);
-        setFixtures(response.data?.fixtures || []);
+        setFixtures(response.data?.data || []);
         setTotal(response.data?.pagination?.total || 0);
       } catch (error) {
         console.error('Error loading fixtures:', error);
@@ -29,66 +40,28 @@ export default function FixturesPage() {
   const totalPages = Math.ceil(total / 12);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-4xl font-bold mb-8">Fixtures</h1>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
+      <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-6)' }}>Fixtures</h1>
 
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-gray-200 h-40 rounded animate-pulse"></div>
-          ))}
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {fixtures.map((fixture: any) => (
-              <div key={fixture.id} className="bg-white border rounded-lg p-6 hover:shadow-lg transition">
-                <p className="text-sm text-gray-500 mb-2">{fixture.date}</p>
-                <div className="flex justify-between items-center mb-4">
-                  <div className="text-center flex-1">
-                    <img 
-                      src={fixture.homeClub?.logo || '/placeholder.png'} 
-                      alt="" 
-                      className="w-8 h-8 mx-auto mb-1 rounded"
-                    />
-                    <p className="font-semibold text-sm">{fixture.homeClub?.name}</p>
-                  </div>
-                  <p className="text-xl font-bold text-gray-300 mx-2">vs</p>
-                  <div className="text-center flex-1">
-                    <img 
-                      src={fixture.awayClub?.logo || '/placeholder.png'} 
-                      alt="" 
-                      className="w-8 h-8 mx-auto mb-1 rounded"
-                    />
-                    <p className="font-semibold text-sm">{fixture.awayClub?.name}</p>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 text-center mb-1">{fixture.venue}</p>
-                <p className="text-sm text-gray-600 text-center">{fixture.kickoffTime}</p>
-              </div>
-            ))}
-          </div>
+      {loading && <p className="text-muted">Loading fixtures&hellip;</p>}
+      {!loading && fixtures.length === 0 && <p className="text-muted">No upcoming fixtures scheduled.</p>}
 
-          {/* Pagination */}
-          <div className="flex items-center justify-center gap-2">
-            <button
-              disabled={page === 1}
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              className="p-2 hover:bg-gray-100 disabled:opacity-50 rounded"
-            >
-              <FiChevronLeft />
-            </button>
-            <span className="text-gray-600">Page {page} of {totalPages}</span>
-            <button
-              disabled={page === totalPages}
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              className="p-2 hover:bg-gray-100 disabled:opacity-50 rounded"
-            >
-              <FiChevronRight />
-            </button>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+        {fixtures.map((fixture: any) => (
+          <div key={fixture.id} className="card elev-sm">
+            <p className="card-meta">{formatDate(fixture.fixtureDate || fixture.date)}</p>
+            <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>{clubName(fixture.homeClub)}</span>
+              <span className="text-muted" style={{ fontSize: 12 }}>vs</span>
+              <span>{clubName(fixture.awayClub)}</span>
+            </div>
+            <p className="card-meta">{fixture.venue?.name || 'Venue TBC'}</p>
+            <p className="card-meta">{fixture.kickoffTime || ''}</p>
           </div>
-        </>
-      )}
+        ))}
+      </div>
+
+      {totalPages > 1 && <Pagination page={page} totalPages={totalPages} onChange={setPage} />}
     </div>
   );
 }

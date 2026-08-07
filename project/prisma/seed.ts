@@ -1,297 +1,203 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-async function main() {
-  console.log('🌱 Seeding database with sample data...');
+const DEFAULT_DEMO_PASSWORD = 'Password123!';
+const DATABASE_URL = process.env.DATABASE_URL || '';
+const isLocalDb = DATABASE_URL.includes('localhost') || DATABASE_URL.includes('127.0.0.1');
 
-  // Create League
-  const league = await prisma.league.create({
+if (!isLocalDb && !process.env.SEED_PASSWORD) {
+  throw new Error(
+    'Refusing to seed a non-local database with the well-known demo password. ' +
+      'Set SEED_PASSWORD to a strong password before running `npm run seed` against production ' +
+      '(all 5 seeded accounts will share it — rotate individually afterwards if needed).'
+  );
+}
+
+const DEMO_PASSWORD = process.env.SEED_PASSWORD || DEFAULT_DEMO_PASSWORD;
+
+async function main() {
+  console.log('Seeding Kilifi North Sub County League data...');
+
+  await prisma.refereeAssignment.deleteMany();
+  await prisma.fixture.deleteMany();
+  await prisma.player.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.club.deleteMany();
+  await prisma.venue.deleteMany();
+  await prisma.announcement.deleteMany();
+
+  const venues = await Promise.all(
+    [
+      { name: 'Malindi Municipal Stadium', location: 'Malindi' },
+      { name: 'Mtwapa Grounds', location: 'Mtwapa' },
+      { name: 'Kilifi Township Stadium', location: 'Kilifi Town' },
+      { name: 'Watamu Community Field', location: 'Watamu' },
+    ].map((v) => prisma.venue.create({ data: v }))
+  );
+
+  const clubDefs = [
+    { name: 'Malindi United', shortName: 'MUT', yearFounded: 2009, homeVenueId: venues[0].id },
+    { name: 'Mtwapa FC', shortName: 'MTW', yearFounded: 2012, homeVenueId: venues[1].id },
+    { name: 'Kilifi Township FC', shortName: 'KTF', yearFounded: 2005, homeVenueId: venues[2].id },
+    { name: 'Watamu FC', shortName: 'WAT', yearFounded: 2015, homeVenueId: venues[3].id },
+    { name: 'Ganze Sports Club', shortName: 'GSC', yearFounded: 2010, homeVenueId: venues[2].id },
+    { name: 'Marereni United', shortName: 'MAR', yearFounded: 2013, homeVenueId: venues[0].id },
+    { name: 'Sokoke Rangers', shortName: 'SOK', yearFounded: 2011, homeVenueId: venues[2].id },
+    { name: 'Kaloleni Youth FC', shortName: 'KYF', yearFounded: 2014, homeVenueId: venues[1].id },
+  ];
+  const clubs = await Promise.all(clubDefs.map((c) => prisma.club.create({ data: c })));
+  const clubByName = Object.fromEntries(clubs.map((c) => [c.name, c]));
+
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+
+  const users = await Promise.all([
+    prisma.user.create({
+      data: {
+        email: 'owner@knscl.co.ke',
+        passwordHash,
+        firstName: 'Grace',
+        lastName: 'Mwangovya',
+        role: 'PLATFORM_OWNER',
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'league.manager@knscl.co.ke',
+        passwordHash,
+        firstName: 'Daniel',
+        lastName: 'Katana',
+        role: 'LEAGUE_MANAGER',
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'team.manager@knscl.co.ke',
+        passwordHash,
+        firstName: 'Fatuma',
+        lastName: 'Baya',
+        role: 'TEAM_MANAGER',
+        clubId: clubByName['Malindi United'].id,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'referee@knscl.co.ke',
+        passwordHash,
+        firstName: 'Samuel',
+        lastName: 'Charo',
+        role: 'REFEREE',
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'referee.manager@knscl.co.ke',
+        passwordHash,
+        firstName: 'Peter',
+        lastName: 'Kadenge',
+        role: 'REFEREE_MANAGER',
+      },
+    }),
+  ]);
+  const referee = users.find((u) => u.role === 'REFEREE')!;
+
+  const playerNames: Record<string, [string, string][]> = {
+    'Malindi United': [['Brian', 'Kazungu'], ['Elvis', 'Mwakio'], ['Josephat', 'Kahindi'], ['Omar', 'Salim']],
+    'Mtwapa FC': [['Kelvin', 'Chengo'], ['Hassan', 'Ali'], ['Dennis', 'Baraka']],
+    'Kilifi Township FC': [['Victor', 'Kalama'], ['Amani', 'Ngala']],
+    'Watamu FC': [['Ibrahim', 'Juma'], ['Collins', 'Kadzo']],
+  };
+  let jersey = 1;
+  for (const [clubName, names] of Object.entries(playerNames)) {
+    let n = 7;
+    for (const [firstName, lastName] of names) {
+      await prisma.player.create({
+        data: {
+          clubId: clubByName[clubName].id,
+          firstName,
+          lastName,
+          playerNumber: (jersey % 23) + 1,
+          position: 'Forward',
+          goals: Math.max(0, 12 - n),
+          approved: true,
+        },
+      });
+      jersey += 3;
+      n -= 2;
+    }
+  }
+
+  const completed = [
+    { home: 'Malindi United', away: 'Mtwapa FC', homeScore: 2, awayScore: 0, daysAgo: 2, venue: 0 },
+    { home: 'Kilifi Township FC', away: 'Watamu FC', homeScore: 1, awayScore: 1, daysAgo: 6, venue: 2 },
+    { home: 'Ganze Sports Club', away: 'Marereni United', homeScore: 0, awayScore: 2, daysAgo: 9, venue: 2 },
+    { home: 'Sokoke Rangers', away: 'Kaloleni Youth FC', homeScore: 3, awayScore: 1, daysAgo: 13, venue: 2 },
+  ];
+  for (const m of completed) {
+    await prisma.fixture.create({
+      data: {
+        homeClubId: clubByName[m.home].id,
+        awayClubId: clubByName[m.away].id,
+        venueId: venues[m.venue].id,
+        fixtureDate: new Date(Date.now() - m.daysAgo * 86400000),
+        kickoffTime: '15:00',
+        status: 'COMPLETED',
+        homeScore: m.homeScore,
+        awayScore: m.awayScore,
+      },
+    });
+  }
+
+  const upcoming = [
+    { home: 'Mtwapa FC', away: 'Ganze Sports Club', daysAhead: 3, venue: 1 },
+    { home: 'Watamu FC', away: 'Malindi United', daysAhead: 5, venue: 3 },
+    { home: 'Marereni United', away: 'Kilifi Township FC', daysAhead: 7, venue: 0 },
+  ];
+  const upcomingFixtures = [];
+  for (const m of upcoming) {
+    const fixture = await prisma.fixture.create({
+      data: {
+        homeClubId: clubByName[m.home].id,
+        awayClubId: clubByName[m.away].id,
+        venueId: venues[m.venue].id,
+        fixtureDate: new Date(Date.now() + m.daysAhead * 86400000),
+        kickoffTime: '15:00',
+        status: 'UPCOMING',
+      },
+    });
+    upcomingFixtures.push(fixture);
+  }
+
+  await prisma.refereeAssignment.create({
+    data: { fixtureId: upcomingFixtures[0].id, refereeId: referee.id, status: 'ASSIGNED' },
+  });
+
+  await prisma.announcement.create({
     data: {
-      name: 'Kenya National Sub County League 2026',
-      description: 'Official league',
-      startDate: new Date('2026-01-01'),
-      endDate: new Date('2026-12-31'),
-      status: 'ACTIVE',
+      title: 'Malindi United extends unbeaten run to five matches',
+      message:
+        'With a commanding 2–0 victory over Mtwapa FC last Saturday, Malindi United continues to dominate the Kilifi North standings. The victory extends their unbeaten run and cements their position atop the table with 13 points from five matches, setting a strong pace for the season.',
+      startDate: new Date(Date.now() - 2 * 86400000),
     },
   });
-  console.log('✅ League created:', league.name);
+  await prisma.announcement.create({
+    data: {
+      title: 'Referee assignments published for matchday 6',
+      message: 'The Referee Manager has published match officials for the upcoming round of fixtures.',
+      startDate: new Date(Date.now() - 1 * 86400000),
+    },
+  });
+  await prisma.announcement.create({
+    data: {
+      title: 'Club registration window opens for new season',
+      message: 'Clubs wishing to register or update their squad list should contact the League Manager before kickoff.',
+      startDate: new Date(),
+    },
+  });
 
-  // Create Clubs
-  const clubs = await Promise.all([
-    prisma.club.create({
-      data: {
-        name: 'AFC Leopards',
-        leagueId: league.id,
-        homeGround: 'Kasarani Stadium',
-        manager: 'Patrick Aussems',
-        founded: 1964,
-        colours: 'Yellow and Blue',
-        status: 'ACTIVE',
-      },
-    }),
-    prisma.club.create({
-      data: {
-        name: 'Gor Mahia',
-        leagueId: league.id,
-        homeGround: 'Moi International Sports Centre',
-        manager: 'Mark Harrison',
-        founded: 1968,
-        colours: 'Green and White',
-        status: 'ACTIVE',
-      },
-    }),
-    prisma.club.create({
-      data: {
-        name: 'Kaizer Chiefs',
-        leagueId: league.id,
-        homeGround: 'FKF Arena',
-        manager: 'Arthur Zwane',
-        founded: 1970,
-        colours: 'Gold and Black',
-        status: 'ACTIVE',
-      },
-    }),
-    prisma.club.create({
-      data: {
-        name: 'Orlando Pirates',
-        leagueId: league.id,
-        homeGround: 'Orlando Stadium',
-        manager: 'Jose Riveiro',
-        founded: 1937,
-        colours: 'Black and White',
-        status: 'ACTIVE',
-      },
-    }),
-    prisma.club.create({
-      data: {
-        name: 'Tusker FC',
-        leagueId: league.id,
-        homeGround: 'Moi Stadium',
-        manager: 'John Kamau',
-        founded: 1975,
-        colours: 'Red and White',
-        status: 'ACTIVE',
-      },
-    }),
-    prisma.club.create({
-      data: {
-        name: 'Kariobangi Sharks',
-        leagueId: league.id,
-        homeGround: 'Ruaraka Grounds',
-        manager: 'William Muluya',
-        founded: 2011,
-        colours: 'Blue and White',
-        status: 'ACTIVE',
-      },
-    }),
-  ]);
-  console.log(`✅ ${clubs.length} clubs created`);
-
-  // Create Players
-  const players = await Promise.all([
-    prisma.player.create({
-      data: {
-        name: 'Harambee Stars',
-        clubId: clubs[0].id,
-        position: 'FORWARD',
-        jerseyNumber: 10,
-        dateOfBirth: new Date('1995-05-15'),
-        approved: true,
-        goals: 12,
-        yellowCards: 2,
-        redCards: 0,
-      },
-    }),
-    prisma.player.create({
-      data: {
-        name: 'Collins Shivachi',
-        clubId: clubs[0].id,
-        position: 'MIDFIELDER',
-        jerseyNumber: 7,
-        dateOfBirth: new Date('1998-03-22'),
-        approved: true,
-        goals: 8,
-        yellowCards: 1,
-        redCards: 0,
-      },
-    }),
-    prisma.player.create({
-      data: {
-        name: 'Samuel Opiyo',
-        clubId: clubs[1].id,
-        position: 'FORWARD',
-        jerseyNumber: 9,
-        dateOfBirth: new Date('1996-07-12'),
-        approved: true,
-        goals: 11,
-        yellowCards: 2,
-        redCards: 0,
-      },
-    }),
-    prisma.player.create({
-      data: {
-        name: 'Themba Zwane',
-        clubId: clubs[2].id,
-        position: 'FORWARD',
-        jerseyNumber: 11,
-        dateOfBirth: new Date('1994-09-20'),
-        approved: true,
-        goals: 14,
-        yellowCards: 1,
-        redCards: 0,
-      },
-    }),
-  ]);
-  console.log(`✅ ${players.length} players created`);
-
-  // Create Referees
-  const referees = await Promise.all([
-    prisma.referee.create({
-      data: {
-        name: 'John Kariuki',
-        leagueId: league.id,
-        licenseNumber: 'KEN-REF-001',
-        status: 'ACTIVE',
-        yearsExperience: 15,
-      },
-    }),
-    prisma.referee.create({
-      data: {
-        name: 'Michael Ng\'eno',
-        leagueId: league.id,
-        licenseNumber: 'KEN-REF-002',
-        status: 'ACTIVE',
-        yearsExperience: 12,
-      },
-    }),
-  ]);
-  console.log(`✅ ${referees.length} referees created`);
-
-  // Create Fixtures
-  const fixtures = await Promise.all([
-    prisma.fixture.create({
-      data: {
-        leagueId: league.id,
-        homeClubId: clubs[0].id,
-        awayClubId: clubs[1].id,
-        venue: 'Kasarani Stadium',
-        kickoffTime: new Date('2026-08-10T15:00:00'),
-        round: 1,
-        competition: 'LEAGUE',
-        status: 'UPCOMING',
-      },
-    }),
-    prisma.fixture.create({
-      data: {
-        leagueId: league.id,
-        homeClubId: clubs[2].id,
-        awayClubId: clubs[3].id,
-        venue: 'FKF Arena',
-        kickoffTime: new Date('2026-08-11T16:00:00'),
-        round: 1,
-        competition: 'LEAGUE',
-        status: 'UPCOMING',
-      },
-    }),
-    prisma.fixture.create({
-      data: {
-        leagueId: league.id,
-        homeClubId: clubs[0].id,
-        awayClubId: clubs[2].id,
-        venue: 'Kasarani Stadium',
-        kickoffTime: new Date('2026-08-05T15:00:00'),
-        round: 1,
-        competition: 'LEAGUE',
-        status: 'COMPLETED',
-      },
-    }),
-    prisma.fixture.create({
-      data: {
-        leagueId: league.id,
-        homeClubId: clubs[1].id,
-        awayClubId: clubs[3].id,
-        venue: 'Moi Centre',
-        kickoffTime: new Date('2026-08-04T16:00:00'),
-        round: 1,
-        competition: 'LEAGUE',
-        status: 'COMPLETED',
-      },
-    }),
-  ]);
-  console.log(`✅ ${fixtures.length} fixtures created`);
-
-  // Create Match Reports
-  await Promise.all([
-    prisma.matchReport.create({
-      data: {
-        fixtureId: fixtures[2].id,
-        summary: 'Exciting match with Leopards dominating',
-        homeGoals: 2,
-        awayGoals: 1,
-        status: 'SUBMITTED',
-      },
-    }),
-    prisma.matchReport.create({
-      data: {
-        fixtureId: fixtures[3].id,
-        summary: 'Gor Mahia held Kaizer Chiefs',
-        homeGoals: 1,
-        awayGoals: 1,
-        status: 'SUBMITTED',
-      },
-    }),
-  ]);
-  console.log('✅ Match reports created');
-
-  // Create Announcements
-  await Promise.all([
-    prisma.announcement.create({
-      data: {
-        leagueId: league.id,
-        title: 'Season Starts',
-        content: 'The 2026 KNSCL season kicks off this weekend',
-        category: 'LEAGUE',
-        status: 'PUBLISHED',
-      },
-    }),
-    prisma.announcement.create({
-      data: {
-        leagueId: league.id,
-        title: 'Fixture Update',
-        content: 'All fixtures for Round 2 confirmed',
-        category: 'FIXTURES',
-        status: 'PUBLISHED',
-      },
-    }),
-  ]);
-  console.log('✅ Announcements created');
-
-  // Create Sponsors
-  await Promise.all([
-    prisma.sponsor.create({
-      data: {
-        leagueId: league.id,
-        name: 'KCB Bank',
-        logo: 'https://example.com/kcb.png',
-        category: 'BANKING',
-        status: 'ACTIVE',
-      },
-    }),
-    prisma.sponsor.create({
-      data: {
-        leagueId: league.id,
-        name: 'Safaricom',
-        logo: 'https://example.com/safaricom.png',
-        category: 'TELECOM',
-        status: 'ACTIVE',
-      },
-    }),
-  ]);
-  console.log('✅ Sponsors created');
-
-  console.log('');
-  console.log('🎉 Database seeded successfully!');
+  console.log('Seed complete.');
+  console.log(`${clubs.length} clubs, ${users.length} users, demo password: ${DEMO_PASSWORD}`);
 }
 
 main()
@@ -299,7 +205,7 @@ main()
     await prisma.$disconnect();
   })
   .catch(async (e) => {
-    console.error('Error seeding database:', e);
+    console.error(e);
     await prisma.$disconnect();
     process.exit(1);
   });

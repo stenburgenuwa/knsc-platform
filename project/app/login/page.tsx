@@ -3,71 +3,81 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuthStore } from '@/store/auth';
+import { login } from '@/lib/auth-service';
+import { DASHBOARD_BY_LABEL } from '@/lib/roles';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const setAuth = useAuthStore((state) => state.setAuth);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
-
     try {
-      // Demo authentication - redirect to dashboard
-      if (email && password) {
-        localStorage.setItem('user', JSON.stringify({ email, role: 'admin' }));
-        router.push('/dashboard');
-      }
-    } catch (error) {
-      console.error('Login failed:', error);
+      const response = await login(email, password);
+      const { user, accessToken } = response.data.data;
+      setAuth(user, accessToken);
+      const role = user.roles?.[0];
+      router.push((role && DASHBOARD_BY_LABEL[role]) || '/dashboard');
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Unable to sign in. Check your email and password.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-        <h1 className="text-3xl font-bold text-center mb-8">KNSCL Login</h1>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg)' }}>
+      <div className="card elev-lg" style={{ maxWidth: 420, width: '100%', margin: 'var(--space-4)' }}>
+        <h1 style={{ fontWeight: 400, textAlign: 'center' }}>Sign In</h1>
+        <p className="text-muted" style={{ textAlign: 'center', marginBottom: 'var(--space-4)' }}>
+          Kilifi North Sub County League
+        </p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <div className="field">
+            <label htmlFor="email">Email</label>
             <input
+              id="email"
               type="email"
+              className="input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-              placeholder="admin@knscl.co.ke"
+              placeholder="you@knscl.co.ke"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+          <div className="field">
+            <label htmlFor="password">Password</label>
             <input
+              id="password"
               type="password"
+              className="input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-              placeholder="••••••••"
+              placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? 'Logging in...' : 'Login'}
+          {error && (
+            <p style={{ color: 'var(--color-accent-800)', fontSize: 13, margin: 0 }}>{error}</p>
+          )}
+
+          <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
+            {loading ? 'Signing in…' : 'Sign In'}
           </button>
         </form>
 
-        <p className="text-center text-gray-600 mt-6">
-          <Link href="/" className="text-blue-600 hover:text-blue-800">Back to Home</Link>
+        <p className="text-muted" style={{ textAlign: 'center', marginTop: 'var(--space-4)', marginBottom: 0 }}>
+          <Link href="/">&larr; Back to public site</Link>
         </p>
       </div>
     </div>

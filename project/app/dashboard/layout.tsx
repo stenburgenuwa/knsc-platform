@@ -17,13 +17,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, [accessToken, router]);
 
   if (!accessToken) {
-    return <div>Redirecting to login...</div>;
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p className="text-muted">Redirecting to login&hellip;</p>
+      </div>
+    );
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex" style={{ minHeight: '100vh' }}>
       <DashboardNav />
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1" style={{ overflow: 'auto', background: 'var(--color-bg)' }}>
         {children}
       </div>
     </div>

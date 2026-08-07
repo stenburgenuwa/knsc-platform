@@ -1,31 +1,44 @@
 {
   "name": "knscl-platform",
   "version": "1.0.0",
-  "description": "Kenya National Sub County League Platform",
+  "description": "Kilifi North Sub County League Platform",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "ts-node --compiler-options {\"module\":\"commonjs\"} prisma/seed.ts",
-    "setup": "bash setup.sh"
+    "test": "vitest run",
+    "seed": "ts-node --project prisma/tsconfig.seed.json prisma/seed.ts",
+    "postinstall": "prisma generate",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build"
+  },
+  "prisma": {
+    "seed": "ts-node --project prisma/tsconfig.seed.json prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/client": "^5.0.0",
+    "axios": "^1.6.0",
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^0.400.0",
+    "next": "^14.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "next": "^14.0.0",
-    "@prisma/client": "^5.0.0",
-    "axios": "^1.6.0"
+    "zustand": "^4.5.0"
   },
   "devDependencies": {
-    "typescript": "^5.2.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.4.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "@types/node": "^20.4.0",
-    "postcss": "^8.4.0",
-    "tailwindcss": "^3.3.0",
+    "@vitejs/plugin-react": "^6.0.5",
     "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0",
     "prisma": "^5.0.0",
-    "ts-node": "^10.9.0"
+    "tailwindcss": "^3.3.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.2.0",
+    "vitest": "^4.1.10"
   }
 }

@@ -1,14 +1,60 @@
 'use client';
 
 import Link from 'next/link';
-import { useAuthStore } from '@/store/auth';
-import { FiLogOut, FiMenu } from 'react-icons/fi';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { LogOut, Menu } from 'lucide-react';
+import { useAuthStore } from '@/store/auth';
+import { DASHBOARD_BY_LABEL } from '@/lib/roles';
+
+// Each role currently has exactly one dashboard page that holds its stats
+// and all its forms/actions inline — no separate sub-pages exist yet, so the
+// nav only ever links to that one real route (plus the public site).
+function navLinksFor(role: string): { label: string; href: string }[] {
+  const dashboardHref = DASHBOARD_BY_LABEL[role];
+  const links = dashboardHref ? [{ label: 'Dashboard', href: dashboardHref }] : [];
+  return [...links, { label: 'Public Site', href: '/' }];
+}
+
+function NavLinks({
+  links,
+  pathname,
+  onNavigate,
+}: {
+  links: { label: string; href: string }[];
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  return (
+    <>
+      {links.map((link) => (
+        <Link
+          key={link.href}
+          href={link.href}
+          onClick={onNavigate}
+          aria-current={pathname === link.href ? 'page' : undefined}
+          style={{
+            display: 'block',
+            padding: 'var(--space-2) var(--space-3)',
+            borderRadius: 'var(--radius-md)',
+            color: pathname === link.href ? 'var(--color-accent-300)' : 'var(--color-surface)',
+            background: pathname === link.href ? 'color-mix(in srgb, var(--color-accent) 20%, transparent)' : 'transparent',
+            textDecoration: 'none',
+            fontFamily: 'var(--font-heading)',
+            fontSize: 14,
+          }}
+        >
+          {link.label}
+        </Link>
+      ))}
+    </>
+  );
+}
 
 export default function DashboardNav() {
   const { user, clearAuth } = useAuthStore();
   const router = useRouter();
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => {
@@ -16,102 +62,68 @@ export default function DashboardNav() {
     router.push('/login');
   };
 
-  const navLinks: Record<string, { label: string; href: string }[]> = {
-    'Platform Owner': [
-      { label: 'Dashboard', href: '/dashboard/platform' },
-      { label: 'Leagues', href: '/dashboard/platform/leagues' },
-      { label: 'Clubs', href: '/dashboard/platform/clubs' },
-      { label: 'Players', href: '/dashboard/platform/players' },
-      { label: 'Reports', href: '/dashboard/platform/reports' },
-    ],
-    'League Manager': [
-      { label: 'Dashboard', href: '/dashboard/league' },
-      { label: 'Fixtures', href: '/dashboard/league/fixtures' },
-      { label: 'Players', href: '/dashboard/league/players' },
-      { label: 'Disciplinary', href: '/dashboard/league/disciplinary' },
-      { label: 'Reports', href: '/dashboard/league/reports' },
-    ],
-    'Team Manager': [
-      { label: 'Dashboard', href: '/dashboard/team' },
-      { label: 'Squad', href: '/dashboard/team/squad' },
-      { label: 'Team Sheet', href: '/dashboard/team/teamsheet' },
-      { label: 'Fixtures', href: '/dashboard/team/fixtures' },
-      { label: 'Statistics', href: '/dashboard/team/statistics' },
-    ],
-    'Referee': [
-      { label: 'Dashboard', href: '/dashboard/referee' },
-      { label: 'Assignments', href: '/dashboard/referee/assignments' },
-      { label: 'Match Reports', href: '/dashboard/referee/reports' },
-      { label: 'Profile', href: '/dashboard/referee/profile' },
-    ],
-  };
+  const currentRole = user?.roles?.[0] || 'Public';
+  const links = navLinksFor(currentRole);
 
-  const currentRole = user?.roles[0] || 'Public';
-  const links = navLinks[currentRole] || [];
+  const railStyle: React.CSSProperties = {
+    background: 'var(--color-neutral-900)',
+    color: 'var(--color-surface)',
+    display: 'flex',
+    flexDirection: 'column',
+  };
 
   return (
     <>
       {/* Desktop */}
-      <aside className="hidden md:flex flex-col w-64 bg-gray-900 text-white">
-        <div className="p-6 border-b border-gray-800">
-          <h1 className="text-2xl font-bold">KNSCL</h1>
-          <p className="text-sm text-gray-400 mt-1">{currentRole}</p>
+      <aside className="hidden md:flex" style={{ ...railStyle, width: 240 }}>
+        <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid color-mix(in srgb, var(--color-surface) 20%, transparent)' }}>
+          <p style={{ fontFamily: 'var(--font-heading)', fontSize: 18, margin: 0 }}>Kilifi North SCL</p>
+          <p className="text-muted" style={{ fontSize: 12, marginTop: 'var(--space-1)' }}>{currentRole}</p>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="block px-4 py-2 rounded hover:bg-gray-800 transition"
-            >
-              {link.label}
-            </Link>
-          ))}
+        <nav style={{ flex: 1, padding: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+          <NavLinks links={links} pathname={pathname} />
         </nav>
 
-        <div className="p-4 border-t border-gray-800">
+        <div style={{ padding: 'var(--space-3)', borderTop: '1px solid color-mix(in srgb, var(--color-surface) 20%, transparent)' }}>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 w-full px-4 py-2 rounded hover:bg-gray-800 transition"
+            className="btn"
+            style={{ color: 'var(--color-surface)', width: '100%', justifyContent: 'flex-start', gap: 'var(--space-2)' }}
           >
-            <FiLogOut /> Logout
+            <LogOut size={16} /> Logout
           </button>
         </div>
       </aside>
 
       {/* Mobile */}
-      <div className="md:hidden fixed top-0 left-0 right-0 bg-gray-900 text-white h-16 flex items-center px-4 z-50">
+      <div className="md:hidden" style={{ ...railStyle, height: 56, flexDirection: 'row', alignItems: 'center', padding: '0 var(--space-4)' }}>
         <button
+          className="btn btn-icon"
+          style={{ color: 'var(--color-surface)', marginRight: 'var(--space-3)' }}
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="mr-4"
+          aria-label="Toggle menu"
         >
-          <FiMenu size={24} />
+          <Menu size={20} />
         </button>
-        <h1 className="text-2xl font-bold">KNSCL</h1>
+        <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>Kilifi North SCL</p>
       </div>
 
-      {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="md:hidden fixed top-16 left-0 right-0 bg-gray-900 text-white max-h-[calc(100vh-4rem)] overflow-y-auto z-40">
-          <nav className="p-4 space-y-2">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="block px-4 py-2 rounded hover:bg-gray-800 transition"
-                onClick={() => setMobileOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
+        <div
+          className="md:hidden"
+          style={{ ...railStyle, position: 'fixed', top: 56, left: 0, right: 0, bottom: 0, zIndex: 40, overflowY: 'auto' }}
+        >
+          <nav style={{ padding: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+            <NavLinks links={links} pathname={pathname} onNavigate={() => setMobileOpen(false)} />
           </nav>
-          <div className="p-4 border-t border-gray-800">
+          <div style={{ padding: 'var(--space-3)', borderTop: '1px solid color-mix(in srgb, var(--color-surface) 20%, transparent)' }}>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 w-full px-4 py-2 rounded hover:bg-gray-800 transition"
+              className="btn"
+              style={{ color: 'var(--color-surface)', width: '100%', justifyContent: 'flex-start', gap: 'var(--space-2)' }}
             >
-              <FiLogOut /> Logout
+              <LogOut size={16} /> Logout
             </button>
           </div>
         </div>

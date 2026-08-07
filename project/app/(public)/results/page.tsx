@@ -2,18 +2,32 @@
 
 import { useEffect, useState } from 'react';
 import { getResults } from '@/lib/public-api';
+import Pagination from '@/components/Pagination';
+
+function clubName(club: any) {
+  return club?.clubName || club?.name || 'TBC';
+}
+
+function formatDate(value?: string) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
 
 export default function ResultsPage() {
   const [results, setResults] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     const fetchResults = async () => {
       setLoading(true);
       try {
         const response = await getResults(page, 12);
-        setResults(response.data?.results || []);
+        setResults(response.data?.data || []);
+        setTotal(response.data?.pagination?.total || 0);
       } catch (error) {
         console.error('Error loading results:', error);
       } finally {
@@ -23,46 +37,36 @@ export default function ResultsPage() {
     fetchResults();
   }, [page]);
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-4xl font-bold mb-8">Results</h1>
+  const totalPages = Math.ceil(total / 12);
 
-      {loading ? (
-        <div className="space-y-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-gray-200 h-24 rounded animate-pulse"></div>
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {results.map((result: any) => (
-            <div key={result.id} className="bg-white border rounded-lg p-6 hover:shadow-lg transition">
-              <p className="text-sm text-gray-500 mb-4">{result.date}</p>
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="font-semibold">{result.homeClub?.name}</p>
-                </div>
-                <div className="mx-8 text-center">
-                  <p className="text-4xl font-bold">{result.homeScore}</p>
-                  <p className="text-gray-500">-</p>
-                  <p className="text-4xl font-bold">{result.awayScore}</p>
-                </div>
-                <div className="flex-1 text-right">
-                  <p className="font-semibold">{result.awayClub?.name}</p>
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 text-center mt-4">{result.venue}</p>
-              {result.hasMatchReport && (
-                <div className="mt-4 text-center">
-                  <a href={`/match-report/${result.id}`} className="text-green-600 hover:underline text-sm">
-                    View Match Report →
-                  </a>
-                </div>
-              )}
+  return (
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
+      <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-6)' }}>Results</h1>
+
+      {loading && <p className="text-muted">Loading results&hellip;</p>}
+      {!loading && results.length === 0 && <p className="text-muted">No results published yet.</p>}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
+        {results.map((result: any) => (
+          <div key={result.id} className="card elev-sm" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ flex: 1 }}>
+              <p className="card-meta" style={{ marginBottom: 'var(--space-1)' }}>{formatDate(result.fixtureDate || result.date)}</p>
+              <p style={{ fontFamily: 'var(--font-heading)' }}>{clubName(result.homeClub)}</p>
             </div>
-          ))}
-        </div>
-      )}
+            <div style={{ textAlign: 'center', padding: '0 var(--space-4)', fontFamily: 'var(--font-heading)', fontSize: 24 }}>
+              {result.matchReport?.homeScore ?? result.homeScore ?? '-'}
+              <span className="text-muted" style={{ fontSize: 14 }}> &ndash; </span>
+              {result.matchReport?.awayScore ?? result.awayScore ?? '-'}
+            </div>
+            <div style={{ flex: 1, textAlign: 'right' }}>
+              <p className="card-meta" style={{ marginBottom: 'var(--space-1)' }}>&nbsp;</p>
+              <p style={{ fontFamily: 'var(--font-heading)' }}>{clubName(result.awayClub)}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {totalPages > 1 && <Pagination page={page} totalPages={totalPages} onChange={setPage} />}
     </div>
   );
 }

@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'KNSCL - Kenya National Sub County League',
-  description: 'Official website of the Kenya National Sub County League',
+  title: 'KNSCL - Kilifi North Sub County League',
+  description: 'Official website of the Kilifi North Sub County League',
 };
 
 export default function RootLayout({
@@ -13,6 +13,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Lora:wght@400;600&display=swap"
+        />
+        <link rel="stylesheet" href="/classical/styles.css" />
+      </head>
       <body>{children}</body>
     </html>
   );

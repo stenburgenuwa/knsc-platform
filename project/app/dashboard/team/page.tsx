@@ -1,81 +1,122 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getDashboard } from '@/lib/auth-service';
+import { getDashboardSummary, registerPlayer } from '@/lib/admin-api';
+import { getPlayers } from '@/lib/public-api';
+import { useAuthStore } from '@/store/auth';
+import StatCard from '@/components/StatCard';
 
 export default function TeamManagerDashboard() {
+  const clubId = useAuthStore((s) => s.user?.clubId as string | undefined);
   const [data, setData] = useState<any>(null);
+  const [squad, setSquad] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [playerForm, setPlayerForm] = useState({ firstName: '', lastName: '', playerNumber: '', position: '' });
+  const [playerStatus, setPlayerStatus] = useState<string | null>(null);
+
+  const load = async () => {
+    try {
+      const [summary, squadRes] = await Promise.all([
+        getDashboardSummary(),
+        getPlayers(1, 100, { includePending: true }),
+      ]);
+      setData(summary.data?.data);
+      setSquad(squadRes.data?.data || []);
+    } catch (error) {
+      console.error('Error loading dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const response = await getDashboard('Team Manager');
-        setData(response.data);
-      } catch (error) {
-        console.error('Error loading dashboard:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDashboard();
+    load();
   }, []);
 
+  const handleRegisterPlayer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPlayerStatus(null);
+    if (!clubId) {
+      setPlayerStatus('Your account is not linked to a club yet.');
+      return;
+    }
+    try {
+      await registerPlayer({
+        clubId,
+        firstName: playerForm.firstName,
+        lastName: playerForm.lastName,
+        playerNumber: playerForm.playerNumber ? Number(playerForm.playerNumber) : undefined,
+        position: playerForm.position || undefined,
+      });
+      setPlayerStatus('Player submitted for League Manager approval.');
+      setPlayerForm({ firstName: '', lastName: '', playerNumber: '', position: '' });
+      load();
+    } catch (err: any) {
+      setPlayerStatus(err?.response?.data?.error || 'Failed to register player.');
+    }
+  };
+
   return (
-    <div className="p-8 md:p-0">
-      <div className="md:p-8">
-        <h1 className="text-3xl font-bold mb-8">Team Manager Dashboard</h1>
+    <div style={{ padding: 'var(--space-8)' }}>
+      <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-6)' }}>Team Manager Dashboard</h1>
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-gray-200 h-32 rounded animate-pulse"></div>
-            ))}
+      {loading ? (
+        <p className="text-muted">Loading&hellip;</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-4" style={{ gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+            <StatCard label="Squad Size" value={data?.squadSize || 0} />
+            <StatCard label="Next Fixture" value={data?.nextFixture || 'TBD'} />
+            <StatCard label="Wins" value={data?.wins || 0} tone="accent" />
+            <StatCard label="Points" value={data?.points || 0} tone="accent" />
           </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-              <div className="bg-white rounded-lg p-6 border">
-                <p className="text-gray-600 mb-2">Squad Size</p>
-                <p className="text-4xl font-bold">{data?.squadSize || 0}</p>
-              </div>
-              <div className="bg-white rounded-lg p-6 border">
-                <p className="text-gray-600 mb-2">Next Fixture</p>
-                <p className="text-lg font-semibold">{data?.nextFixture || 'TBD'}</p>
-              </div>
-              <div className="bg-white rounded-lg p-6 border">
-                <p className="text-gray-600 mb-2">Wins</p>
-                <p className="text-4xl font-bold text-green-600">{data?.wins || 0}</p>
-              </div>
-              <div className="bg-white rounded-lg p-6 border">
-                <p className="text-gray-600 mb-2">Points</p>
-                <p className="text-4xl font-bold text-blue-600">{data?.points || 0}</p>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white rounded-lg p-6 border">
-                <h2 className="text-xl font-bold mb-4">Squad Management</h2>
-                <ul className="space-y-2">
-                  <li className="p-2 hover:bg-gray-50 rounded cursor-pointer">View Squad</li>
-                  <li className="p-2 hover:bg-gray-50 rounded cursor-pointer">Register Player</li>
-                  <li className="p-2 hover:bg-gray-50 rounded cursor-pointer">Manage Team Sheet</li>
-                </ul>
+          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'var(--space-4)' }}>
+            <form onSubmit={handleRegisterPlayer} className="card elev-sm">
+              <h3 className="card-title">Register a Player</h3>
+              <div className="grid grid-cols-2" style={{ gap: 'var(--space-2)' }}>
+                <div className="field">
+                  <label htmlFor="p-first">First name</label>
+                  <input id="p-first" className="input" required value={playerForm.firstName} onChange={(e) => setPlayerForm({ ...playerForm, firstName: e.target.value })} />
+                </div>
+                <div className="field">
+                  <label htmlFor="p-last">Last name</label>
+                  <input id="p-last" className="input" required value={playerForm.lastName} onChange={(e) => setPlayerForm({ ...playerForm, lastName: e.target.value })} />
+                </div>
               </div>
+              <div className="grid grid-cols-2" style={{ gap: 'var(--space-2)' }}>
+                <div className="field">
+                  <label htmlFor="p-number">Shirt number</label>
+                  <input id="p-number" type="number" className="input" value={playerForm.playerNumber} onChange={(e) => setPlayerForm({ ...playerForm, playerNumber: e.target.value })} />
+                </div>
+                <div className="field">
+                  <label htmlFor="p-position">Position</label>
+                  <input id="p-position" className="input" value={playerForm.position} onChange={(e) => setPlayerForm({ ...playerForm, position: e.target.value })} />
+                </div>
+              </div>
+              <button type="submit" className="btn btn-primary btn-block">Submit for Approval</button>
+              {playerStatus && <p className="card-meta">{playerStatus}</p>}
+            </form>
 
-              <div className="bg-white rounded-lg p-6 border">
-                <h2 className="text-xl font-bold mb-4">Recent Matches</h2>
-                <ul className="space-y-2">
-                  <li className="p-2 border-b">
-                    <p className="font-semibold text-sm">Your Team 2 - 1 Opponent</p>
-                    <p className="text-xs text-gray-500">3 days ago</p>
-                  </li>
-                </ul>
-              </div>
+            <div className="card elev-sm">
+              <h3 className="card-title">Squad</h3>
+              {squad.length === 0 ? (
+                <p className="card-meta">No players registered yet.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {squad.map((p, i) => (
+                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-2) 0', borderBottom: i < squad.length - 1 ? '1px solid var(--color-divider)' : 'none' }}>
+                      <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>{p.firstName} {p.lastName}</p>
+                      {p.approved ? <span className="tag tag-accent">Approved</span> : <span className="tag tag-neutral">Pending</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

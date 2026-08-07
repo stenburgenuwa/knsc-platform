@@ -1,58 +1,37 @@
-import { PrismaClient } from '@prisma/client';
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { computeStandings } from '@/lib/standings';
 
-const prisma = new PrismaClient();
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const standings = await prisma.$queryRaw`
-      SELECT 
-        c.id,
-        c.name,
-        c.logo,
-        COUNT(CASE WHEN f.status = 'completed' AND (f.homeClubId = c.id OR f.awayClubId = c.id) THEN 1 END) as played,
-        COUNT(CASE WHEN f.status = 'completed' AND 
-          ((f.homeClubId = c.id AND f.homeScore > f.awayScore) OR 
-           (f.awayClubId = c.id AND f.awayScore > f.homeScore)) THEN 1 END) as won,
-        COUNT(CASE WHEN f.status = 'completed' AND f.homeScore = f.awayScore AND 
-          (f.homeClubId = c.id OR f.awayClubId = c.id) THEN 1 END) as drawn,
-        COUNT(CASE WHEN f.status = 'completed' AND 
-          ((f.homeClubId = c.id AND f.homeScore < f.awayScore) OR 
-           (f.awayClubId = c.id AND f.awayScore < f.homeScore)) THEN 1 END) as lost,
-        COALESCE(SUM(CASE WHEN f.homeClubId = c.id THEN f.homeScore ELSE 0 END) +
-                 SUM(CASE WHEN f.awayClubId = c.id THEN f.awayScore ELSE 0 END), 0) as goalsFor,
-        COALESCE(SUM(CASE WHEN f.homeClubId = c.id THEN f.awayScore ELSE 0 END) +
-                 SUM(CASE WHEN f.awayClubId = c.id THEN f.homeScore ELSE 0 END), 0) as goalsAgainst
-      FROM Club c
-      LEFT JOIN Fixture f ON (f.homeClubId = c.id OR f.awayClubId = c.id) AND f.status = 'completed'
-      GROUP BY c.id, c.name, c.logo
-      ORDER BY (COUNT(CASE WHEN f.status = 'completed' AND 
-        ((f.homeClubId = c.id AND f.homeScore > f.awayScore) OR 
-         (f.awayClubId = c.id AND f.awayScore > f.homeScore)) THEN 1 END) * 3 +
-        COUNT(CASE WHEN f.status = 'completed' AND f.homeScore = f.awayScore AND 
-        (f.homeClubId = c.id OR f.awayClubId = c.id) THEN 1 END)) DESC
-    `;
+    const [clubs, completedFixtures, topScorers] = await Promise.all([
+      prisma.club.findMany({ orderBy: { name: 'asc' } }),
+      prisma.fixture.findMany({ where: { status: 'COMPLETED' } }),
+      prisma.player.findMany({
+        where: { approved: true, goals: { gt: 0 } },
+        include: { club: true },
+        orderBy: { goals: 'desc' },
+        take: 10,
+      }),
+    ]);
 
-    const topScorers = await prisma.player.findMany({
-      where: { approved: true },
-      select: {
-        id: true,
-        name: true,
-        goals: true,
-        club: { select: { name: true } },
-      },
-      orderBy: { goals: 'desc' },
-      take: 10,
-    });
+    const standings = computeStandings(clubs, completedFixtures);
 
-    return Response.json({
+    const scorers = topScorers.map((player) => ({
+      id: player.id,
+      playerName: `${player.firstName} ${player.lastName}`,
+      clubName: player.club.name,
+      goals: player.goals,
+    }));
+
+    return NextResponse.json({
       success: true,
-      data: {
-        standings: standings || [],
-        topScorers,
-      },
+      data: { standings, topScorers: scorers },
     });
   } catch (error) {
-    return Response.json(
+    return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Failed to fetch standings' },
       { status: 500 }
     );
