@@ -32,7 +32,23 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (!auth.ok) return auth.response;
 
   try {
-    const { name, shortName, yearFounded, homeVenueId, email, phone, logoUrl } = await request.json();
+    const { name, shortName, yearFounded, homeVenueId, homeVenueName, email, phone, logoUrl } = await request.json();
+
+    // homeVenueName lets a League Manager set a club's home venue by typing
+    // its name — reuses an existing Venue row with that name (case/whitespace
+    // insensitive) instead of creating a duplicate, or creates one if new.
+    let resolvedVenueId: string | null | undefined = homeVenueId !== undefined ? homeVenueId || null : undefined;
+    if (homeVenueName !== undefined) {
+      const trimmed = String(homeVenueName).trim();
+      if (!trimmed) {
+        resolvedVenueId = null;
+      } else {
+        const existingVenue = await prisma.venue.findFirst({
+          where: { name: { equals: trimmed, mode: 'insensitive' } },
+        });
+        resolvedVenueId = existingVenue ? existingVenue.id : (await prisma.venue.create({ data: { name: trimmed } })).id;
+      }
+    }
 
     const club = await prisma.club.update({
       where: { id: params.id },
@@ -40,7 +56,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         ...(name !== undefined ? { name } : {}),
         ...(shortName !== undefined ? { shortName: shortName || null } : {}),
         ...(yearFounded !== undefined ? { yearFounded: yearFounded ? Number(yearFounded) : null } : {}),
-        ...(homeVenueId !== undefined ? { homeVenueId: homeVenueId || null } : {}),
+        ...(resolvedVenueId !== undefined ? { homeVenueId: resolvedVenueId } : {}),
         ...(email !== undefined ? { email: email || null } : {}),
         ...(phone !== undefined ? { phone: phone || null } : {}),
         ...(logoUrl !== undefined ? { logoUrl: logoUrl || null } : {}),

@@ -96,7 +96,16 @@ export default function HomePage() {
         <section style={{ marginBottom: 'var(--space-8)' }}>
           <h6 style={{ color: 'var(--color-accent-700)', marginBottom: 'var(--space-3)' }}>Latest News</h6>
           <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'var(--space-6)', alignItems: 'center' }}>
-            <PlaceholderPlate />
+            {featured?.featuredImageUrl ? (
+              <img
+                src={featured.featuredImageUrl}
+                alt={featured.title}
+                className="plate"
+                style={{ aspectRatio: '16 / 9', width: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <PlaceholderPlate />
+            )}
             <div>
               <p className="text-muted" style={{ fontSize: 12, marginBottom: 'var(--space-1)' }}>
                 {formatDate(featured?.startDate || featured?.createdAt) || formatDate(FEATURED_FALLBACK.date)}

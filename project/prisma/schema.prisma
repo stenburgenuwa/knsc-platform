@@ -250,15 +250,16 @@ model DisciplinaryCase {
 }
 
 model Announcement {
-  id          String                @id @default(uuid())
-  title       String
-  message     String
-  audience    Role?
-  priority    AnnouncementPriority  @default(NORMAL)
-  startDate   DateTime              @default(now())
-  createdAt   DateTime              @default(now())
-  createdById String?
-  createdBy   User?                 @relation(fields: [createdById], references: [id])
+  id               String                @id @default(uuid())
+  title            String
+  message          String
+  audience         Role?
+  priority         AnnouncementPriority  @default(NORMAL)
+  featuredImageUrl String?               @db.Text
+  startDate        DateTime              @default(now())
+  createdAt        DateTime              @default(now())
+  createdById      String?
+  createdBy        User?                 @relation(fields: [createdById], references: [id])
 
   @@index([audience])
 }

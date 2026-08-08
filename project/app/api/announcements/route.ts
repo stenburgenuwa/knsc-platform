@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   if (!auth.ok) return auth.response;
 
   try {
-    const { title, message, audience, priority } = await request.json();
+    const { title, message, audience, priority, featuredImageUrl } = await request.json();
 
     if (!title || !message) {
       return NextResponse.json({ success: false, error: 'title and message are required' }, { status: 400 });
@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
         message,
         audience: audience ?? null,
         priority: priority ?? 'NORMAL',
+        featuredImageUrl: featuredImageUrl || null,
         createdById: auth.user.sub,
       },
     });

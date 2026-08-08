@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 // Accepts a single already-compressed image (the browser resizes to 256px
 // WebP before sending) and returns a URL to save on a player or club row.
 export async function POST(request: NextRequest) {
-  const auth = requireAuth(request, ['PLATFORM_OWNER', 'LEAGUE_MANAGER', 'TEAM_MANAGER']);
+  const auth = requireAuth(request, ['PLATFORM_OWNER', 'LEAGUE_MANAGER', 'TEAM_MANAGER', 'REFEREE_MANAGER']);
   if (!auth.ok) return auth.response;
 
   try {

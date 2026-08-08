@@ -5,7 +5,7 @@ export async function getDashboardSummary() {
   return client.get('/dashboard-summary');
 }
 
-export async function uploadImage(blob: Blob, kind: 'player' | 'club') {
+export async function uploadImage(blob: Blob, kind: 'player' | 'club' | 'announcement') {
   const client = getApiClient();
   const form = new FormData();
   form.append('file', blob, `${kind}.webp`);
@@ -25,7 +25,7 @@ export async function createClub(data: {
 
 export async function updateClub(
   id: string,
-  data: { logoUrl?: string | null; name?: string; shortName?: string; yearFounded?: number | null }
+  data: { logoUrl?: string | null; name?: string; shortName?: string; yearFounded?: number | null; homeVenueName?: string }
 ) {
   const client = getApiClient();
   return client.patch(`/clubs/${id}`, data);
@@ -64,7 +64,6 @@ export async function updateFixture(
   data: {
     homeClubId?: string;
     awayClubId?: string;
-    venueId?: string | null;
     fixtureDate?: string;
     kickoffTime?: string;
     status?: string;
@@ -132,7 +131,7 @@ export async function registerPlayer(data: {
   return client.post('/players', data);
 }
 
-export async function createFixture(data: { homeClubId: string; awayClubId: string; venueId?: string; fixtureDate: string; kickoffTime?: string }) {
+export async function createFixture(data: { homeClubId: string; awayClubId: string; fixtureDate: string; kickoffTime?: string }) {
   const client = getApiClient();
   return client.post('/fixtures', data);
 }
@@ -229,7 +228,7 @@ export async function getAnnouncements() {
   return client.get('/announcements');
 }
 
-export async function createAnnouncement(data: { title: string; message: string; audience?: string | null; priority?: string }) {
+export async function createAnnouncement(data: { title: string; message: string; audience?: string | null; priority?: string; featuredImageUrl?: string | null }) {
   const client = getApiClient();
   return client.post('/announcements', data);
 }

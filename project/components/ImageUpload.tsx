@@ -17,7 +17,7 @@ export default function ImageUpload({
   value?: string | null;
   onChange: (url: string | null) => void;
   label: string;
-  kind: 'player' | 'club';
+  kind: 'player' | 'club' | 'announcement';
   name: string;
   rounded?: 'circle' | 'soft';
 }) {

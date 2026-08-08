@@ -29,7 +29,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (!auth.ok) return auth.response;
 
   try {
-    const { homeClubId, awayClubId, venueId, fixtureDate, kickoffTime, status, homeScore, awayScore } =
+    const { homeClubId, awayClubId, fixtureDate, kickoffTime, status, homeScore, awayScore } =
       await request.json();
 
     if (homeClubId && awayClubId && homeClubId === awayClubId) {
@@ -39,12 +39,23 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ success: false, error: 'Unknown fixture status' }, { status: 400 });
     }
 
+    // The venue is derived from the home club, never chosen manually — if the
+    // home club is changing, re-resolve the venue from its registered ground.
+    let venueUpdate = {};
+    if (homeClubId !== undefined) {
+      const homeClub = await prisma.club.findUnique({ where: { id: homeClubId } });
+      if (!homeClub) {
+        return NextResponse.json({ success: false, error: 'Home club not found' }, { status: 404 });
+      }
+      venueUpdate = { venueId: homeClub.homeVenueId };
+    }
+
     const fixture = await prisma.fixture.update({
       where: { id: params.id },
       data: {
         ...(homeClubId !== undefined ? { homeClubId } : {}),
         ...(awayClubId !== undefined ? { awayClubId } : {}),
-        ...(venueId !== undefined ? { venueId: venueId || null } : {}),
+        ...venueUpdate,
         ...(fixtureDate !== undefined ? { fixtureDate: new Date(fixtureDate) } : {}),
         ...(kickoffTime !== undefined ? { kickoffTime: kickoffTime || null } : {}),
         ...(status !== undefined ? { status } : {}),

@@ -25,7 +25,7 @@ export default function PlatformOwnerDashboard() {
   });
   const [clubStatus, setClubStatus] = useState<string | null>(null);
 
-  const [userForm, setUserForm] = useState({ email: '', firstName: '', lastName: '', role: ROLE_OPTIONS[0] });
+  const [userForm, setUserForm] = useState({ email: '', firstName: '', lastName: '', role: ROLE_OPTIONS[0], clubId: '' });
   const [userStatus, setUserStatus] = useState<string | null>(null);
 
   const load = async () => {
@@ -79,10 +79,14 @@ export default function PlatformOwnerDashboard() {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setUserStatus(null);
+    if (userForm.role === 'TEAM_MANAGER' && !userForm.clubId) {
+      setUserStatus('Select the club this Team Manager will run.');
+      return;
+    }
     try {
-      const res = await createUser(userForm);
+      const res = await createUser(userForm.role === 'TEAM_MANAGER' ? userForm : { ...userForm, clubId: undefined });
       setUserStatus(`Account created. Temporary password: ${res.data?.data?.temporaryPassword}`);
-      setUserForm({ email: '', firstName: '', lastName: '', role: ROLE_OPTIONS[0] });
+      setUserForm({ email: '', firstName: '', lastName: '', role: ROLE_OPTIONS[0], clubId: '' });
     } catch (err: any) {
       setUserStatus(err?.response?.data?.error || 'Failed to create account.');
     }
@@ -159,6 +163,15 @@ export default function PlatformOwnerDashboard() {
                   ))}
                 </select>
               </div>
+              {userForm.role === 'TEAM_MANAGER' && (
+                <div className="field">
+                  <label htmlFor="user-club">Select Team</label>
+                  <select id="user-club" className="input" required value={userForm.clubId} onChange={(e) => setUserForm({ ...userForm, clubId: e.target.value })}>
+                    <option value="">Select a team&hellip;</option>
+                    {clubs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              )}
               <button type="submit" className="btn btn-primary btn-block">Create Account</button>
               {userStatus && <p className="card-meta">{userStatus}</p>}
             </form>

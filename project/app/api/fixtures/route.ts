@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { homeClubId, awayClubId, venueId, fixtureDate, kickoffTime } = body;
+    const { homeClubId, awayClubId, fixtureDate, kickoffTime } = body;
 
     if (!homeClubId || !awayClubId || !fixtureDate) {
       return NextResponse.json(
@@ -65,11 +65,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'A club cannot play itself' }, { status: 400 });
     }
 
+    // The venue is never chosen manually — it always follows the home club's
+    // registered home venue, so the two can never drift out of sync.
+    const homeClub = await prisma.club.findUnique({ where: { id: homeClubId } });
+    if (!homeClub) {
+      return NextResponse.json({ success: false, error: 'Home club not found' }, { status: 404 });
+    }
+
     const fixture = await prisma.fixture.create({
       data: {
         homeClubId,
         awayClubId,
-        venueId: venueId || null,
+        venueId: homeClub.homeVenueId,
         fixtureDate: new Date(fixtureDate),
         kickoffTime: kickoffTime || null,
       },

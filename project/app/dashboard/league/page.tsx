@@ -6,10 +6,11 @@ import { downloadCsv } from '@/lib/csv';
 import {
   getDashboardSummary,
   createFixture,
-  getVenues,
   getPendingPlayers,
   approvePlayer,
   updateFixture,
+  updateClub,
+  createUser,
   reviewMatchReport,
   getDisciplinaryCases,
   createDisciplinaryCase,
@@ -33,7 +34,6 @@ export default function LeagueManagerDashboard() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [clubs, setClubs] = useState<any[]>([]);
-  const [venues, setVenues] = useState<any[]>([]);
   const [pending, setPending] = useState<any[]>([]);
   const [fixtures, setFixtures] = useState<any[]>([]);
   const [reportQueue, setReportQueue] = useState<any[]>([]);
@@ -42,8 +42,15 @@ export default function LeagueManagerDashboard() {
   const [caseForm, setCaseForm] = useState({ clubId: '', playerId: '', reason: '', decision: '' });
   const [caseStatus, setCaseStatus] = useState<string | null>(null);
 
-  const [fixtureForm, setFixtureForm] = useState({ homeClubId: '', awayClubId: '', venueId: '', fixtureDate: '', kickoffTime: '15:00' });
+  const [fixtureForm, setFixtureForm] = useState({ homeClubId: '', awayClubId: '', fixtureDate: '', kickoffTime: '15:00' });
   const [fixtureStatus, setFixtureStatus] = useState<string | null>(null);
+
+  const [venueDrafts, setVenueDrafts] = useState<Record<string, string>>({});
+  const [venueStatus, setVenueStatus] = useState<string | null>(null);
+  const [savingVenueId, setSavingVenueId] = useState<string | null>(null);
+
+  const [staffForm, setStaffForm] = useState({ email: '', firstName: '', lastName: '', clubId: '' });
+  const [staffStatus, setStaffStatus] = useState<string | null>(null);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<any>({});
@@ -52,10 +59,9 @@ export default function LeagueManagerDashboard() {
 
   const load = async () => {
     try {
-      const [summary, clubsRes, venuesRes, pendingRes, fixturesRes, queueRes, playersRes, casesRes] = await Promise.all([
+      const [summary, clubsRes, pendingRes, fixturesRes, queueRes, playersRes, casesRes] = await Promise.all([
         getDashboardSummary(),
         getClubs(1, 100),
-        getVenues(),
         getPendingPlayers(),
         getFixtures(1, 100, { status: 'all' }),
         getFixtures(1, 50, { reportStatus: 'SUBMITTED' }),
@@ -65,7 +71,6 @@ export default function LeagueManagerDashboard() {
       setData(summary.data?.data);
       const clubList = clubsRes.data?.data || [];
       setClubs(clubList);
-      setVenues(venuesRes.data?.data || []);
       setPending((pendingRes.data?.data || []).filter((p: any) => !p.approved));
       setFixtures(fixturesRes.data?.data || []);
       setReportQueue(queueRes.data?.data || []);
@@ -98,7 +103,6 @@ export default function LeagueManagerDashboard() {
       await createFixture({
         homeClubId: fixtureForm.homeClubId,
         awayClubId: fixtureForm.awayClubId,
-        venueId: fixtureForm.venueId || undefined,
         fixtureDate: fixtureForm.fixtureDate,
         kickoffTime: fixtureForm.kickoffTime,
       });
@@ -117,7 +121,6 @@ export default function LeagueManagerDashboard() {
   const startEditFixture = (f: any) => {
     setEditingId(f.id);
     setDraft({
-      venueId: f.venueId || '',
       fixtureDate: f.fixtureDate ? f.fixtureDate.slice(0, 10) : '',
       kickoffTime: f.kickoffTime || '',
       status: f.status,
@@ -129,7 +132,6 @@ export default function LeagueManagerDashboard() {
     if (!editingId) return;
     try {
       await updateFixture(editingId, {
-        venueId: draft.venueId || null,
         fixtureDate: draft.fixtureDate,
         kickoffTime: draft.kickoffTime,
         status: draft.status,
@@ -139,6 +141,39 @@ export default function LeagueManagerDashboard() {
       setTableStatus('Fixture updated.');
     } catch (err: any) {
       setTableStatus(err?.response?.data?.error || 'Failed to update fixture.');
+    }
+  };
+
+  const saveVenue = async (clubId: string) => {
+    const name = venueDrafts[clubId];
+    if (name === undefined) return;
+    setSavingVenueId(clubId);
+    setVenueStatus(null);
+    try {
+      await updateClub(clubId, { homeVenueName: name });
+      await load();
+      setVenueStatus('Venue saved.');
+    } catch (err: any) {
+      setVenueStatus(err?.response?.data?.error || 'Failed to save venue.');
+    } finally {
+      setSavingVenueId(null);
+    }
+  };
+
+  const handleCreateStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStaffStatus(null);
+    if (!staffForm.clubId) {
+      setStaffStatus('Select the team this Team Manager will run.');
+      return;
+    }
+    try {
+      const res = await createUser({ ...staffForm, role: 'TEAM_MANAGER' });
+      setStaffStatus(`Account created. Temporary password: ${res.data?.data?.temporaryPassword}`);
+      setStaffForm({ email: '', firstName: '', lastName: '', clubId: '' });
+      load();
+    } catch (err: any) {
+      setStaffStatus(err?.response?.data?.error || 'Failed to create account.');
     }
   };
 
@@ -248,11 +283,13 @@ export default function LeagueManagerDashboard() {
                 </select>
               </div>
               <div className="field">
-                <label htmlFor="venue">Venue</label>
-                <select id="venue" className="input" value={fixtureForm.venueId} onChange={(e) => setFixtureForm({ ...fixtureForm, venueId: e.target.value })}>
-                  <option value="">TBC</option>
-                  {venues.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-                </select>
+                <label>Venue</label>
+                <input
+                  className="input"
+                  disabled
+                  value={clubs.find((c) => c.id === fixtureForm.homeClubId)?.homeVenue?.name || 'TBC'}
+                />
+                <p className="card-meta" style={{ marginTop: 4 }}>Follows the home club&rsquo;s registered venue.</p>
               </div>
               <div className="grid grid-cols-2" style={{ gap: 'var(--space-2)' }}>
                 <div className="field">
@@ -349,12 +386,7 @@ export default function LeagueManagerDashboard() {
                               <input type="date" className="input" value={draft.fixtureDate} onChange={(e) => setDraft({ ...draft, fixtureDate: e.target.value })} />
                               <input type="time" className="input" style={{ marginTop: 4 }} value={draft.kickoffTime} onChange={(e) => setDraft({ ...draft, kickoffTime: e.target.value })} />
                             </td>
-                            <td>
-                              <select className="input" value={draft.venueId} onChange={(e) => setDraft({ ...draft, venueId: e.target.value })}>
-                                <option value="">TBC</option>
-                                {venues.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-                              </select>
-                            </td>
+                            <td>{f.venue?.name || 'TBC'}</td>
                             <td>
                               <select className="input" value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value })}>
                                 {FIXTURE_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -477,18 +509,73 @@ export default function LeagueManagerDashboard() {
               <h3 className="card-title">Clubs ({clubs.length})</h3>
               <button className="btn btn-ghost" onClick={exportClubs}><Download size={14} /> Export CSV</button>
             </div>
-            <p className="card-meta">Read-only — club records are managed by the Platform Owner.</p>
+            <p className="card-meta">You can update each club&rsquo;s home venue here; other club details are managed by the Platform Owner.</p>
+            {venueStatus && <p className="card-meta">{venueStatus}</p>}
             <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'var(--space-2)' }}>
               {clubs.map((c) => (
                 <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-3)', padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-divider)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0, flex: 1 }}>
                     <Avatar src={c.logoUrl} name={c.name} size={36} rounded="soft" />
-                    <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>{c.name}</p>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>{c.name}</p>
+                      <p className="card-meta">{c._count?.players ?? 0} players</p>
+                    </div>
                   </div>
-                  <span className="card-meta">{c._count?.players ?? 0} players</span>
+                  <div style={{ display: 'flex', gap: 4, flex: 'none' }}>
+                    <input
+                      className="input"
+                      style={{ maxWidth: 160 }}
+                      placeholder="Home venue"
+                      value={venueDrafts[c.id] ?? c.homeVenue?.name ?? ''}
+                      onChange={(e) => setVenueDrafts({ ...venueDrafts, [c.id]: e.target.value })}
+                    />
+                    <button
+                      className="btn btn-secondary"
+                      disabled={savingVenueId === c.id}
+                      onClick={() => saveVenue(c.id)}
+                    >
+                      Save
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="card elev-sm" style={{ marginBottom: 'var(--space-4)', maxWidth: 480 }}>
+            <h3 className="card-title">Create Staff Account</h3>
+            <p className="card-meta">League Managers may register Team Manager accounts for existing teams.</p>
+            <form onSubmit={handleCreateStaff}>
+              <div className="field">
+                <label htmlFor="staff-email">Email</label>
+                <input id="staff-email" type="email" className="input" required value={staffForm.email} onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2" style={{ gap: 'var(--space-2)' }}>
+                <div className="field">
+                  <label htmlFor="staff-first">First name</label>
+                  <input id="staff-first" className="input" required value={staffForm.firstName} onChange={(e) => setStaffForm({ ...staffForm, firstName: e.target.value })} />
+                </div>
+                <div className="field">
+                  <label htmlFor="staff-last">Last name</label>
+                  <input id="staff-last" className="input" required value={staffForm.lastName} onChange={(e) => setStaffForm({ ...staffForm, lastName: e.target.value })} />
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor="staff-role">Role</label>
+                <select id="staff-role" className="input" value="TEAM_MANAGER" disabled>
+                  <option value="TEAM_MANAGER">Team Manager</option>
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="staff-club">Select Team</label>
+                <select id="staff-club" className="input" required value={staffForm.clubId} onChange={(e) => setStaffForm({ ...staffForm, clubId: e.target.value })}>
+                  <option value="">Select a team&hellip;</option>
+                  {clubs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <button type="submit" className="btn btn-primary btn-block">Create Account</button>
+              {staffStatus && <p className="card-meta">{staffStatus}</p>}
+            </form>
           </div>
 
           <div style={{ marginTop: 'var(--space-4)' }}>

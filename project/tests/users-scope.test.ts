@@ -125,3 +125,47 @@ describe('Referee Manager scoping on /api/users', () => {
     expect(await prisma.user.findUnique({ where: { id: teamManager.id } })).not.toBeNull();
   });
 });
+
+describe('League Manager scoping on /api/users', () => {
+  beforeEach(resetTestDb);
+  afterAll(async () => {
+    await resetTestDb();
+    await prisma.$disconnect();
+  });
+
+  it('a League Manager can register a Team Manager for an existing club', async () => {
+    const club = await prisma.club.create({ data: { name: 'Malindi United' } });
+    const token = signAccessToken({ sub: 'lm-1', email: 'lm@knscl.co.ke', role: 'LEAGUE_MANAGER' });
+
+    const res = await createUser(
+      req('POST', { email: 'tm@knscl.co.ke', firstName: 'Fatuma', lastName: 'Baya', role: 'TEAM_MANAGER', clubId: club.id }, token)
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(201);
+    expect(body.data.role).toBe('TEAM_MANAGER');
+
+    const saved = await prisma.user.findUniqueOrThrow({ where: { id: body.data.id } });
+    expect(saved.clubId).toBe(club.id);
+  });
+
+  it('a League Manager cannot register a Team Manager without a club', async () => {
+    const token = signAccessToken({ sub: 'lm-1', email: 'lm@knscl.co.ke', role: 'LEAGUE_MANAGER' });
+
+    const res = await createUser(
+      req('POST', { email: 'tm@knscl.co.ke', firstName: 'Fatuma', lastName: 'Baya', role: 'TEAM_MANAGER' }, token)
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it('a League Manager cannot register any other staff role', async () => {
+    const token = signAccessToken({ sub: 'lm-1', email: 'lm@knscl.co.ke', role: 'LEAGUE_MANAGER' });
+
+    const res = await createUser(
+      req('POST', { email: 'sneaky@knscl.co.ke', firstName: 'Sly', lastName: 'Fox', role: 'REFEREE' }, token)
+    );
+
+    expect(res.status).toBe(403);
+  });
+});

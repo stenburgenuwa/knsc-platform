@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { getAnnouncements, createAnnouncement, deleteAnnouncement } from '@/lib/admin-api';
 import { useAuthStore } from '@/store/auth';
+import ImageUpload from '@/components/ImageUpload';
 
 const PRIORITY_TAG: Record<string, string> = {
   NORMAL: 'tag-neutral',
@@ -18,7 +19,7 @@ function formatDate(value?: string) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-const EMPTY_FORM = { title: '', message: '', audience: '', priority: 'NORMAL' };
+const EMPTY_FORM = { title: '', message: '', audience: '', priority: 'NORMAL', featuredImageUrl: null as string | null };
 
 // Drop-in announcements feed for any dashboard. Pass `canCompose` + a role
 // list to let that dashboard's role also publish new announcements.
@@ -60,6 +61,7 @@ export default function AnnouncementsPanel({
         message: form.message,
         audience: form.audience || null,
         priority: form.priority,
+        featuredImageUrl: form.featuredImageUrl,
       });
       setForm(EMPTY_FORM);
       setStatus('Announcement published.');
@@ -92,6 +94,14 @@ export default function AnnouncementsPanel({
             <label htmlFor="ann-message">Message</label>
             <textarea id="ann-message" className="input" required value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
           </div>
+          <ImageUpload
+            label="Featured image (shown on the homepage for public news)"
+            kind="announcement"
+            rounded="soft"
+            name={form.title}
+            value={form.featuredImageUrl}
+            onChange={(url) => setForm({ ...form, featuredImageUrl: url })}
+          />
           <div className="grid grid-cols-2" style={{ gap: 'var(--space-2)' }}>
             {audienceOptions.length > 0 && (
               <div className="field">
