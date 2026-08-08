@@ -36,7 +36,7 @@ export default function PlatformOwnerDashboard() {
         getClubs(1, 100),
       ]);
       setData(summary.data?.data);
-      setPending((pendingRes.data?.data || []).filter((p: any) => !p.approved));
+      setPending((pendingRes.data?.data || []).filter((p: any) => !p.platformOwnerApproved));
       setClubs(clubsRes.data?.data || []);
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -189,7 +189,10 @@ export default function PlatformOwnerDashboard() {
                       <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={36} />
                       <div>
                         <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>{p.firstName} {p.lastName}</p>
-                        <p className="card-meta">{p.club?.name}</p>
+                        <p className="card-meta">
+                          {p.club?.name}
+                          {p.leagueManagerApproved ? ' · League Manager approved' : ' · Awaiting League Manager'}
+                        </p>
                       </div>
                     </div>
                     <button className="btn btn-primary" onClick={() => handleApprove(p.id)}>Approve</button>

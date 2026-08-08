@@ -71,7 +71,7 @@ export default function LeagueManagerDashboard() {
       setData(summary.data?.data);
       const clubList = clubsRes.data?.data || [];
       setClubs(clubList);
-      setPending((pendingRes.data?.data || []).filter((p: any) => !p.approved));
+      setPending((pendingRes.data?.data || []).filter((p: any) => !p.leagueManagerApproved));
       setFixtures(fixturesRes.data?.data || []);
       setReportQueue(queueRes.data?.data || []);
       setPlayers(playersRes.data?.data || []);
@@ -315,7 +315,10 @@ export default function LeagueManagerDashboard() {
                     <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-2) 0', borderBottom: i < pending.length - 1 ? '1px solid var(--color-divider)' : 'none' }}>
                       <div>
                         <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>{p.firstName} {p.lastName}</p>
-                        <p className="card-meta">{p.club?.name}</p>
+                        <p className="card-meta">
+                          {p.club?.name}
+                          {p.platformOwnerApproved ? ' · Platform Owner approved' : ' · Awaiting Platform Owner'}
+                        </p>
                       </div>
                       <button className="btn btn-primary" onClick={() => handleApprove(p.id)}>Approve</button>
                     </div>

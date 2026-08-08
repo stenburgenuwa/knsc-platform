@@ -123,18 +123,28 @@ model Club {
 }
 
 model Player {
-  id           String    @id @default(uuid())
-  clubId       String
-  club         Club      @relation(fields: [clubId], references: [id])
-  firstName    String
-  lastName     String
-  playerNumber Int?
-  position     String?
-  dateOfBirth  DateTime?
-  photoUrl     String?   @db.Text
-  goals        Int       @default(0)
-  approved     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
+  id                     String    @id @default(uuid())
+  clubId                 String
+  club                   Club      @relation(fields: [clubId], references: [id])
+  firstName              String
+  lastName               String
+  playerNumber           Int?
+  position               String?
+  dateOfBirth            DateTime?
+  photoUrl               String?   @db.Text
+  idNumber               String?
+  height                 Float?
+  weight                 Float?
+  county                 String?
+  goals                  Int       @default(0)
+  approved               Boolean   @default(true)
+  // KNSCL registration number is only assigned once both approvals below are
+  // true — see lib/player-registration.ts, which draws from a DB sequence so
+  // it stays unique even under concurrent approvals.
+  registrationNumber     String?   @unique
+  leagueManagerApproved  Boolean   @default(false)
+  platformOwnerApproved  Boolean   @default(false)
+  createdAt              DateTime  @default(now())
 
   matchEvents       MatchEvent[]
   teamSheetEntries  TeamSheetEntry[]

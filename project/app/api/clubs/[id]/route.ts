@@ -81,6 +81,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     include: {
       homeVenue: true,
       players: { where: { approved: true }, orderBy: { lastName: 'asc' } },
+      managers: { where: { role: 'TEAM_MANAGER' }, select: { id: true, firstName: true, lastName: true, email: true } },
     },
   });
 

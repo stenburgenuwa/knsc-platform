@@ -55,10 +55,17 @@ export default function ClubProfilePage({ params }: { params: { id: string } }) 
         <Avatar src={club.logoUrl} name={club.name} size={72} rounded="soft" />
         <h1 style={{ fontWeight: 400, margin: 0 }}>{club.name}</h1>
       </div>
-      <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
+      <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-3)', flexWrap: 'wrap' }}>
         {club.yearFounded && <span className="tag tag-neutral">Founded {club.yearFounded}</span>}
         {club.homeVenue?.name && <span className="tag tag-neutral">{club.homeVenue.name}</span>}
       </div>
+      <p className="text-muted" style={{ marginBottom: 'var(--space-6)' }}>
+        {club.managers?.[0] ? (
+          <><strong>Team Manager:</strong> {club.managers[0].firstName} {club.managers[0].lastName} &bull; {club.managers[0].email}</>
+        ) : (
+          'No Team Manager assigned yet.'
+        )}
+      </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'var(--space-6)' }}>
         <section>
@@ -68,8 +75,9 @@ export default function ClubProfilePage({ params }: { params: { id: string } }) 
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {club.players.map((p: any, i: number) => (
-                <div
+                <Link
                   key={p.id}
+                  href={`/players/${p.id}`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -77,6 +85,8 @@ export default function ClubProfilePage({ params }: { params: { id: string } }) 
                     gap: 'var(--space-3)',
                     padding: 'var(--space-2) 0',
                     borderBottom: i < club.players.length - 1 ? '1px solid var(--color-divider)' : 'none',
+                    color: 'inherit',
+                    textDecoration: 'none',
                   }}
                 >
                   <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
@@ -87,7 +97,7 @@ export default function ClubProfilePage({ params }: { params: { id: string } }) 
                     </span>
                   </span>
                   {p.playerNumber && <span className="text-muted">#{p.playerNumber}</span>}
-                </div>
+                </Link>
               ))}
             </div>
           )}

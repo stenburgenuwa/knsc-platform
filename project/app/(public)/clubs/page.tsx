@@ -48,6 +48,11 @@ export default function ClubsPage() {
                 <strong>Home:</strong> {club.homeVenue.name}
               </p>
             )}
+            {club.managers?.[0] && (
+              <p className="card-meta">
+                <strong>Manager:</strong> {club.managers[0].firstName} {club.managers[0].lastName}
+              </p>
+            )}
             <Link href={`/clubs/${club.id}`} className="btn btn-ghost" style={{ alignSelf: 'flex-start' }}>
               View Profile &rarr;
             </Link>

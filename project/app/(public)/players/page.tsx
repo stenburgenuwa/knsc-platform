@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { getPlayers } from '@/lib/public-api';
 import Pagination from '@/components/Pagination';
 import Avatar from '@/components/Avatar';
@@ -39,7 +40,12 @@ export default function PlayersPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4" style={{ gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
         {loading && <SkeletonCards count={8} />}
         {players.map((player: any) => (
-          <div key={player.id} className="card elev-sm" style={{ textAlign: 'center', alignItems: 'center' }}>
+          <Link
+            key={player.id}
+            href={`/players/${player.id}`}
+            className="card elev-sm"
+            style={{ textAlign: 'center', alignItems: 'center', color: 'inherit', textDecoration: 'none' }}
+          >
             <Avatar
               src={player.photoUrl}
               name={`${player.firstName || ''} ${player.lastName || ''}`.trim()}
@@ -54,7 +60,7 @@ export default function PlayersPage() {
             {player.playerNumber && (
               <span className="tag tag-accent" style={{ alignSelf: 'center' }}>#{player.playerNumber}</span>
             )}
-          </div>
+          </Link>
         ))}
       </div>
 

@@ -14,7 +14,11 @@ export async function GET(request: NextRequest) {
 
     const [clubs, total] = await Promise.all([
       prisma.club.findMany({
-        include: { homeVenue: true, _count: { select: { players: true } } },
+        include: {
+          homeVenue: true,
+          _count: { select: { players: true } },
+          managers: { where: { role: 'TEAM_MANAGER' }, select: { id: true, firstName: true, lastName: true, email: true } },
+        },
         orderBy: { name: 'asc' },
         skip,
         take: limit,

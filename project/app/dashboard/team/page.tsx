@@ -33,7 +33,10 @@ export default function TeamManagerDashboard() {
     position: string;
     dateOfBirth: string;
     photoUrl: string | null;
-  }>({ firstName: '', lastName: '', playerNumber: '', position: '', dateOfBirth: '', photoUrl: null });
+    idNumber: string;
+    height: string;
+    weight: string;
+  }>({ firstName: '', lastName: '', playerNumber: '', position: '', dateOfBirth: '', photoUrl: null, idNumber: '', height: '', weight: '' });
   const [playerStatus, setPlayerStatus] = useState<string | null>(null);
 
   const load = async () => {
@@ -64,18 +67,25 @@ export default function TeamManagerDashboard() {
       setPlayerStatus('Your account is not linked to a club yet.');
       return;
     }
+    if (!playerForm.dateOfBirth || !playerForm.photoUrl || !playerForm.height || !playerForm.weight || !playerForm.position || !playerForm.idNumber) {
+      setPlayerStatus('Date of birth, photo, height, weight, ID/passport number and position are all required.');
+      return;
+    }
     try {
       await registerPlayer({
         clubId,
         firstName: playerForm.firstName,
         lastName: playerForm.lastName,
         playerNumber: playerForm.playerNumber ? Number(playerForm.playerNumber) : undefined,
-        position: playerForm.position || undefined,
-        dateOfBirth: playerForm.dateOfBirth || undefined,
+        position: playerForm.position,
+        dateOfBirth: playerForm.dateOfBirth,
         photoUrl: playerForm.photoUrl,
+        idNumber: playerForm.idNumber,
+        height: Number(playerForm.height),
+        weight: Number(playerForm.weight),
       });
-      setPlayerStatus('Player submitted for League Manager approval.');
-      setPlayerForm({ firstName: '', lastName: '', playerNumber: '', position: '', dateOfBirth: '', photoUrl: null });
+      setPlayerStatus('Player submitted for approval.');
+      setPlayerForm({ firstName: '', lastName: '', playerNumber: '', position: '', dateOfBirth: '', photoUrl: null, idNumber: '', height: '', weight: '' });
       load();
     } catch (err: any) {
       setPlayerStatus(err?.response?.data?.error || 'Failed to register player.');
@@ -127,18 +137,33 @@ export default function TeamManagerDashboard() {
                 </div>
                 <div className="field">
                   <label htmlFor="p-position">Position</label>
-                  <select id="p-position" className="input" value={playerForm.position} onChange={(e) => setPlayerForm({ ...playerForm, position: e.target.value })}>
+                  <select id="p-position" className="input" required value={playerForm.position} onChange={(e) => setPlayerForm({ ...playerForm, position: e.target.value })}>
                     <option value="">Select&hellip;</option>
                     <option value="Goalkeeper">Goalkeeper</option>
                     <option value="Defender">Defender</option>
                     <option value="Midfielder">Midfielder</option>
+                    <option value="Winger">Winger</option>
                     <option value="Forward">Forward</option>
                   </select>
                 </div>
               </div>
+              <div className="grid grid-cols-2" style={{ gap: 'var(--space-2)' }}>
+                <div className="field">
+                  <label htmlFor="p-height">Height (cm)</label>
+                  <input id="p-height" type="number" className="input" required value={playerForm.height} onChange={(e) => setPlayerForm({ ...playerForm, height: e.target.value })} />
+                </div>
+                <div className="field">
+                  <label htmlFor="p-weight">Weight (kg)</label>
+                  <input id="p-weight" type="number" className="input" required value={playerForm.weight} onChange={(e) => setPlayerForm({ ...playerForm, weight: e.target.value })} />
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor="p-id">ID / passport number</label>
+                <input id="p-id" className="input" required value={playerForm.idNumber} onChange={(e) => setPlayerForm({ ...playerForm, idNumber: e.target.value })} />
+              </div>
               <div className="field">
                 <label htmlFor="p-dob">Date of birth</label>
-                <input id="p-dob" type="date" className="input" value={playerForm.dateOfBirth} onChange={(e) => setPlayerForm({ ...playerForm, dateOfBirth: e.target.value })} />
+                <input id="p-dob" type="date" className="input" required value={playerForm.dateOfBirth} onChange={(e) => setPlayerForm({ ...playerForm, dateOfBirth: e.target.value })} />
               </div>
               <ImageUpload
                 label="Player photo"
@@ -166,7 +191,7 @@ export default function TeamManagerDashboard() {
                             {p.playerNumber ? `#${p.playerNumber} ` : ''}{p.firstName} {p.lastName}
                           </p>
                           <p className="card-meta">
-                            {[p.position, p.dateOfBirth ? `Born ${formatDate(p.dateOfBirth)}` : null].filter(Boolean).join(' · ')}
+                            {[p.position, p.dateOfBirth ? `Born ${formatDate(p.dateOfBirth)}` : null, p.registrationNumber].filter(Boolean).join(' · ')}
                           </p>
                         </div>
                       </div>

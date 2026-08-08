@@ -87,7 +87,17 @@ export async function resetAllData(confirmation: string) {
 
 export async function updatePlayer(
   id: string,
-  data: { photoUrl?: string | null; firstName?: string; lastName?: string; playerNumber?: number; position?: string }
+  data: {
+    photoUrl?: string | null;
+    firstName?: string;
+    lastName?: string;
+    playerNumber?: number;
+    position?: string;
+    idNumber?: string;
+    height?: number;
+    weight?: number;
+    county?: string;
+  }
 ) {
   const client = getApiClient();
   return client.patch(`/players/${id}`, data);
@@ -126,6 +136,10 @@ export async function registerPlayer(data: {
   position?: string;
   dateOfBirth?: string;
   photoUrl?: string | null;
+  idNumber?: string;
+  height?: number;
+  weight?: number;
+  county?: string;
 }) {
   const client = getApiClient();
   return client.post('/players', data);

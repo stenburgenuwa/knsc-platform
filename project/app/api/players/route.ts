@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth-guard';
 import { verifyAccessToken } from '@/lib/jwt';
+import { maybeAssignRegistrationNumber } from '@/lib/player-registration';
 
 function optionalAuth(request: NextRequest) {
   const header = request.headers.get('authorization') || '';
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { clubId, firstName, lastName, playerNumber, position, dateOfBirth, photoUrl } = body;
+    const { clubId, firstName, lastName, playerNumber, position, dateOfBirth, photoUrl, idNumber, height, weight, county } = body;
 
     if (!clubId || !firstName || !lastName) {
       return NextResponse.json(
@@ -79,21 +80,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Team Managers submit for approval; Platform Owner registrations go straight in.
+    // Team Managers submit for approval; a Platform Owner registering a
+    // player directly is authoritative enough to satisfy both approval
+    // stages immediately, so the registration number is assigned right away.
     const approved = auth.user.role === 'PLATFORM_OWNER';
 
-    const player = await prisma.player.create({
-      data: {
-        clubId,
-        firstName,
-        lastName,
-        playerNumber: playerNumber ? Number(playerNumber) : null,
-        position: position || null,
-        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
-        photoUrl: photoUrl || null,
-        approved,
-      },
-      include: { club: true },
+    const player = await prisma.$transaction(async (tx) => {
+      const created = await tx.player.create({
+        data: {
+          clubId,
+          firstName,
+          lastName,
+          playerNumber: playerNumber ? Number(playerNumber) : null,
+          position: position || null,
+          dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+          photoUrl: photoUrl || null,
+          idNumber: idNumber || null,
+          height: height ? Number(height) : null,
+          weight: weight ? Number(weight) : null,
+          county: county || null,
+          approved,
+          leagueManagerApproved: approved,
+          platformOwnerApproved: approved,
+        },
+      });
+      if (approved) await maybeAssignRegistrationNumber(tx, created);
+      return tx.player.findUniqueOrThrow({ where: { id: created.id }, include: { club: true } });
     });
 
     return NextResponse.json({ success: true, data: player }, { status: 201 });

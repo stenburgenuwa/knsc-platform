@@ -46,6 +46,11 @@ export async function getPlayers(page = 1, limit = 16, opts?: { clubId?: string;
   return client.get(`/players?${params.toString()}`);
 }
 
+export async function getPlayer(id: string) {
+  const client = getApiClient();
+  return client.get(`/players/${id}`);
+}
+
 export async function getNews(page = 1, limit = 10) {
   const client = getApiClient();
   return client.get(`/news?page=${page}&limit=${limit}`);

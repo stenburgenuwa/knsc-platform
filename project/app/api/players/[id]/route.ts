@@ -1,10 +1,77 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth-guard';
+import { verifyAccessToken } from '@/lib/jwt';
 import { deletePlayerCascade } from '@/lib/cascade';
 import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
+
+function optionalAuth(request: NextRequest) {
+  const header = request.headers.get('authorization') || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  return token ? verifyAccessToken(token) : null;
+}
+
+// Public player profile: goals reuse the denormalised Player.goals counter;
+// cards and match history are derived from existing MatchEvent rows rather
+// than kept in any new table. Unapproved players are hidden from the public
+// the same way the players list already hides them.
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const player = await prisma.player.findUnique({
+    where: { id: params.id },
+    include: { club: true },
+  });
+
+  if (!player) {
+    return NextResponse.json({ success: false, error: 'Player not found' }, { status: 404 });
+  }
+
+  if (!player.approved) {
+    const user = optionalAuth(request);
+    const canView =
+      user && (user.role === 'PLATFORM_OWNER' || user.role === 'LEAGUE_MANAGER' || (user.role === 'TEAM_MANAGER' && user.clubId === player.clubId));
+    if (!canView) {
+      return NextResponse.json({ success: false, error: 'Player not found' }, { status: 404 });
+    }
+  }
+
+  const events = await prisma.matchEvent.findMany({
+    where: { playerId: params.id },
+    include: { fixture: { include: { homeClub: true, awayClub: true } } },
+    orderBy: { fixture: { fixtureDate: 'desc' } },
+  });
+
+  const yellowCards = events.filter((e) => e.type === 'YELLOW_CARD').length;
+  const redCards = events.filter((e) => e.type === 'RED_CARD').length;
+
+  const matchesById = new Map<string, any>();
+  for (const e of events) {
+    const f = e.fixture;
+    if (!matchesById.has(f.id)) {
+      const isHome = f.homeClubId === player.clubId;
+      matchesById.set(f.id, {
+        fixtureId: f.id,
+        fixtureDate: f.fixtureDate,
+        opponent: isHome ? f.awayClub.name : f.homeClub.name,
+        home: isHome,
+        forScore: isHome ? f.homeScore : f.awayScore,
+        againstScore: isHome ? f.awayScore : f.homeScore,
+        events: [] as { type: string; minute: number | null }[],
+      });
+    }
+    matchesById.get(f.id).events.push({ type: e.type, minute: e.minute });
+  }
+
+  return NextResponse.json({
+    success: true,
+    data: {
+      ...player,
+      stats: { goals: player.goals, yellowCards, redCards },
+      matchHistory: Array.from(matchesById.values()),
+    },
+  });
+}
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   const auth = requireAuth(request, ['PLATFORM_OWNER', 'LEAGUE_MANAGER', 'TEAM_MANAGER']);
@@ -55,7 +122,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 
   try {
-    const { firstName, lastName, playerNumber, position, dateOfBirth, photoUrl } = await request.json();
+    const { firstName, lastName, playerNumber, position, dateOfBirth, photoUrl, idNumber, height, weight, county } =
+      await request.json();
 
     const player = await prisma.player.update({
       where: { id: params.id },
@@ -66,6 +134,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         ...(position !== undefined ? { position: position || null } : {}),
         ...(dateOfBirth !== undefined ? { dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null } : {}),
         ...(photoUrl !== undefined ? { photoUrl: photoUrl || null } : {}),
+        ...(idNumber !== undefined ? { idNumber: idNumber || null } : {}),
+        ...(height !== undefined ? { height: height ? Number(height) : null } : {}),
+        ...(weight !== undefined ? { weight: weight ? Number(weight) : null } : {}),
+        ...(county !== undefined ? { county: county || null } : {}),
       },
       include: { club: true },
     });
