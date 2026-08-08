@@ -38,32 +38,66 @@ enum MatchEventType {
   RED_CARD
 }
 
+enum Availability {
+  AVAILABLE
+  UNAVAILABLE
+  ON_LEAVE
+  INJURED
+}
+
+enum ReportStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  RETURNED
+}
+
+enum TeamSheetRole {
+  STARTER
+  SUBSTITUTE
+}
+
+enum DisciplinaryStatus {
+  OPEN
+  RESOLVED
+  APPEALED
+}
+
+enum AnnouncementPriority {
+  NORMAL
+  HIGH
+  EMERGENCY
+}
+
 model User {
-  id                  String    @id @default(uuid())
-  email               String    @unique
+  id                  String        @id @default(uuid())
+  email               String        @unique
   passwordHash        String
   firstName           String
   lastName            String
   role                Role
   clubId              String?
-  club                Club?     @relation(fields: [clubId], references: [id])
-  failedLoginAttempts Int       @default(0)
+  club                Club?         @relation(fields: [clubId], references: [id])
+  availability        Availability? // only meaningful for REFEREE accounts
+  failedLoginAttempts Int           @default(0)
   lockedUntil         DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
   refereeAssignments RefereeAssignment[]
+  announcements      Announcement[]
+  auditLogs          AuditLog[]
 
   @@index([role])
   @@index([clubId])
 }
 
 model Venue {
-  id         String    @id @default(uuid())
-  name       String
-  location   String?
-  fixtures   Fixture[]
-  homeClubs  Club[]
+  id        String    @id @default(uuid())
+  name      String
+  location  String?
+  fixtures  Fixture[]
+  homeClubs Club[]
 }
 
 model Club {
@@ -78,10 +112,12 @@ model Club {
   phone       String?
   createdAt   DateTime @default(now())
 
-  players      Player[]
-  managers     User[]
-  homeFixtures Fixture[] @relation("HomeClub")
-  awayFixtures Fixture[] @relation("AwayClub")
+  players           Player[]
+  managers          User[]
+  homeFixtures      Fixture[]          @relation("HomeClub")
+  awayFixtures      Fixture[]          @relation("AwayClub")
+  teamSheets        TeamSheet[]
+  disciplinaryCases DisciplinaryCase[]
 
   @@index([name])
 }
@@ -100,29 +136,36 @@ model Player {
   approved     Boolean   @default(true)
   createdAt    DateTime  @default(now())
 
-  matchEvents MatchEvent[]
+  matchEvents       MatchEvent[]
+  teamSheetEntries  TeamSheetEntry[]
+  disciplinaryCases DisciplinaryCase[]
 
   @@index([clubId])
 }
 
 model Fixture {
-  id          String        @id @default(uuid())
-  homeClubId  String
-  awayClubId  String
-  homeClub    Club          @relation("HomeClub", fields: [homeClubId], references: [id])
-  awayClub    Club          @relation("AwayClub", fields: [awayClubId], references: [id])
-  venueId     String?
-  venue       Venue?        @relation(fields: [venueId], references: [id])
-  fixtureDate DateTime
-  kickoffTime String?
-  status      FixtureStatus @default(UPCOMING)
-  homeScore   Int?
-  awayScore   Int?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id                String        @id @default(uuid())
+  homeClubId        String
+  awayClubId        String
+  homeClub          Club          @relation("HomeClub", fields: [homeClubId], references: [id])
+  awayClub          Club          @relation("AwayClub", fields: [awayClubId], references: [id])
+  venueId           String?
+  venue             Venue?        @relation(fields: [venueId], references: [id])
+  fixtureDate       DateTime
+  kickoffTime       String?
+  status            FixtureStatus @default(UPCOMING)
+  homeScore         Int?
+  awayScore         Int?
+  reportStatus      ReportStatus  @default(DRAFT)
+  reportSubmittedAt DateTime?
+  reportNotes       String?       @db.Text
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   refereeAssignment RefereeAssignment?
   matchEvents       MatchEvent[]
+  teamSheets        TeamSheet[]
+  disciplinaryCases DisciplinaryCase[]
 
   @@index([status])
   @@index([fixtureDate])
@@ -156,10 +199,81 @@ model RefereeAssignment {
   @@index([refereeId])
 }
 
+model TeamSheet {
+  id          String    @id @default(uuid())
+  fixtureId   String
+  fixture     Fixture   @relation(fields: [fixtureId], references: [id])
+  clubId      String
+  club        Club      @relation(fields: [clubId], references: [id])
+  submittedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  entries TeamSheetEntry[]
+
+  @@unique([fixtureId, clubId])
+  @@index([fixtureId])
+}
+
+model TeamSheetEntry {
+  id          String        @id @default(uuid())
+  teamSheetId String
+  teamSheet   TeamSheet     @relation(fields: [teamSheetId], references: [id])
+  playerId    String
+  player      Player        @relation(fields: [playerId], references: [id])
+  role        TeamSheetRole
+  isCaptain   Boolean       @default(false)
+
+  @@unique([teamSheetId, playerId])
+  @@index([teamSheetId])
+}
+
+model DisciplinaryCase {
+  id           String              @id @default(uuid())
+  playerId     String
+  player       Player              @relation(fields: [playerId], references: [id])
+  clubId       String
+  club         Club                @relation(fields: [clubId], references: [id])
+  fixtureId    String?
+  fixture      Fixture?            @relation(fields: [fixtureId], references: [id])
+  reason       String
+  decision     String?             @db.Text
+  decisionDate DateTime?
+  status       DisciplinaryStatus  @default(OPEN)
+  notes        String?             @db.Text
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([playerId])
+  @@index([clubId])
+  @@index([status])
+}
+
 model Announcement {
+  id          String                @id @default(uuid())
+  title       String
+  message     String
+  audience    Role?
+  priority    AnnouncementPriority  @default(NORMAL)
+  startDate   DateTime              @default(now())
+  createdAt   DateTime              @default(now())
+  createdById String?
+  createdBy   User?                 @relation(fields: [createdById], references: [id])
+
+  @@index([audience])
+}
+
+model AuditLog {
   id        String   @id @default(uuid())
-  title     String
-  message   String
-  startDate DateTime @default(now())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  module    String
+  targetId  String?
+  detail    String?  @db.Text
   createdAt DateTime @default(now())
+
+  @@index([module])
+  @@index([userId])
+  @@index([createdAt])
 }

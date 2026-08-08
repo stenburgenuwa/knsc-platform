@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth-guard';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,13 @@ export async function GET(request: NextRequest) {
     // Public pages want only upcoming games; the admin console passes
     // status=all to manage completed and postponed ones too.
     const statusParam = searchParams.get('status');
-    const where = statusParam === 'all' ? {} : { status: (statusParam as any) || 'UPCOMING' };
+    const clubId = searchParams.get('clubId') || undefined;
+    const reportStatus = searchParams.get('reportStatus') || undefined;
+    const where = {
+      ...(statusParam === 'all' ? {} : { status: (statusParam as any) || 'UPCOMING' }),
+      ...(clubId ? { OR: [{ homeClubId: clubId }, { awayClubId: clubId }] } : {}),
+      ...(reportStatus ? { reportStatus: reportStatus as any } : {}),
+    };
 
     const [fixtures, total] = await Promise.all([
       prisma.fixture.findMany({
@@ -67,6 +74,14 @@ export async function POST(request: NextRequest) {
         kickoffTime: kickoffTime || null,
       },
       include: { homeClub: true, awayClub: true, venue: true },
+    });
+
+    await logAudit({
+      userId: auth.user.sub,
+      action: 'FIXTURE_CREATED',
+      module: 'fixtures',
+      targetId: fixture.id,
+      detail: `${fixture.homeClub.name} vs ${fixture.awayClub.name}`,
     });
 
     return NextResponse.json({ success: true, data: fixture }, { status: 201 });

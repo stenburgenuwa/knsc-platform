@@ -21,6 +21,13 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
         { status: 403 }
       );
     }
+    const fixture = await prisma.fixture.findUnique({ where: { id: params.id } });
+    if (fixture?.reportStatus === 'SUBMITTED' || fixture?.reportStatus === 'APPROVED') {
+      return NextResponse.json(
+        { success: false, error: 'The match report has been submitted and can no longer be edited.' },
+        { status: 409 }
+      );
+    }
   }
 
   await prisma.$transaction([

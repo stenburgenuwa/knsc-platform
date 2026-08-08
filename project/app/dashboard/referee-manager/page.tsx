@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Download } from 'lucide-react';
 import { getDashboardSummary, getReferees, assignReferee, createUser, updateUser, deleteUser } from '@/lib/admin-api';
 import { getFixtures } from '@/lib/public-api';
 import StatCard from '@/components/StatCard';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import AnnouncementsPanel from '@/components/AnnouncementsPanel';
+import { downloadCsv } from '@/lib/csv';
 
 function formatDate(value?: string) {
   if (!value) return '';
@@ -15,6 +17,28 @@ function formatDate(value?: string) {
 }
 
 const EMPTY_FORM = { email: '', firstName: '', lastName: '' };
+
+const AVAILABILITY_LABELS: Record<string, string> = {
+  AVAILABLE: 'Available',
+  UNAVAILABLE: 'Unavailable',
+  ON_LEAVE: 'On leave',
+  INJURED: 'Injured',
+};
+
+function availabilityTagClass(value?: string | null) {
+  if (!value || value === 'AVAILABLE') return 'tag-accent';
+  return 'tag-neutral';
+}
+
+// Referees who haven't marked themselves unavailable sort first, so the
+// assignment dropdown surfaces the people most likely to say yes.
+function sortByAvailability(list: any[]) {
+  return [...list].sort((a, b) => {
+    const aAvailable = !a.availability || a.availability === 'AVAILABLE' ? 0 : 1;
+    const bAvailable = !b.availability || b.availability === 'AVAILABLE' ? 0 : 1;
+    return aAvailable - bAvailable;
+  });
+}
 
 export default function RefereeManagerDashboard() {
   const [data, setData] = useState<any>(null);
@@ -42,12 +66,13 @@ export default function RefereeManagerDashboard() {
       setData(summary.data?.data);
       const refList = refereesRes.data?.data || [];
       setReferees(refList);
+      const sortedRefs = sortByAvailability(refList);
       const fixtures = fixturesRes.data?.data || [];
       setUnassigned(fixtures.filter((f: any) => !f.refereeAssignment));
       setPicks((p) => {
         const next = { ...p };
         for (const f of fixtures) {
-          if (!next[f.id] && refList[0]) next[f.id] = refList[0].id;
+          if (!next[f.id] && sortedRefs[0]) next[f.id] = sortedRefs[0].id;
         }
         return next;
       });
@@ -73,6 +98,14 @@ export default function RefereeManagerDashboard() {
       setStatus(err?.response?.data?.error || 'Failed to assign referee.');
     }
   };
+
+  const exportReferees = () =>
+    downloadCsv('referees.csv', referees, [
+      { header: 'First Name', value: (r) => r.firstName },
+      { header: 'Last Name', value: (r) => r.lastName },
+      { header: 'Email', value: (r) => r.email },
+      { header: 'Availability', value: (r) => AVAILABILITY_LABELS[r.availability] || 'Available' },
+    ]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,8 +209,11 @@ export default function RefereeManagerDashboard() {
                           value={picks[f.id] || ''}
                           onChange={(e) => setPicks({ ...picks, [f.id]: e.target.value })}
                         >
-                          {referees.map((r) => (
-                            <option key={r.id} value={r.id}>{r.firstName} {r.lastName}</option>
+                          {sortByAvailability(referees).map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.firstName} {r.lastName}
+                              {r.availability && r.availability !== 'AVAILABLE' ? ` (${AVAILABILITY_LABELS[r.availability]})` : ''}
+                            </option>
                           ))}
                         </select>
                         <button className="btn btn-primary" disabled={!referees.length} onClick={() => handleAssign(f.id)}>Assign</button>
@@ -190,7 +226,10 @@ export default function RefereeManagerDashboard() {
           </div>
 
           <div className="card elev-sm">
-            <h3 className="card-title">Referee Roster ({referees.length})</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 className="card-title">Referee Roster ({referees.length})</h3>
+              <button className="btn btn-ghost" onClick={exportReferees}><Download size={14} /> Export CSV</button>
+            </div>
             {referees.length === 0 ? (
               <p className="card-meta">No referees registered yet &mdash; use the form above to add one.</p>
             ) : (
@@ -218,7 +257,12 @@ export default function RefereeManagerDashboard() {
                     ) : (
                       <>
                         <div>
-                          <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>{r.firstName} {r.lastName}</p>
+                          <p style={{ fontFamily: 'var(--font-heading)', margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                            {r.firstName} {r.lastName}
+                            <span className={`tag ${availabilityTagClass(r.availability)}`}>
+                              {AVAILABILITY_LABELS[r.availability] || 'Available'}
+                            </span>
+                          </p>
                           <p className="card-meta">{r.email}</p>
                         </div>
                         <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
@@ -239,6 +283,10 @@ export default function RefereeManagerDashboard() {
                 ))}
               </div>
             )}
+          </div>
+
+          <div style={{ marginTop: 'var(--space-4)' }}>
+            <AnnouncementsPanel canCompose audienceOptions={[{ value: 'REFEREE', label: 'Referees only' }]} />
           </div>
 
           {confirming && (

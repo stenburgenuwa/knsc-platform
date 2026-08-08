@@ -1,10 +1,20 @@
 import { getApiClient } from '@/lib/api-client';
 
 // Routes served under app/api/*, mounted at NEXT_PUBLIC_API_URL (default /api) — no /public prefix.
-export async function getFixtures(page = 1, limit = 12, opts?: { status?: 'all' | 'UPCOMING' | 'COMPLETED' | 'POSTPONED' }) {
+export async function getFixtures(
+  page = 1,
+  limit = 12,
+  opts?: {
+    status?: 'all' | 'UPCOMING' | 'COMPLETED' | 'POSTPONED';
+    clubId?: string;
+    reportStatus?: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'RETURNED';
+  }
+) {
   const client = getApiClient();
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (opts?.status) params.set('status', opts.status);
+  if (opts?.clubId) params.set('clubId', opts.clubId);
+  if (opts?.reportStatus) params.set('reportStatus', opts.reportStatus);
   return client.get(`/fixtures?${params.toString()}`);
 }
 

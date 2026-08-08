@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth-guard';
 import { deletePlayerCascade } from '@/lib/cascade';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,13 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
   try {
     await deletePlayerCascade(prisma, params.id);
+    await logAudit({
+      userId: auth.user.sub,
+      action: 'PLAYER_DELETED',
+      module: 'players',
+      targetId: params.id,
+      detail: `${existing.firstName} ${existing.lastName}`,
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
@@ -60,6 +68,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         ...(photoUrl !== undefined ? { photoUrl: photoUrl || null } : {}),
       },
       include: { club: true },
+    });
+
+    await logAudit({
+      userId: auth.user.sub,
+      action: 'PLAYER_UPDATED',
+      module: 'players',
+      targetId: player.id,
+      detail: `${player.firstName} ${player.lastName}`,
     });
 
     return NextResponse.json({ success: true, data: player });

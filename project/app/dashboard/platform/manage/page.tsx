@@ -12,14 +12,17 @@ import {
   updateFixture,
   deleteFixture,
   resetAllData,
+  getAuditLogs,
 } from '@/lib/admin-api';
 import { getClubs, getPlayers, getFixtures } from '@/lib/public-api';
 import { useAuthStore } from '@/store/auth';
 import { RESET_CONFIRMATION } from '@/lib/cascade';
 import Avatar from '@/components/Avatar';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { downloadCsv } from '@/lib/csv';
+import { Download } from 'lucide-react';
 
-const TABS = ['Clubs', 'People', 'Players', 'Fixtures', 'Danger Zone'] as const;
+const TABS = ['Clubs', 'People', 'Players', 'Fixtures', 'Audit Log', 'Danger Zone'] as const;
 type Tab = (typeof TABS)[number];
 
 const ROLES = ['PLATFORM_OWNER', 'LEAGUE_MANAGER', 'TEAM_MANAGER', 'REFEREE', 'REFEREE_MANAGER'];
@@ -51,6 +54,7 @@ export default function ManagePage() {
   const [users, setUsers] = useState<any[]>([]);
   const [players, setPlayers] = useState<any[]>([]);
   const [fixtures, setFixtures] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
   const [editing, setEditing] = useState<{ kind: string; id: string } | null>(null);
   const [draft, setDraft] = useState<any>({});
@@ -59,16 +63,18 @@ export default function ManagePage() {
 
   const load = async () => {
     try {
-      const [clubsRes, usersRes, playersRes, fixturesRes] = await Promise.all([
+      const [clubsRes, usersRes, playersRes, fixturesRes, auditRes] = await Promise.all([
         getClubs(1, 200),
         getAllUsers(),
         getPlayers(1, 300, { includePending: true }),
         getFixtures(1, 200, { status: 'all' }),
+        getAuditLogs({ limit: 150 }),
       ]);
       setClubs(clubsRes.data?.data || []);
       setUsers(usersRes.data?.data || []);
       setPlayers(playersRes.data?.data || []);
       setFixtures(fixturesRes.data?.data || []);
+      setAuditLogs(auditRes.data?.data || []);
     } catch (err: any) {
       setStatus(err?.response?.data?.error || 'Could not load data.');
     } finally {
@@ -125,6 +131,56 @@ export default function ManagePage() {
     }
   };
 
+  const exportClubs = () =>
+    downloadCsv('clubs.csv', clubs, [
+      { header: 'Name', value: (c) => c.name },
+      { header: 'Short Name', value: (c) => c.shortName },
+      { header: 'Founded', value: (c) => c.yearFounded },
+      { header: 'Home Venue', value: (c) => c.homeVenue?.name },
+      { header: 'Players', value: (c) => c._count?.players },
+    ]);
+
+  const exportPeople = () =>
+    downloadCsv('staff-accounts.csv', users, [
+      { header: 'First Name', value: (u) => u.firstName },
+      { header: 'Last Name', value: (u) => u.lastName },
+      { header: 'Email', value: (u) => u.email },
+      { header: 'Role', value: (u) => u.roleLabel || u.role },
+      { header: 'Club', value: (u) => u.club?.name },
+    ]);
+
+  const exportPlayers = () =>
+    downloadCsv('players.csv', players, [
+      { header: 'First Name', value: (p) => p.firstName },
+      { header: 'Last Name', value: (p) => p.lastName },
+      { header: 'Club', value: (p) => p.club?.name },
+      { header: 'Shirt Number', value: (p) => p.playerNumber },
+      { header: 'Position', value: (p) => p.position },
+      { header: 'Goals', value: (p) => p.goals },
+      { header: 'Status', value: (p) => (p.approved ? 'Approved' : 'Pending') },
+    ]);
+
+  const exportFixtures = () =>
+    downloadCsv('fixtures.csv', fixtures, [
+      { header: 'Date', value: (f) => formatDate(f.fixtureDate) },
+      { header: 'Kickoff', value: (f) => f.kickoffTime },
+      { header: 'Home Club', value: (f) => f.homeClub?.name },
+      { header: 'Away Club', value: (f) => f.awayClub?.name },
+      { header: 'Home Score', value: (f) => f.homeScore },
+      { header: 'Away Score', value: (f) => f.awayScore },
+      { header: 'Venue', value: (f) => f.venue?.name },
+      { header: 'Status', value: (f) => f.status },
+    ]);
+
+  const exportAuditLog = () =>
+    downloadCsv('audit-log.csv', auditLogs, [
+      { header: 'When', value: (l) => new Date(l.createdAt).toLocaleString('en-GB') },
+      { header: 'Who', value: (l) => (l.user ? `${l.user.firstName} ${l.user.lastName}` : 'System') },
+      { header: 'Action', value: (l) => l.action },
+      { header: 'Module', value: (l) => l.module },
+      { header: 'Detail', value: (l) => l.detail },
+    ]);
+
   return (
     <div style={{ padding: 'var(--space-8)' }}>
       <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-1)' }}>Manage League Data</h1>
@@ -150,7 +206,10 @@ export default function ManagePage() {
       {/* ── Clubs ───────────────────────────────────────────── */}
       {!loading && tab === 'Clubs' && (
         <div className="card elev-sm">
-          <h3 className="card-title">Clubs ({clubs.length})</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 className="card-title">Clubs ({clubs.length})</h3>
+            <button className="btn btn-ghost" onClick={exportClubs}><Download size={14} /> Export CSV</button>
+          </div>
           <p className="card-meta">Deleting a club also removes its players, fixtures and results.</p>
           {clubs.map((c) => (
             <div key={c.id} style={rowStyle}>
@@ -193,7 +252,10 @@ export default function ManagePage() {
       {/* ── People ──────────────────────────────────────────── */}
       {!loading && tab === 'People' && (
         <div className="card elev-sm">
-          <h3 className="card-title">Staff Accounts ({users.length})</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 className="card-title">Staff Accounts ({users.length})</h3>
+            <button className="btn btn-ghost" onClick={exportPeople}><Download size={14} /> Export CSV</button>
+          </div>
           <p className="card-meta">Change anyone&rsquo;s role, reassign a Team Manager&rsquo;s club, reset a password, or remove the account.</p>
           {users.map((u) => (
             <div key={u.id} style={rowStyle}>
@@ -251,7 +313,10 @@ export default function ManagePage() {
       {/* ── Players ─────────────────────────────────────────── */}
       {!loading && tab === 'Players' && (
         <div className="card elev-sm">
-          <h3 className="card-title">Players ({players.length})</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 className="card-title">Players ({players.length})</h3>
+            <button className="btn btn-ghost" onClick={exportPlayers}><Download size={14} /> Export CSV</button>
+          </div>
           {players.length === 0 && <p className="card-meta">No players registered.</p>}
           {players.map((p) => (
             <div key={p.id} style={rowStyle}>
@@ -278,7 +343,10 @@ export default function ManagePage() {
       {/* ── Fixtures ────────────────────────────────────────── */}
       {!loading && tab === 'Fixtures' && (
         <div className="card elev-sm">
-          <h3 className="card-title">Fixtures ({fixtures.length})</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 className="card-title">Fixtures ({fixtures.length})</h3>
+            <button className="btn btn-ghost" onClick={exportFixtures}><Download size={14} /> Export CSV</button>
+          </div>
           <p className="card-meta">Reschedule, correct a score, or remove a fixture entirely.</p>
           {fixtures.length === 0 && <p className="card-meta">No fixtures scheduled.</p>}
           {fixtures.map((f) => (
@@ -336,6 +404,44 @@ export default function ManagePage() {
       )}
 
       {/* ── Danger Zone ─────────────────────────────────────── */}
+      {!loading && tab === 'Audit Log' && (
+        <div className="card elev-sm">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 className="card-title">Audit Log</h3>
+            <button className="btn btn-ghost" onClick={exportAuditLog}><Download size={14} /> Export CSV</button>
+          </div>
+          <p className="card-meta">Most recent {auditLogs.length} administrative actions.</p>
+          {auditLogs.length === 0 ? (
+            <p className="card-meta">No actions recorded yet.</p>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>When</th>
+                    <th>Who</th>
+                    <th>Action</th>
+                    <th>Module</th>
+                    <th>Detail</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLogs.map((log) => (
+                    <tr key={log.id}>
+                      <td style={{ whiteSpace: 'nowrap' }}>{new Date(log.createdAt).toLocaleString('en-GB')}</td>
+                      <td>{log.user ? `${log.user.firstName} ${log.user.lastName}` : 'System'}</td>
+                      <td><span className="tag tag-neutral">{log.action}</span></td>
+                      <td>{log.module}</td>
+                      <td>{log.detail || ''}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {!loading && tab === 'Danger Zone' && (
         <div className="card elev-sm" style={{ borderColor: 'var(--color-accent-800)' }}>
           <h3 className="card-title" style={{ color: 'var(--color-accent-800)' }}>Start the League Afresh</h3>

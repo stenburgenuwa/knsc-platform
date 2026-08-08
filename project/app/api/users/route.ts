@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth-guard';
 import { roleLabel } from '@/lib/roles';
+import { logAudit } from '@/lib/audit';
 
 function randomTempPassword() {
   return Math.random().toString(36).slice(-6) + 'A1!';
@@ -32,6 +33,7 @@ export async function GET(request: NextRequest) {
       role: true,
       clubId: true,
       club: { select: { name: true } },
+      availability: true,
       createdAt: true,
     },
     orderBy: { lastName: 'asc' },
@@ -79,6 +81,8 @@ export async function POST(request: NextRequest) {
         clubId: role === 'TEAM_MANAGER' ? clubId : null,
       },
     });
+
+    await logAudit({ userId: auth.user.sub, action: 'USER_CREATED', module: 'users', targetId: user.id, detail: `${user.email} (${role})` });
 
     return NextResponse.json(
       {

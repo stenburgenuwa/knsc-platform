@@ -9,7 +9,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (!auth.ok) return auth.response;
 
   try {
-    const { homeScore, awayScore } = await request.json();
+    const { homeScore, awayScore, reportNotes } = await request.json();
     if (homeScore === undefined || awayScore === undefined) {
       return NextResponse.json({ success: false, error: 'homeScore and awayScore are required' }, { status: 400 });
     }
@@ -24,9 +24,30 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       }
     }
 
+    const existing = await prisma.fixture.findUnique({ where: { id: params.id } });
+    if (existing?.reportStatus === 'APPROVED' && auth.user.role === 'REFEREE') {
+      return NextResponse.json(
+        { success: false, error: 'This match report has already been approved and can no longer be changed.' },
+        { status: 409 }
+      );
+    }
+
+    // A referee submitting a result files the official match report, which
+    // then waits in the League Manager's review queue; the League Manager or
+    // Platform Owner entering/correcting a score is treated as authoritative
+    // and needs no further review.
+    const isRefereeSubmission = auth.user.role === 'REFEREE';
+
     const fixture = await prisma.fixture.update({
       where: { id: params.id },
-      data: { homeScore: Number(homeScore), awayScore: Number(awayScore), status: 'COMPLETED' },
+      data: {
+        homeScore: Number(homeScore),
+        awayScore: Number(awayScore),
+        status: 'COMPLETED',
+        reportStatus: isRefereeSubmission ? 'SUBMITTED' : 'APPROVED',
+        reportSubmittedAt: isRefereeSubmission ? new Date() : existing?.reportSubmittedAt,
+        ...(reportNotes !== undefined ? { reportNotes } : {}),
+      },
       include: { homeClub: true, awayClub: true, venue: true },
     });
 

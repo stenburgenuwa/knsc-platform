@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth-guard';
 import { roleLabel } from '@/lib/roles';
 import { deleteUserCascade } from '@/lib/cascade';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,6 +65,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       include: { club: true },
     });
 
+    await logAudit({ userId: auth.user.sub, action: 'USER_UPDATED', module: 'users', targetId: user.id, detail: user.email });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -121,6 +124,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
   try {
     await deleteUserCascade(prisma, params.id);
+    await logAudit({ userId: auth.user.sub, action: 'USER_DELETED', module: 'users', targetId: params.id, detail: existing.email });
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(

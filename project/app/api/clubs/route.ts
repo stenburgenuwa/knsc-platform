@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth-guard';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,6 +59,8 @@ export async function POST(request: NextRequest) {
       },
       include: { homeVenue: true },
     });
+
+    await logAudit({ userId: auth.user.sub, action: 'CLUB_CREATED', module: 'clubs', targetId: club.id, detail: club.name });
 
     return NextResponse.json({ success: true, data: club }, { status: 201 });
   } catch (error) {

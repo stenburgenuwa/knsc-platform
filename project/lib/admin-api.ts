@@ -142,9 +142,58 @@ export async function assignReferee(fixtureId: string, refereeId: string) {
   return client.post(`/fixtures/${fixtureId}/assign`, { refereeId });
 }
 
-export async function submitResult(fixtureId: string, homeScore: number, awayScore: number) {
+export async function submitResult(fixtureId: string, homeScore: number, awayScore: number, reportNotes?: string) {
   const client = getApiClient();
-  return client.patch(`/fixtures/${fixtureId}/result`, { homeScore, awayScore });
+  return client.patch(`/fixtures/${fixtureId}/result`, { homeScore, awayScore, reportNotes });
+}
+
+export async function reviewMatchReport(fixtureId: string, action: 'APPROVE' | 'RETURN', notes?: string) {
+  const client = getApiClient();
+  return client.patch(`/fixtures/${fixtureId}/report`, { action, notes });
+}
+
+export async function getDisciplinaryCases(opts?: { status?: string; clubId?: string }) {
+  const client = getApiClient();
+  const params = new URLSearchParams();
+  if (opts?.status) params.set('status', opts.status);
+  if (opts?.clubId) params.set('clubId', opts.clubId);
+  const qs = params.toString();
+  return client.get(`/disciplinary${qs ? `?${qs}` : ''}`);
+}
+
+export async function createDisciplinaryCase(data: {
+  playerId: string;
+  fixtureId?: string | null;
+  reason: string;
+  decision?: string;
+  decisionDate?: string;
+  status?: string;
+  notes?: string;
+}) {
+  const client = getApiClient();
+  return client.post('/disciplinary', data);
+}
+
+export async function updateDisciplinaryCase(
+  id: string,
+  data: { reason?: string; decision?: string; decisionDate?: string | null; status?: string; notes?: string }
+) {
+  const client = getApiClient();
+  return client.patch(`/disciplinary/${id}`, data);
+}
+
+export async function deleteDisciplinaryCase(id: string) {
+  const client = getApiClient();
+  return client.delete(`/disciplinary/${id}`);
+}
+
+export async function getAuditLogs(opts?: { module?: string; limit?: number }) {
+  const client = getApiClient();
+  const params = new URLSearchParams();
+  if (opts?.module) params.set('module', opts.module);
+  if (opts?.limit) params.set('limit', String(opts.limit));
+  const qs = params.toString();
+  return client.get(`/audit-logs${qs ? `?${qs}` : ''}`);
 }
 
 export async function getMyAssignments() {
@@ -173,4 +222,32 @@ export async function recordMatchEvent(
 export async function deleteMatchEvent(fixtureId: string, eventId: string) {
   const client = getApiClient();
   return client.delete(`/fixtures/${fixtureId}/events/${eventId}`);
+}
+
+export async function getAnnouncements() {
+  const client = getApiClient();
+  return client.get('/announcements');
+}
+
+export async function createAnnouncement(data: { title: string; message: string; audience?: string | null; priority?: string }) {
+  const client = getApiClient();
+  return client.post('/announcements', data);
+}
+
+export async function deleteAnnouncement(id: string) {
+  const client = getApiClient();
+  return client.delete(`/announcements/${id}`);
+}
+
+export async function getTeamSheets(fixtureId: string) {
+  const client = getApiClient();
+  return client.get(`/fixtures/${fixtureId}/team-sheets`);
+}
+
+export async function saveTeamSheet(
+  fixtureId: string,
+  data: { clubId: string; starters: string[]; substitutes: string[]; captainId: string }
+) {
+  const client = getApiClient();
+  return client.put(`/fixtures/${fixtureId}/team-sheets`, data);
 }

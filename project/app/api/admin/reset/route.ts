@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth-guard';
 import { resetAllData, RESET_CONFIRMATION } from '@/lib/cascade';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,13 @@ export async function POST(request: NextRequest) {
     }
 
     const summary = await resetAllData(prisma, auth.user.sub);
+
+    await logAudit({
+      userId: auth.user.sub,
+      action: 'DATA_RESET',
+      module: 'admin',
+      detail: `Cleared ${summary.clubs} clubs, ${summary.players} players, ${summary.fixtures} fixtures, ${summary.users} accounts`,
+    });
 
     return NextResponse.json({
       success: true,

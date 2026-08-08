@@ -40,6 +40,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           { status: 403 }
         );
       }
+      if (fixture.reportStatus === 'SUBMITTED' || fixture.reportStatus === 'APPROVED') {
+        return NextResponse.json(
+          { success: false, error: 'The match report has been submitted and can no longer be edited.' },
+          { status: 409 }
+        );
+      }
     }
 
     const player = await prisma.player.findUnique({ where: { id: playerId } });

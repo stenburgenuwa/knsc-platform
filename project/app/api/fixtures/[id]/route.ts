@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth-guard';
 import { deleteFixtureCascade } from '@/lib/cascade';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +54,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       include: { homeClub: true, awayClub: true, venue: true },
     });
 
+    await logAudit({
+      userId: auth.user.sub,
+      action: 'FIXTURE_UPDATED',
+      module: 'fixtures',
+      targetId: fixture.id,
+      detail: `${fixture.homeClub.name} vs ${fixture.awayClub.name}`,
+    });
+
     return NextResponse.json({ success: true, data: fixture });
   } catch (error) {
     return NextResponse.json(
@@ -62,8 +71,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
+// Deleting a fixture outright is reserved for the Platform Owner — the
+// League Manager's remit (per spec) stops at editing, rescheduling, and
+// cancelling (POSTPONED), not permanently removing platform data.
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  const auth = requireAuth(request, ['PLATFORM_OWNER', 'LEAGUE_MANAGER']);
+  const auth = requireAuth(request, ['PLATFORM_OWNER']);
   if (!auth.ok) return auth.response;
 
   const existing = await prisma.fixture.findUnique({ where: { id: params.id } });
@@ -73,6 +85,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
   try {
     await deleteFixtureCascade(prisma, params.id);
+    await logAudit({ userId: auth.user.sub, action: 'FIXTURE_DELETED', module: 'fixtures', targetId: params.id });
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(

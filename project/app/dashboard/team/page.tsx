@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { getDashboardSummary, registerPlayer, updatePlayer } from '@/lib/admin-api';
-import { getPlayers } from '@/lib/public-api';
+import { getPlayers, getFixtures } from '@/lib/public-api';
 import { useAuthStore } from '@/store/auth';
 import StatCard from '@/components/StatCard';
 import Avatar from '@/components/Avatar';
 import ImageUpload from '@/components/ImageUpload';
 import PhotoButton from '@/components/PhotoButton';
+import AnnouncementsPanel from '@/components/AnnouncementsPanel';
+import TeamSheetBuilder from '@/components/TeamSheetBuilder';
 
 function formatDate(value?: string) {
   if (!value) return '';
@@ -21,6 +23,7 @@ export default function TeamManagerDashboard() {
   const clubName = useAuthStore((s) => s.user?.clubName as string | undefined);
   const [data, setData] = useState<any>(null);
   const [squad, setSquad] = useState<any[]>([]);
+  const [upcomingFixtures, setUpcomingFixtures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [playerForm, setPlayerForm] = useState<{
@@ -35,12 +38,14 @@ export default function TeamManagerDashboard() {
 
   const load = async () => {
     try {
-      const [summary, squadRes] = await Promise.all([
+      const [summary, squadRes, fixturesRes] = await Promise.all([
         getDashboardSummary(),
         getPlayers(1, 100, { includePending: true }),
+        clubId ? getFixtures(1, 20, { clubId }) : Promise.resolve(null),
       ]);
       setData(summary.data?.data);
       setSquad(squadRes.data?.data || []);
+      setUpcomingFixtures(fixturesRes?.data?.data || []);
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
@@ -174,6 +179,23 @@ export default function TeamManagerDashboard() {
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="card elev-sm" style={{ marginTop: 'var(--space-4)' }}>
+            <h3 className="card-title">Team Sheets</h3>
+            {upcomingFixtures.length === 0 ? (
+              <p className="card-meta">No upcoming fixtures yet.</p>
+            ) : (
+              <div>
+                {upcomingFixtures.map((f) => (
+                  <TeamSheetBuilder key={f.id} fixture={f} clubId={clubId!} squad={squad.filter((p) => p.approved)} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginTop: 'var(--space-4)' }}>
+            <AnnouncementsPanel />
           </div>
         </>
       )}

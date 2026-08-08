@@ -6,6 +6,9 @@ export async function resetTestDb() {
   await prisma.$transaction([
     prisma.matchEvent.deleteMany(),
     prisma.refereeAssignment.deleteMany(),
+    prisma.teamSheetEntry.deleteMany(),
+    prisma.teamSheet.deleteMany(),
+    prisma.disciplinaryCase.deleteMany(),
     prisma.fixture.deleteMany(),
     prisma.player.deleteMany(),
     prisma.user.updateMany({ data: { clubId: null } }),
@@ -13,5 +16,6 @@ export async function resetTestDb() {
     prisma.club.deleteMany(),
     prisma.venue.deleteMany(),
     prisma.announcement.deleteMany(),
+    prisma.auditLog.deleteMany(),
   ]);
 }

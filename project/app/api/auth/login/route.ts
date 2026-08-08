@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { signAccessToken } from '@/lib/jwt';
 import { roleLabel } from '@/lib/roles';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,6 +61,8 @@ export async function POST(request: NextRequest) {
     }
 
     const accessToken = signAccessToken({ sub: user.id, email: user.email, role: user.role, clubId: user.clubId });
+
+    await logAudit({ userId: user.id, action: 'LOGIN', module: 'auth', detail: user.email });
 
     return NextResponse.json({
       success: true,

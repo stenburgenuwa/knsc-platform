@@ -26,6 +26,12 @@ async function removeFixturesAndEvents(tx: Tx, fixtureIds: string[]) {
   await tx.matchEvent.deleteMany({ where: { fixtureId: { in: fixtureIds } } });
   await tx.refereeAssignment.deleteMany({ where: { fixtureId: { in: fixtureIds } } });
 
+  const teamSheets = await tx.teamSheet.findMany({ where: { fixtureId: { in: fixtureIds } }, select: { id: true } });
+  if (teamSheets.length > 0) {
+    await tx.teamSheetEntry.deleteMany({ where: { teamSheetId: { in: teamSheets.map((s) => s.id) } } });
+    await tx.teamSheet.deleteMany({ where: { id: { in: teamSheets.map((s) => s.id) } } });
+  }
+
   for (const [playerId, count] of goalsByPlayer) {
     await tx.player.update({ where: { id: playerId }, data: { goals: { decrement: count } } });
   }
@@ -42,6 +48,8 @@ export async function deleteFixtureCascade(prisma: PrismaClient, fixtureId: stri
 export async function deletePlayerCascade(prisma: PrismaClient, playerId: string) {
   await prisma.$transaction(async (tx) => {
     await tx.matchEvent.deleteMany({ where: { playerId } });
+    await tx.teamSheetEntry.deleteMany({ where: { playerId } });
+    await tx.disciplinaryCase.deleteMany({ where: { playerId } });
     await tx.player.delete({ where: { id: playerId } });
   });
 }
@@ -66,7 +74,9 @@ export async function deleteClubCascade(prisma: PrismaClient, clubId: string) {
     const players = await tx.player.findMany({ where: { clubId }, select: { id: true } });
     if (players.length > 0) {
       await tx.matchEvent.deleteMany({ where: { playerId: { in: players.map((p) => p.id) } } });
+      await tx.teamSheetEntry.deleteMany({ where: { playerId: { in: players.map((p) => p.id) } } });
     }
+    await tx.disciplinaryCase.deleteMany({ where: { clubId } });
     await tx.player.deleteMany({ where: { clubId } });
 
     // Team managers survive the club; they just become unassigned.
@@ -103,6 +113,9 @@ export async function resetAllData(prisma: PrismaClient, preserveUserId: string)
 
     await tx.matchEvent.deleteMany();
     await tx.refereeAssignment.deleteMany();
+    await tx.teamSheetEntry.deleteMany();
+    await tx.teamSheet.deleteMany();
+    await tx.disciplinaryCase.deleteMany();
     await tx.fixture.deleteMany();
     await tx.player.deleteMany();
     await tx.user.updateMany({ data: { clubId: null } });

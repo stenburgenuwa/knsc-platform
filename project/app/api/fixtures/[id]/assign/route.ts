@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth-guard';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       create: { fixtureId: params.id, refereeId, status: 'ASSIGNED' },
       update: { refereeId, status: 'ASSIGNED' },
       include: { referee: true, fixture: { include: { homeClub: true, awayClub: true } } },
+    });
+
+    await logAudit({
+      userId: auth.user.sub,
+      action: 'REFEREE_ASSIGNED',
+      module: 'fixtures',
+      targetId: params.id,
+      detail: `${assignment.referee.firstName} ${assignment.referee.lastName} — ${assignment.fixture.homeClub.name} vs ${assignment.fixture.awayClub.name}`,
     });
 
     return NextResponse.json({ success: true, data: assignment }, { status: 201 });

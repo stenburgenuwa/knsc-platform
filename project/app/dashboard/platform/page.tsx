@@ -7,6 +7,7 @@ import StatCard from '@/components/StatCard';
 import Avatar from '@/components/Avatar';
 import ImageUpload from '@/components/ImageUpload';
 import PhotoButton from '@/components/PhotoButton';
+import AnnouncementsPanel from '@/components/AnnouncementsPanel';
 
 const ROLE_OPTIONS = ['LEAGUE_MANAGER', 'TEAM_MANAGER', 'REFEREE', 'REFEREE_MANAGER'];
 
@@ -203,6 +204,18 @@ export default function PlatformOwnerDashboard() {
                 ))}
               </div>
             )}
+          </div>
+
+          <div style={{ marginTop: 'var(--space-4)' }}>
+            <AnnouncementsPanel
+              canCompose
+              audienceOptions={[
+                { value: 'LEAGUE_MANAGER', label: 'League Managers only' },
+                { value: 'TEAM_MANAGER', label: 'Team Managers only' },
+                { value: 'REFEREE', label: 'Referees only' },
+                { value: 'REFEREE_MANAGER', label: 'Referee Managers only' },
+              ]}
+            />
           </div>
         </>
       )}

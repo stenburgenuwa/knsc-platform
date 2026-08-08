@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/lib/auth-guard';
 
 export const dynamic = 'force-dynamic';
 
+// Public news feed — only announcements with no audience (i.e. not targeted
+// at a specific internal role) are press-style public stories. Role-targeted
+// announcements are internal and served instead through /api/announcements.
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -11,13 +13,16 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
 
+    const where = { audience: null };
+
     const [news, total] = await Promise.all([
       prisma.announcement.findMany({
+        where,
         skip,
         take: limit,
         orderBy: { startDate: 'desc' },
       }),
-      prisma.announcement.count(),
+      prisma.announcement.count({ where }),
     ]);
 
     return NextResponse.json({
@@ -28,28 +33,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Failed to fetch news' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(request: NextRequest) {
-  const auth = requireAuth(request, ['PLATFORM_OWNER', 'LEAGUE_MANAGER']);
-  if (!auth.ok) return auth.response;
-
-  try {
-    const body = await request.json();
-    const { title, message } = body;
-
-    if (!title || !message) {
-      return NextResponse.json({ success: false, error: 'title and message are required' }, { status: 400 });
-    }
-
-    const announcement = await prisma.announcement.create({ data: { title, message } });
-    return NextResponse.json({ success: true, data: announcement }, { status: 201 });
-  } catch (error) {
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to create announcement' },
       { status: 500 }
     );
   }

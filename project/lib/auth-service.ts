@@ -9,3 +9,8 @@ export async function getMe() {
   const client = getApiClient();
   return client.get('/auth/me');
 }
+
+export async function updateMyAvailability(availability: 'AVAILABLE' | 'UNAVAILABLE' | 'ON_LEAVE' | 'INJURED') {
+  const client = getApiClient();
+  return client.patch('/auth/me', { availability });
+}

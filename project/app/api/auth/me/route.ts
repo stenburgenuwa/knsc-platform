@@ -25,6 +25,35 @@ export async function GET(request: NextRequest) {
       permissions: [],
       clubId: user.clubId,
       clubName: user.club?.name ?? null,
+      availability: user.availability,
     },
   });
+}
+
+const AVAILABILITY_VALUES = ['AVAILABLE', 'UNAVAILABLE', 'ON_LEAVE', 'INJURED'];
+
+// Referees update their own match-day availability here; the Referee Manager
+// reads it back through GET /api/users?role=REFEREE.
+export async function PATCH(request: NextRequest) {
+  const auth = requireAuth(request, ['REFEREE']);
+  if (!auth.ok) return auth.response;
+
+  try {
+    const { availability } = await request.json();
+    if (!AVAILABILITY_VALUES.includes(availability)) {
+      return NextResponse.json({ success: false, error: 'Invalid availability value' }, { status: 400 });
+    }
+
+    const user = await prisma.user.update({
+      where: { id: auth.user.sub },
+      data: { availability },
+    });
+
+    return NextResponse.json({ success: true, data: { availability: user.availability } });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Failed to update availability' },
+      { status: 500 }
+    );
+  }
 }
