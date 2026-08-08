@@ -29,7 +29,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (!auth.ok) return auth.response;
 
   try {
-    const { homeClubId, awayClubId, fixtureDate, kickoffTime, status, homeScore, awayScore } =
+    const { homeClubId, awayClubId, fixtureDate, kickoffTime, status, homeScore, awayScore, round, featured } =
       await request.json();
 
     if (homeClubId && awayClubId && homeClubId === awayClubId) {
@@ -61,6 +61,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         ...(status !== undefined ? { status } : {}),
         ...(homeScore !== undefined ? { homeScore: homeScore === null || homeScore === '' ? null : Number(homeScore) } : {}),
         ...(awayScore !== undefined ? { awayScore: awayScore === null || awayScore === '' ? null : Number(awayScore) } : {}),
+        ...(round !== undefined ? { round: round || null } : {}),
+        ...(featured !== undefined ? { featured: Boolean(featured) } : {}),
       },
       include: { homeClub: true, awayClub: true, venue: true },
     });

@@ -1,70 +1,87 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getPlayers } from '@/lib/public-api';
-import Pagination from '@/components/Pagination';
-import Avatar from '@/components/Avatar';
-import { SkeletonCards } from '@/components/Skeleton';
+import { getPublicPlayers, getPublicClubs, getPlayerPositions } from '@/lib/public-data';
+import { buildMetadata } from '@/lib/seo';
+import { Breadcrumbs, EmptyState, PageHeader, PlayerCard } from '@/components/public';
 
-export default function PlayersPage() {
-  const [players, setPlayers] = useState<any[]>([]);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(0);
+export const dynamic = 'force-dynamic';
 
-  useEffect(() => {
-    const fetchPlayers = async () => {
-      setLoading(true);
-      try {
-        const response = await getPlayers(page, 16);
-        setPlayers(response.data?.data || []);
-        setTotal(response.data?.pagination?.total || 0);
-      } catch (error) {
-        console.error('Error loading players:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPlayers();
-  }, [page]);
+export const metadata = buildMetadata({
+  title: 'Players | Kilifi North Sub County League',
+  description: 'Every approved player registered in the Kilifi North Sub County League.',
+  path: '/players',
+});
 
-  const totalPages = Math.ceil(total / 16);
+export default async function PlayersPage({
+  searchParams,
+}: {
+  searchParams: { page?: string; club?: string; position?: string; q?: string };
+}) {
+  const page = Math.max(1, parseInt(searchParams.page || '1', 10) || 1);
+  const filters = {
+    clubId: searchParams.club || undefined,
+    position: searchParams.position || undefined,
+    q: searchParams.q || undefined,
+  };
+
+  const [{ items, total, pages }, clubs, positions] = await Promise.all([
+    getPublicPlayers(page, 24, filters),
+    getPublicClubs(),
+    getPlayerPositions(),
+  ]);
+
+  const buildHref = (next: number) => {
+    const params = new URLSearchParams();
+    Object.entries({ ...searchParams, page: String(next) }).forEach(([k, v]) => {
+      if (v) params.set(k, String(v));
+    });
+    return `/players?${params.toString()}`;
+  };
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
-      <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-6)' }}>Players Directory</h1>
+    <div className="page-shell">
+      <Breadcrumbs items={[{ name: 'Home', href: '/' }, { name: 'Players', href: '/players' }]} />
+      <PageHeader eyebrow="Directory" title="Players" lead={`${total} approved ${total === 1 ? 'player' : 'players'} registered.`} />
 
-      {!loading && players.length === 0 && <p className="text-muted">No approved players yet.</p>}
+      <form method="get" className="filter-bar" role="search" aria-label="Filter players">
+        <div className="field">
+          <label htmlFor="p-q">Search</label>
+          <input id="p-q" name="q" type="search" className="input" defaultValue={searchParams.q || ''} placeholder="Player or club" />
+        </div>
+        <div className="field">
+          <label htmlFor="p-club">Club</label>
+          <select id="p-club" name="club" className="input" defaultValue={searchParams.club || ''}>
+            <option value="">All clubs</option>
+            {clubs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+        {positions.length > 0 && (
+          <div className="field">
+            <label htmlFor="p-position">Position</label>
+            <select id="p-position" name="position" className="input" defaultValue={searchParams.position || ''}>
+              <option value="">All positions</option>
+              {positions.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+        )}
+        <button type="submit" className="btn btn-primary">Apply</button>
+        <Link href="/players" className="btn btn-ghost">Reset</Link>
+      </form>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4" style={{ gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
-        {loading && <SkeletonCards count={8} />}
-        {players.map((player: any) => (
-          <Link
-            key={player.id}
-            href={`/players/${player.id}`}
-            className="card elev-sm"
-            style={{ textAlign: 'center', alignItems: 'center', color: 'inherit', textDecoration: 'none' }}
-          >
-            <Avatar
-              src={player.photoUrl}
-              name={`${player.firstName || ''} ${player.lastName || ''}`.trim()}
-              size={88}
-            />
-            <h4 className="card-title">
-              {`${player.firstName || ''} ${player.lastName || ''}`.trim()}
-            </h4>
-            <p className="card-meta" style={{ justifyContent: 'center' }}>
-              {[player.club?.name, player.position].filter(Boolean).join(' · ')}
-            </p>
-            {player.playerNumber && (
-              <span className="tag tag-accent" style={{ alignSelf: 'center' }}>#{player.playerNumber}</span>
-            )}
-          </Link>
-        ))}
-      </div>
+      {items.length === 0 ? (
+        <EmptyState title="No players match those filters" hint="Try a different club or clear the search." />
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4" style={{ gap: 'var(--space-4)' }}>
+          {items.map((player) => <PlayerCard key={player.id} player={player} />)}
+        </div>
+      )}
 
-      {totalPages > 1 && <Pagination page={page} totalPages={totalPages} onChange={setPage} />}
+      {pages > 1 && (
+        <nav aria-label="Pagination" style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center', marginTop: 'var(--space-6)' }}>
+          {page > 1 && <Link className="btn btn-secondary" href={buildHref(page - 1)}>&larr; Previous</Link>}
+          <span className="text-muted" style={{ alignSelf: 'center' }}>Page {page} of {pages}</span>
+          {page < pages && <Link className="btn btn-secondary" href={buildHref(page + 1)}>Next &rarr;</Link>}
+        </nav>
+      )}
     </div>
   );
 }

@@ -1,276 +1,239 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getFixtures, getResults, getStandings, getNews } from '@/lib/public-api';
 import Avatar from '@/components/Avatar';
-import { SkeletonCards, SkeletonRows } from '@/components/Skeleton';
+import { getHomepageData } from '@/lib/public-data';
+import { buildMetadata } from '@/lib/seo';
+import { EmptyState, FixtureCard, LeagueTable, NewsCard, PlayerCard, ResultCard, SponsorCard, formatDate } from '@/components/public';
 
-function clubName(club: any) {
-  return club?.clubName || club?.name || 'TBC';
-}
+export const dynamic = 'force-dynamic';
 
-function formatDate(value?: string) {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-}
+export const metadata = buildMetadata({
+  title: 'Kilifi North Sub County League | Official Website',
+  description:
+    'Official home of the Kilifi North Sub County League — live standings, fixtures, results, clubs, players and news.',
+  path: '/',
+});
 
-const FEATURED_FALLBACK = {
-  title: 'Malindi United extends unbeaten run to five matches',
-  date: '2026-08-05',
-  body: 'With a commanding 2–0 victory over Mtwapa FC last Saturday, Malindi United continues to dominate the Kilifi North standings. The victory extends their unbeaten run and cements their position atop the table with 13 points from five matches, setting a strong pace for the season.',
-};
-
-function PlaceholderPlate() {
+// A pitch motif stands in when no hero photograph has been uploaded, so the
+// page never opens on an empty grey box.
+function PitchMotif() {
   return (
-    <div className="plate" style={{ aspectRatio: '16 / 9', background: 'var(--color-neutral-200)' }}>
-      <svg viewBox="0 0 400 225" width="100%" height="100%" role="img" aria-label="Match photo placeholder">
-        <rect width="400" height="225" fill="var(--color-neutral-200)" />
-        <rect x="20" y="20" width="360" height="185" fill="none" stroke="var(--color-neutral-400)" strokeWidth="1.5" />
-        <circle cx="200" cy="112.5" r="34" fill="none" stroke="var(--color-neutral-400)" strokeWidth="1.5" />
-        <line x1="200" y1="20" x2="200" y2="205" stroke="var(--color-neutral-400)" strokeWidth="1.5" />
-      </svg>
-    </div>
+    <svg viewBox="0 0 800 450" width="100%" height="100%" role="img" aria-label="Football pitch illustration" preserveAspectRatio="xMidYMid slice">
+      <rect width="800" height="450" fill="var(--color-neutral-200)" />
+      <g fill="none" stroke="var(--color-neutral-400)" strokeWidth="2">
+        <rect x="40" y="30" width="720" height="390" />
+        <line x1="400" y1="30" x2="400" y2="420" />
+        <circle cx="400" cy="225" r="70" />
+        <rect x="40" y="130" width="90" height="190" />
+        <rect x="670" y="130" width="90" height="190" />
+      </g>
+    </svg>
   );
 }
 
-export default function HomePage() {
-  const [fixtures, setFixtures] = useState<any[]>([]);
-  const [results, setResults] = useState<any[]>([]);
-  const [standings, setStandings] = useState<any[]>([]);
-  const [topScorers, setTopScorers] = useState<any[]>([]);
-  const [news, setNews] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+export default async function HomePage() {
+  const { content, statistics, standings, nextMatches, latestResults, news, sponsors, featuredPlayers } = await getHomepageData();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [fixturesRes, resultsRes, standingsRes, newsRes] = await Promise.all([
-          getFixtures(1, 3),
-          getResults(1, 3),
-          getStandings(),
-          getNews(1, 5),
-        ]);
-        setFixtures(fixturesRes.data?.data || []);
-        setResults(resultsRes.data?.data || []);
-        setStandings(standingsRes.data?.data?.standings || []);
-        setTopScorers(standingsRes.data?.data?.topScorers || []);
-        setNews(newsRes.data?.data || []);
-      } catch (error) {
-        console.error('Error loading homepage data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  const featured = news[0];
-  const moreNews = news.slice(1);
+  const heroImage = content['hero.imageUrl'];
+  const season = content['league.season'] || String(new Date().getFullYear());
+  const nextMatch = nextMatches[0];
+  const [featuredStory, ...moreNews] = news;
 
   return (
     <div>
-      {/* Hero */}
-      <div className="hero-band">
-        <div style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', padding: 'var(--space-8) var(--space-4)', textAlign: 'center' }}>
-          <p className="card-kicker" style={{ marginBottom: 'var(--space-2)' }}>Official League Platform</p>
-          <h1 style={{ fontWeight: 400 }}>Kilifi North Sub County League</h1>
-          <p className="text-muted" style={{ maxWidth: 560, margin: '0 auto var(--space-4)' }}>
-            Fixtures, results, standings and club news for Kilifi North&rsquo;s football clubs.
-          </p>
-          <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/fixtures" className="btn btn-primary">
-              View Fixtures &rarr;
-            </Link>
-            <Link href="/standings" className="btn btn-secondary">
-              League Table
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
-        {/* Featured News */}
-        <section style={{ marginBottom: 'var(--space-8)' }}>
-          <h6 style={{ color: 'var(--color-accent-700)', marginBottom: 'var(--space-3)' }}>Latest News</h6>
-          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'var(--space-6)', alignItems: 'center' }}>
-            {featured?.featuredImageUrl ? (
-              <img
-                src={featured.featuredImageUrl}
-                alt={featured.title}
-                className="plate"
-                style={{ aspectRatio: '16 / 9', width: '100%', objectFit: 'cover' }}
-              />
-            ) : (
-              <PlaceholderPlate />
-            )}
+      {/* ── Hero ─────────────────────────────────────────────── */}
+      <section className="hero-band">
+        <div style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
+          <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 'var(--space-6)', alignItems: 'center' }}>
             <div>
-              <p className="text-muted" style={{ fontSize: 12, marginBottom: 'var(--space-1)' }}>
-                {formatDate(featured?.startDate || featured?.createdAt) || formatDate(FEATURED_FALLBACK.date)}
+              <p className="eyebrow">Official League Platform · Season {season}</p>
+              <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-2)' }}>
+                {content['hero.title'] || 'Kilifi North Sub County League'}
+              </h1>
+              <p className="text-muted" style={{ maxWidth: 520, marginBottom: 'var(--space-4)' }}>
+                {content['hero.subtitle'] ||
+                  'Every fixture, every result, every player — the official record of football in Kilifi North.'}
               </p>
-              <h2 style={{ fontWeight: 400 }}>{featured?.title || FEATURED_FALLBACK.title}</h2>
-              <p>{featured?.message || FEATURED_FALLBACK.body}</p>
-              <Link href="/news" className="btn btn-ghost">Read more &rarr;</Link>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                <Link href={content['hero.ctaHref'] || '/fixtures'} className="btn btn-primary">
+                  {content['hero.ctaLabel'] || 'View Fixtures'} &rarr;
+                </Link>
+                <Link href="/table" className="btn btn-secondary">League Table</Link>
+              </div>
+
+              {nextMatch && (
+                <div className="card" style={{ marginTop: 'var(--space-6)', maxWidth: 420, background: 'var(--color-bg)' }}>
+                  <p className="eyebrow" style={{ margin: 0 }}>Next match</p>
+                  <div className="match-row">
+                    <span className="match-team">
+                      <Avatar src={nextMatch.homeClub.logoUrl} name={nextMatch.homeClub.name} size={22} rounded="soft" />
+                      <span>{nextMatch.homeClub.name}</span>
+                    </span>
+                    <span className="text-muted" style={{ fontSize: 12 }}>vs</span>
+                    <span className="match-team" style={{ justifyContent: 'flex-end' }}>
+                      <span>{nextMatch.awayClub.name}</span>
+                      <Avatar src={nextMatch.awayClub.logoUrl} name={nextMatch.awayClub.name} size={22} rounded="soft" />
+                    </span>
+                  </div>
+                  <p className="card-meta" style={{ margin: 0 }}>
+                    {formatDate(nextMatch.fixtureDate)}
+                    {nextMatch.kickoffTime ? ` · ${nextMatch.kickoffTime}` : ''}
+                    {nextMatch.venue?.name ? ` · ${nextMatch.venue.name}` : ''}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="hero-figure" style={{ aspectRatio: '16 / 9' }}>
+              {heroImage ? <img src={heroImage} alt="" /> : <PitchMotif />}
             </div>
           </div>
+        </div>
+      </section>
+
+      <div className="page-shell">
+        {/* ── Season at a glance ─────────────────────────────── */}
+        <section style={{ marginBottom: 'var(--space-8)' }}>
+          <div className="stat-strip">
+            <div className="stat-cell"><span className="stat-value">{statistics.totals.clubs}</span><span className="stat-label">Clubs</span></div>
+            <div className="stat-cell"><span className="stat-value">{statistics.totals.players}</span><span className="stat-label">Players</span></div>
+            <div className="stat-cell"><span className="stat-value">{statistics.totals.matches}</span><span className="stat-label">Matches played</span></div>
+            <div className="stat-cell"><span className="stat-value">{statistics.totals.goals}</span><span className="stat-label">Goals scored</span></div>
+          </div>
+          {(statistics.leader || statistics.topScorers[0]) && (
+            <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'var(--space-4)', marginTop: 'var(--space-4)' }}>
+              {statistics.leader && (
+                <Link href={`/clubs/${statistics.leader.id}`} className="card elev-sm" style={{ flexDirection: 'row', alignItems: 'center', gap: 'var(--space-3)', color: 'inherit', textDecoration: 'none' }}>
+                  <Avatar src={statistics.leader.logoUrl} name={statistics.leader.clubName} size={44} rounded="soft" />
+                  <div>
+                    <p className="eyebrow" style={{ margin: 0 }}>League leader</p>
+                    <p style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 17 }}>{statistics.leader.clubName}</p>
+                    <p className="card-meta" style={{ margin: 0 }}>{statistics.leader.points} pts from {statistics.leader.played} matches</p>
+                  </div>
+                </Link>
+              )}
+              {statistics.topScorers[0] && (
+                <Link href={`/players/${statistics.topScorers[0].id}`} className="card elev-sm" style={{ flexDirection: 'row', alignItems: 'center', gap: 'var(--space-3)', color: 'inherit', textDecoration: 'none' }}>
+                  <Avatar src={statistics.topScorers[0].photoUrl} name={`${statistics.topScorers[0].firstName} ${statistics.topScorers[0].lastName}`} size={44} />
+                  <div>
+                    <p className="eyebrow" style={{ margin: 0 }}>Top scorer</p>
+                    <p style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: 17 }}>
+                      {statistics.topScorers[0].firstName} {statistics.topScorers[0].lastName}
+                    </p>
+                    <p className="card-meta" style={{ margin: 0 }}>
+                      {statistics.topScorers[0].goals} goals · {statistics.topScorers[0].club?.name}
+                    </p>
+                  </div>
+                </Link>
+              )}
+            </div>
+          )}
         </section>
 
-        <div className="hr" />
-
-        {/* Recent Results */}
+        {/* ── Latest results ─────────────────────────────────── */}
         <section style={{ marginBottom: 'var(--space-8)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--space-4)' }}>
-            <h2 style={{ fontWeight: 400 }}>Recent Results</h2>
-            <Link href="/results" className="btn btn-ghost">View all &rarr;</Link>
+          <div className="section-head">
+            <h2 style={{ fontSize: 26 }}>Latest Results</h2>
+            <Link href="/results" className="btn btn-ghost">All results &rarr;</Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-4)' }}>
-            {loading && <SkeletonCards count={3} />}
-            {!loading && results.length === 0 && <p className="text-muted">No results yet.</p>}
-            {results.map((result: any) => (
-              <div key={result.id} className="card elev-sm">
-                <span className="tag tag-neutral" style={{ alignSelf: 'flex-start' }}>Full time</span>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)', fontFamily: 'var(--font-heading)' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
-                    <Avatar src={result.homeClub?.logoUrl} name={clubName(result.homeClub)} size={22} rounded="soft" />
-                    {clubName(result.homeClub)}
-                  </span>
-                  <strong>{result.homeScore ?? '-'}</strong>
+          {latestResults.length === 0 ? (
+            <EmptyState title="No results published yet" hint="Scores appear as soon as match reports are approved." />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-4)' }}>
+              {latestResults.map((f) => <ResultCard key={f.id} fixture={f as any} />)}
+            </div>
+          )}
+        </section>
+
+        {/* ── Upcoming fixtures ──────────────────────────────── */}
+        <section style={{ marginBottom: 'var(--space-8)' }}>
+          <div className="section-head">
+            <h2 style={{ fontSize: 26 }}>Upcoming Fixtures</h2>
+            <Link href="/fixtures" className="btn btn-ghost">All fixtures &rarr;</Link>
+          </div>
+          {nextMatches.length === 0 ? (
+            <EmptyState title="No fixtures scheduled" hint="The next round will be published shortly." />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-4)' }}>
+              {nextMatches.map((f) => <FixtureCard key={f.id} fixture={f as any} />)}
+            </div>
+          )}
+        </section>
+
+        {/* ── Table preview ──────────────────────────────────── */}
+        <section style={{ marginBottom: 'var(--space-8)' }}>
+          <div className="section-head">
+            <h2 style={{ fontSize: 26 }}>League Table</h2>
+            <Link href="/table" className="btn btn-ghost">Full table &rarr;</Link>
+          </div>
+          <LeagueTable rows={standings} compact />
+        </section>
+
+        {/* ── Featured players ───────────────────────────────── */}
+        {featuredPlayers.length > 0 && (
+          <section style={{ marginBottom: 'var(--space-8)' }}>
+            <div className="section-head">
+              <h2 style={{ fontSize: 26 }}>Players to Watch</h2>
+              <Link href="/players" className="btn btn-ghost">All players &rarr;</Link>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: 'var(--space-4)' }}>
+              {featuredPlayers.map((p: any) => <PlayerCard key={p.id} player={p} />)}
+            </div>
+          </section>
+        )}
+
+        {/* ── News ───────────────────────────────────────────── */}
+        <section style={{ marginBottom: 'var(--space-8)' }}>
+          <div className="section-head">
+            <h2 style={{ fontSize: 26 }}>Latest News</h2>
+            <Link href="/news" className="btn btn-ghost">All news &rarr;</Link>
+          </div>
+          {!featuredStory ? (
+            <EmptyState title="No stories published yet" />
+          ) : (
+            <>
+              <Link
+                href={`/news/${featuredStory.slug || featuredStory.id}`}
+                className="grid grid-cols-1 md:grid-cols-2"
+                style={{ gap: 'var(--space-6)', alignItems: 'center', color: 'inherit', textDecoration: 'none', marginBottom: 'var(--space-6)' }}
+              >
+                {featuredStory.featuredImageUrl ? (
+                  <img src={featuredStory.featuredImageUrl} alt="" className="media-16x9 plate" />
+                ) : (
+                  <div className="plate" style={{ aspectRatio: '16 / 9' }}><PitchMotif /></div>
+                )}
+                <div>
+                  <p className="eyebrow">{featuredStory.category || 'League News'}</p>
+                  <h3 style={{ fontWeight: 400, fontSize: 28, margin: '0 0 var(--space-2)' }}>{featuredStory.title}</h3>
+                  <p className="text-muted">
+                    {String(featuredStory.message).slice(0, 220)}
+                    {String(featuredStory.message).length > 220 ? '…' : ''}
+                  </p>
+                  <p className="card-meta">{formatDate(featuredStory.startDate)}</p>
+                  <span className="btn btn-ghost" style={{ padding: 0 }}>Read more &rarr;</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)', fontFamily: 'var(--font-heading)' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
-                    <Avatar src={result.awayClub?.logoUrl} name={clubName(result.awayClub)} size={22} rounded="soft" />
-                    {clubName(result.awayClub)}
-                  </span>
-                  <strong>{result.awayScore ?? '-'}</strong>
+              </Link>
+
+              {moreNews.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-4)' }}>
+                  {moreNews.map((article) => <NewsCard key={article.id} article={article} />)}
                 </div>
-                <p className="card-meta">{formatDate(result.fixtureDate || result.date)}</p>
-              </div>
-            ))}
-          </div>
+              )}
+            </>
+          )}
         </section>
 
-        {/* Upcoming Fixtures */}
-        <section style={{ marginBottom: 'var(--space-8)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--space-4)' }}>
-            <h2 style={{ fontWeight: 400 }}>Upcoming Fixtures</h2>
-            <Link href="/fixtures" className="btn btn-ghost">View all &rarr;</Link>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-4)' }}>
-            {loading && <SkeletonCards count={3} />}
-            {!loading && fixtures.length === 0 && <p className="text-muted">No fixtures scheduled.</p>}
-            {fixtures.map((fixture: any) => (
-              <div key={fixture.id} className="card elev-sm">
-                <p className="card-meta">{formatDate(fixture.fixtureDate || fixture.date)}</p>
-                <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
-                    <Avatar src={fixture.homeClub?.logoUrl} name={clubName(fixture.homeClub)} size={22} rounded="soft" />
-                    {clubName(fixture.homeClub)}
-                  </span>
-                  <span className="text-muted" style={{ fontSize: 13, flex: 'none' }}>vs</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
-                    <Avatar src={fixture.awayClub?.logoUrl} name={clubName(fixture.awayClub)} size={22} rounded="soft" />
-                    {clubName(fixture.awayClub)}
-                  </span>
-                </div>
-                <p className="card-meta">{fixture.venue?.name || ''}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* League Table */}
-        <section style={{ marginBottom: 'var(--space-8)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--space-4)' }}>
-            <h2 style={{ fontWeight: 400 }}>League Table</h2>
-            <Link href="/standings" className="btn btn-ghost">Full table &rarr;</Link>
-          </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Club</th>
-                  <th>P</th>
-                  <th>W</th>
-                  <th>D</th>
-                  <th>L</th>
-                  <th>GF</th>
-                  <th>GA</th>
-                  <th>Pts</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading && <SkeletonRows rows={5} cols={9} />}
-                {standings.slice(0, 5).map((row: any, index: number) => (
-                  <tr key={row.id}>
-                    <td>{index + 1}</td>
-                    <td style={{ fontFamily: 'var(--font-heading)' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                        <Avatar src={row.logoUrl} name={row.clubName || row.name} size={24} rounded="soft" />
-                        {row.clubName || row.name}
-                      </span>
-                    </td>
-                    <td>{row.played}</td>
-                    <td>{row.won}</td>
-                    <td>{row.drawn}</td>
-                    <td>{row.lost}</td>
-                    <td>{row.goalsFor}</td>
-                    <td>{row.goalsAgainst}</td>
-                    <td style={{ color: 'var(--color-accent-700)', fontWeight: 600 }}>
-                      {Number(row.won || 0) * 3 + Number(row.drawn || 0)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {/* Top Scorers */}
-        <section style={{ marginBottom: 'var(--space-8)' }}>
-          <h2 style={{ fontWeight: 400, marginBottom: 'var(--space-4)' }}>Top Scorers</h2>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Player</th>
-                  <th>Club</th>
-                  <th>Goals</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading && <SkeletonRows rows={5} cols={3} />}
-                {topScorers.map((scorer: any, index: number) => (
-                  <tr key={scorer.id || index}>
-                    <td style={{ fontFamily: 'var(--font-heading)' }}>
-                      {scorer.playerName || `${scorer.firstName || ''} ${scorer.lastName || ''}`.trim()}
-                    </td>
-                    <td>{scorer.clubName || scorer.club?.clubName}</td>
-                    <td style={{ color: 'var(--color-accent-700)', fontWeight: 600 }}>{scorer.goals}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {/* More News */}
-        <section>
-          <h2 style={{ fontWeight: 400, marginBottom: 'var(--space-4)' }}>More News</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-4)' }}>
-            {loading && <SkeletonCards count={3} />}
-            {!loading && moreNews.length === 0 && <p className="text-muted">More stories will appear here soon.</p>}
-            {moreNews.map((item: any) => (
-              <div key={item.id} className="card elev-sm">
-                <span className="card-kicker">{formatDate(item.startDate || item.createdAt)}</span>
-                <h3 className="card-title">{item.title}</h3>
-                <p className="card-body">{item.message}</p>
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* ── Sponsors ───────────────────────────────────────── */}
+        {sponsors.length > 0 && (
+          <section>
+            <div className="section-head">
+              <h2 style={{ fontSize: 26 }}>Our Partners</h2>
+              <Link href="/sponsors" className="btn btn-ghost">All partners &rarr;</Link>
+            </div>
+            <div className="logo-grid">
+              {sponsors.slice(0, 5).map((s) => <SponsorCard key={s.id} sponsor={s} />)}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

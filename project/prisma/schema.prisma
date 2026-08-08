@@ -108,6 +108,10 @@ model Club {
   homeVenueId String?
   homeVenue   Venue?   @relation(fields: [homeVenueId], references: [id])
   logoUrl     String?  @db.Text
+  bannerUrl   String?  @db.Text
+  colours     String?
+  history     String?  @db.Text
+  featured    Boolean  @default(false)
   email       String?
   phone       String?
   createdAt   DateTime @default(now())
@@ -132,10 +136,13 @@ model Player {
   position               String?
   dateOfBirth            DateTime?
   photoUrl               String?   @db.Text
+  // Private: never returned by the public data layer (see lib/public-data.ts).
   idNumber               String?
   height                 Float?
   weight                 Float?
   county                 String?
+  preferredFoot          String?
+  featured               Boolean   @default(false)
   goals                  Int       @default(0)
   approved               Boolean   @default(true)
   // KNSCL registration number is only assigned once both approvals below are
@@ -163,6 +170,8 @@ model Fixture {
   venue             Venue?        @relation(fields: [venueId], references: [id])
   fixtureDate       DateTime
   kickoffTime       String?
+  round             String?
+  featured          Boolean       @default(false)
   status            FixtureStatus @default(UPCOMING)
   homeScore         Int?
   awayScore         Int?
@@ -266,12 +275,73 @@ model Announcement {
   audience         Role?
   priority         AnnouncementPriority  @default(NORMAL)
   featuredImageUrl String?               @db.Text
+  // Public news fields — only populated for audience-less (public) stories.
+  slug             String?               @unique
+  category         String?
+  author           String?
   startDate        DateTime              @default(now())
   createdAt        DateTime              @default(now())
   createdById      String?
   createdBy        User?                 @relation(fields: [createdById], references: [id])
 
   @@index([audience])
+  @@index([category])
+}
+
+model Sponsor {
+  id          String   @id @default(uuid())
+  name        String
+  description String?  @db.Text
+  logoUrl     String?  @db.Text
+  websiteUrl  String?
+  category    String?
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([active])
+}
+
+model Download {
+  id          String   @id @default(uuid())
+  title       String
+  description String?  @db.Text
+  fileUrl     String   @db.Text
+  category    String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model GalleryImage {
+  id        String   @id @default(uuid())
+  title     String?
+  caption   String?  @db.Text
+  imageUrl  String   @db.Text
+  category  String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([category])
+}
+
+// Key/value store for editable public copy (hero, about, contact, socials),
+// so the Platform Owner can change site text without a schema change.
+model SiteContent {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}
+
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  subject   String?
+  message   String   @db.Text
+  handled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([handled])
 }
 
 model AuditLog {

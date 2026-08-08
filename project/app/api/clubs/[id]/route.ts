@@ -32,7 +32,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (!auth.ok) return auth.response;
 
   try {
-    const { name, shortName, yearFounded, homeVenueId, homeVenueName, email, phone, logoUrl } = await request.json();
+    const { name, shortName, yearFounded, homeVenueId, homeVenueName, email, phone, logoUrl, bannerUrl, colours, history, featured } =
+      await request.json();
 
     // homeVenueName lets a League Manager set a club's home venue by typing
     // its name — reuses an existing Venue row with that name (case/whitespace
@@ -60,6 +61,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         ...(email !== undefined ? { email: email || null } : {}),
         ...(phone !== undefined ? { phone: phone || null } : {}),
         ...(logoUrl !== undefined ? { logoUrl: logoUrl || null } : {}),
+        ...(bannerUrl !== undefined ? { bannerUrl: bannerUrl || null } : {}),
+        ...(colours !== undefined ? { colours: colours || null } : {}),
+        ...(history !== undefined ? { history: history || null } : {}),
+        ...(featured !== undefined ? { featured: Boolean(featured) } : {}),
       },
       include: { homeVenue: true },
     });

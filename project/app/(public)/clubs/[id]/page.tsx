@@ -1,125 +1,189 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getClub } from '@/lib/public-api';
+import { notFound } from 'next/navigation';
 import Avatar from '@/components/Avatar';
+import { getPublicClub } from '@/lib/public-data';
+import { buildMetadata, jsonLd, breadcrumbSchema, absoluteUrl } from '@/lib/seo';
+import { Breadcrumbs, EmptyState, FixtureCard, ResultCard, FormStrip, formatDate } from '@/components/public';
 
-function formatDate(value?: string) {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const club = await getPublicClub(params.id);
+  if (!club) return buildMetadata({ title: 'Club not found', description: 'This club is unavailable.', path: `/clubs/${params.id}` });
+
+  return buildMetadata({
+    title: `${club.name} | Kilifi North Sub County League`,
+    description:
+      club.history?.slice(0, 155) ||
+      `${club.name} — squad, fixtures, results and league position in the Kilifi North Sub County League.`,
+    path: `/clubs/${club.id}`,
+    image: club.logoUrl,
+  });
 }
 
-export default function ClubProfilePage({ params }: { params: { id: string } }) {
-  const [club, setClub] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+export default async function ClubProfilePage({ params }: { params: { id: string } }) {
+  const club = await getPublicClub(params.id);
+  if (!club) notFound();
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await getClub(params.id);
-        setClub(res.data?.data);
-      } catch {
-        setNotFound(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [params.id]);
-
-  if (loading) {
-    return (
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
-        <p className="text-muted">Loading&hellip;</p>
-      </div>
-    );
-  }
-
-  if (notFound || !club) {
-    return (
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
-        <h1 style={{ fontWeight: 400 }}>Club not found</h1>
-        <Link href="/clubs" className="btn btn-ghost">&larr; Back to clubs directory</Link>
-      </div>
-    );
-  }
+  const manager = club.managers?.[0];
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'SportsTeam',
+    name: club.name,
+    sport: 'Football',
+    url: absoluteUrl(`/clubs/${club.id}`),
+    ...(club.yearFounded ? { foundingDate: String(club.yearFounded) } : {}),
+    ...(club.homeVenue?.name ? { location: { '@type': 'Place', name: club.homeVenue.name } } : {}),
+    numberOfEmployees: undefined,
+  };
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
-      <Link href="/clubs" className="btn btn-ghost" style={{ marginBottom: 'var(--space-3)' }}>&larr; Clubs directory</Link>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginBottom: 'var(--space-3)' }}>
-        <Avatar src={club.logoUrl} name={club.name} size={72} rounded="soft" />
-        <h1 style={{ fontWeight: 400, margin: 0 }}>{club.name}</h1>
-      </div>
-      <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-3)', flexWrap: 'wrap' }}>
-        {club.yearFounded && <span className="tag tag-neutral">Founded {club.yearFounded}</span>}
-        {club.homeVenue?.name && <span className="tag tag-neutral">{club.homeVenue.name}</span>}
-      </div>
-      <p className="text-muted" style={{ marginBottom: 'var(--space-6)' }}>
-        {club.managers?.[0] ? (
-          <><strong>Team Manager:</strong> {club.managers[0].firstName} {club.managers[0].lastName} &bull; {club.managers[0].email}</>
-        ) : (
-          'No Team Manager assigned yet.'
+    <div>
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(schema)} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLd(
+          breadcrumbSchema([{ name: 'Home', href: '/' }, { name: 'Clubs', href: '/clubs' }, { name: club.name, href: `/clubs/${club.id}` }])
         )}
-      </p>
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'var(--space-6)' }}>
-        <section>
-          <h3 style={{ marginBottom: 'var(--space-3)' }}>Squad</h3>
-          {(!club.players || club.players.length === 0) ? (
-            <p className="text-muted">No approved players yet.</p>
+      {club.bannerUrl && (
+        <div className="hero-figure" style={{ borderRadius: 0, maxHeight: 240 }}>
+          <img src={club.bannerUrl} alt="" style={{ maxHeight: 240 }} />
+        </div>
+      )}
+
+      <div className="page-shell">
+        <Breadcrumbs items={[{ name: 'Home', href: '/' }, { name: 'Clubs', href: '/clubs' }, { name: club.name, href: `/clubs/${club.id}` }]} />
+
+        <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
+          <Avatar src={club.logoUrl} name={club.name} size={80} rounded="soft" />
+          <div>
+            <h1 style={{ fontWeight: 400, margin: 0 }}>{club.name}</h1>
+            <p className="text-muted" style={{ margin: 0 }}>
+              {[club.homeVenue?.name, club.yearFounded ? `Founded ${club.yearFounded}` : null, club.colours]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          </div>
+          {club.standing && (
+            <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+              <span className="stat-value" style={{ fontSize: 34 }}>{club.standing.position}</span>
+              <span className="stat-label" style={{ display: 'block' }}>League position</span>
+            </div>
+          )}
+        </header>
+
+        {club.standing && (
+          <div className="stat-strip" style={{ marginBottom: 'var(--space-6)' }}>
+            <div className="stat-cell"><span className="stat-value">{club.standing.played}</span><span className="stat-label">Played</span></div>
+            <div className="stat-cell"><span className="stat-value">{club.standing.points}</span><span className="stat-label">Points</span></div>
+            <div className="stat-cell"><span className="stat-value">{club.standing.goalsFor}</span><span className="stat-label">Goals for</span></div>
+            <div className="stat-cell">
+              <span className="stat-value" style={{ fontSize: 20, paddingTop: 6, display: 'block' }}>
+                <FormStrip form={club.standing.form} />
+              </span>
+              <span className="stat-label">Form</span>
+            </div>
+          </div>
+        )}
+
+        <dl className="grid grid-cols-2 md:grid-cols-4" style={{ gap: 'var(--space-3)', marginBottom: 'var(--space-8)' }}>
+          <div>
+            <dt className="card-meta" style={{ marginBottom: 2 }}>Home ground</dt>
+            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{club.homeVenue?.name || 'TBC'}</dd>
+          </div>
+          <div>
+            <dt className="card-meta" style={{ marginBottom: 2 }}>Manager</dt>
+            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>
+              {manager ? `${manager.firstName} ${manager.lastName}` : '—'}
+            </dd>
+          </div>
+          <div>
+            <dt className="card-meta" style={{ marginBottom: 2 }}>Contact</dt>
+            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>
+              {manager?.email ? <a href={`mailto:${manager.email}`}>{manager.email}</a> : '—'}
+            </dd>
+          </div>
+          <div>
+            <dt className="card-meta" style={{ marginBottom: 2 }}>Squad size</dt>
+            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{club.players.length}</dd>
+          </div>
+        </dl>
+
+        {club.history && (
+          <section style={{ marginBottom: 'var(--space-8)' }}>
+            <div className="section-head"><h2 style={{ fontSize: 24 }}>Club History</h2></div>
+            <p style={{ whiteSpace: 'pre-wrap', maxWidth: 720 }}>{club.history}</p>
+          </section>
+        )}
+
+        <section style={{ marginBottom: 'var(--space-8)' }}>
+          <div className="section-head">
+            <h2 style={{ fontSize: 24 }}>Squad</h2>
+            {club.topScorer && (
+              <span className="text-muted" style={{ fontSize: 13 }}>
+                Top scorer: {club.topScorer.firstName} {club.topScorer.lastName} ({club.topScorer.goals})
+              </span>
+            )}
+          </div>
+          {club.players.length === 0 ? (
+            <EmptyState title="No approved players yet" hint="Players appear once the league approves their registration." />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {club.players.map((p: any, i: number) => (
-                <Link
-                  key={p.id}
-                  href={`/players/${p.id}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 'var(--space-3)',
-                    padding: 'var(--space-2) 0',
-                    borderBottom: i < club.players.length - 1 ? '1px solid var(--color-divider)' : 'none',
-                    color: 'inherit',
-                    textDecoration: 'none',
-                  }}
-                >
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                    <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={36} />
-                    <span>
-                      {p.firstName} {p.lastName}
-                      {p.position && <span className="text-muted" style={{ fontSize: 12 }}> · {p.position}</span>}
-                    </span>
-                  </span>
-                  {p.playerNumber && <span className="text-muted">#{p.playerNumber}</span>}
-                </Link>
-              ))}
+            <div className="table-wrap">
+              <table className="table">
+                <caption className="sr-only">{club.name} squad</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Player</th>
+                    <th scope="col">Position</th>
+                    <th scope="col">Goals</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {club.players.map((p) => (
+                    <tr key={p.id}>
+                      <td>{p.playerNumber ?? '—'}</td>
+                      <td>
+                        <Link href={`/players/${p.id}`} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'inherit', textDecoration: 'none' }}>
+                          <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={26} />
+                          <span style={{ fontFamily: 'var(--font-heading)' }}>{p.firstName} {p.lastName}</span>
+                        </Link>
+                      </td>
+                      <td>{p.position || '—'}</td>
+                      <td>{p.goals}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </section>
 
-        <section>
-          <h3 style={{ marginBottom: 'var(--space-3)' }}>Recent Results</h3>
-          {(!club.recentResults || club.recentResults.length === 0) ? (
-            <p className="text-muted">No completed fixtures yet.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {club.recentResults.map((r: any, i: number) => (
-                <div key={r.id} style={{ padding: 'var(--space-2) 0', borderBottom: i < club.recentResults.length - 1 ? '1px solid var(--color-divider)' : 'none' }}>
-                  <p style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>
-                    {r.home ? 'vs' : '@'} {r.opponent} &nbsp; {r.forScore}&ndash;{r.againstScore}
-                  </p>
-                  <p className="card-meta">{formatDate(r.fixtureDate)}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'var(--space-6)' }}>
+          <section>
+            <div className="section-head"><h2 style={{ fontSize: 22 }}>Next Fixtures</h2></div>
+            {club.fixtures.length === 0 ? (
+              <EmptyState title="No upcoming fixtures" />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                {club.fixtures.map((f) => <FixtureCard key={f.id} fixture={f as any} />)}
+              </div>
+            )}
+          </section>
+
+          <section>
+            <div className="section-head"><h2 style={{ fontSize: 22 }}>Recent Results</h2></div>
+            {club.results.length === 0 ? (
+              <EmptyState title="No results yet" />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                {club.results.map((f) => <ResultCard key={f.id} fixture={f as any} />)}
+              </div>
+            )}
+          </section>
+        </div>
       </div>
     </div>
   );

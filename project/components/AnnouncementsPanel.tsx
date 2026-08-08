@@ -19,7 +19,19 @@ function formatDate(value?: string) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-const EMPTY_FORM = { title: '', message: '', audience: '', priority: 'NORMAL', featuredImageUrl: null as string | null };
+const EMPTY_FORM = {
+  title: '',
+  message: '',
+  audience: '',
+  priority: 'NORMAL',
+  featuredImageUrl: null as string | null,
+  category: '',
+  author: '',
+};
+
+// Mirrors NEWS_CATEGORIES in lib/public-data (kept literal here so this client
+// component doesn't pull in the server-only data module).
+const NEWS_CATEGORIES = ['League News', 'Club News', 'Transfers', 'Announcements', 'Events', 'Community'];
 
 // Drop-in announcements feed for any dashboard. Pass `canCompose` + a role
 // list to let that dashboard's role also publish new announcements.
@@ -62,6 +74,8 @@ export default function AnnouncementsPanel({
         audience: form.audience || null,
         priority: form.priority,
         featuredImageUrl: form.featuredImageUrl,
+        category: form.category || undefined,
+        author: form.author || undefined,
       });
       setForm(EMPTY_FORM);
       setStatus('Announcement published.');
@@ -102,6 +116,23 @@ export default function AnnouncementsPanel({
             value={form.featuredImageUrl}
             onChange={(url) => setForm({ ...form, featuredImageUrl: url })}
           />
+          {/* Only audience-less announcements reach the public news pages, so
+              the newsroom fields appear when "Everyone" is selected. */}
+          {!form.audience && (
+            <div className="grid grid-cols-2" style={{ gap: 'var(--space-2)' }}>
+              <div className="field">
+                <label htmlFor="ann-category">News category</label>
+                <select id="ann-category" className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                  <option value="">Uncategorised</option>
+                  {NEWS_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="ann-author">Author (optional)</label>
+                <input id="ann-author" className="input" value={form.author} onChange={(e) => setForm({ ...form, author: e.target.value })} />
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-2" style={{ gap: 'var(--space-2)' }}>
             {audienceOptions.length > 0 && (
               <div className="field">

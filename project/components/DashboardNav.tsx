@@ -15,6 +15,7 @@ function navLinksFor(role: string): { label: string; href: string }[] {
   const links = dashboardHref ? [{ label: 'Dashboard', href: dashboardHref }] : [];
   if (role === 'Platform Owner') {
     links.push({ label: 'Manage Data', href: '/dashboard/platform/manage' });
+    links.push({ label: 'Public Website', href: '/dashboard/platform/website' });
   }
   return [...links, { label: 'Public Site', href: '/' }];
 }

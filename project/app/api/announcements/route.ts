@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth-guard';
 import { logAudit } from '@/lib/audit';
+import { slugify } from '@/lib/public-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
   if (!auth.ok) return auth.response;
 
   try {
-    const { title, message, audience, priority, featuredImageUrl } = await request.json();
+    const { title, message, audience, priority, featuredImageUrl, category, author } = await request.json();
 
     if (!title || !message) {
       return NextResponse.json({ success: false, error: 'title and message are required' }, { status: 400 });
@@ -48,6 +49,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unknown priority' }, { status: 400 });
     }
 
+    // Public (audience-less) stories get a friendly URL slug. A collision just
+    // falls back to the id-based URL rather than failing the write.
+    let slug: string | null = null;
+    if (!audience) {
+      const base = slugify(title);
+      if (base) {
+        const taken = await prisma.announcement.findUnique({ where: { slug: base } });
+        slug = taken ? `${base}-${Date.now().toString(36).slice(-4)}` : base;
+      }
+    }
+
     const announcement = await prisma.announcement.create({
       data: {
         title,
@@ -55,6 +67,9 @@ export async function POST(request: NextRequest) {
         audience: audience ?? null,
         priority: priority ?? 'NORMAL',
         featuredImageUrl: featuredImageUrl || null,
+        category: category || null,
+        author: author || null,
+        slug,
         createdById: auth.user.sub,
       },
     });

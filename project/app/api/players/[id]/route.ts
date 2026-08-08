@@ -27,13 +27,19 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ success: false, error: 'Player not found' }, { status: 404 });
   }
 
-  if (!player.approved) {
-    const user = optionalAuth(request);
-    const canView =
-      user && (user.role === 'PLATFORM_OWNER' || user.role === 'LEAGUE_MANAGER' || (user.role === 'TEAM_MANAGER' && user.clubId === player.clubId));
-    if (!canView) {
-      return NextResponse.json({ success: false, error: 'Player not found' }, { status: 404 });
-    }
+  const user = optionalAuth(request);
+  const isAdministrator = Boolean(
+    user && (user.role === 'PLATFORM_OWNER' || user.role === 'LEAGUE_MANAGER' || (user.role === 'TEAM_MANAGER' && user.clubId === player.clubId))
+  );
+
+  if (!player.approved && !isAdministrator) {
+    return NextResponse.json({ success: false, error: 'Player not found' }, { status: 404 });
+  }
+
+  // The National ID / passport number is administrative data — it is stripped
+  // for anyone who isn't administering this player.
+  if (!isAdministrator) {
+    delete (player as Partial<typeof player>).idNumber;
   }
 
   const events = await prisma.matchEvent.findMany({
@@ -122,7 +128,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 
   try {
-    const { firstName, lastName, playerNumber, position, dateOfBirth, photoUrl, idNumber, height, weight, county } =
+    const { firstName, lastName, playerNumber, position, dateOfBirth, photoUrl, idNumber, height, weight, county, preferredFoot, featured } =
       await request.json();
 
     const player = await prisma.player.update({
@@ -138,6 +144,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         ...(height !== undefined ? { height: height ? Number(height) : null } : {}),
         ...(weight !== undefined ? { weight: weight ? Number(weight) : null } : {}),
         ...(county !== undefined ? { county: county || null } : {}),
+        ...(preferredFoot !== undefined ? { preferredFoot: preferredFoot || null } : {}),
+        ...(featured !== undefined ? { featured: Boolean(featured) } : {}),
       },
       include: { club: true },
     });

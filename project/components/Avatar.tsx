@@ -1,7 +1,7 @@
-'use client';
-
 // Renders a photo/crest when one exists, otherwise a neutral initials badge
 // so lists stay visually even rather than showing broken-image icons.
+// No directive: renders on the server for public pages, and is bundled into
+// the client where a dashboard imports it.
 export default function Avatar({
   src,
   name,

@@ -1,80 +1,105 @@
-'use client';
+import Link from 'next/link';
+import { getPublicResults, getPublicClubs } from '@/lib/public-data';
+import { buildMetadata } from '@/lib/seo';
+import { Breadcrumbs, EmptyState, ResultCard, PageHeader } from '@/components/public';
 
-import { useEffect, useState } from 'react';
-import { getResults } from '@/lib/public-api';
-import Pagination from '@/components/Pagination';
-import Avatar from '@/components/Avatar';
-import { SkeletonCards } from '@/components/Skeleton';
+export const dynamic = 'force-dynamic';
 
-function clubName(club: any) {
-  return club?.clubName || club?.name || 'TBC';
-}
+export const metadata = buildMetadata({
+  title: 'Results | Kilifi North Sub County League',
+  description: 'Final scores, goalscorers and match reports from the Kilifi North Sub County League.',
+  path: '/results',
+});
 
-function formatDate(value?: string) {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-}
+const EVENT_LABEL: Record<string, string> = { GOAL: '⚽', YELLOW_CARD: '🟨', RED_CARD: '🟥' };
 
-export default function ResultsPage() {
-  const [results, setResults] = useState<any[]>([]);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(0);
+export default async function ResultsPage({
+  searchParams,
+}: {
+  searchParams: { page?: string; club?: string; from?: string; to?: string; q?: string };
+}) {
+  const page = Math.max(1, parseInt(searchParams.page || '1', 10) || 1);
+  const filters = {
+    clubId: searchParams.club || undefined,
+    from: searchParams.from || undefined,
+    to: searchParams.to || undefined,
+    q: searchParams.q || undefined,
+  };
 
-  useEffect(() => {
-    const fetchResults = async () => {
-      setLoading(true);
-      try {
-        const response = await getResults(page, 12);
-        setResults(response.data?.data || []);
-        setTotal(response.data?.pagination?.total || 0);
-      } catch (error) {
-        console.error('Error loading results:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchResults();
-  }, [page]);
+  const [{ items, total, pages }, clubs] = await Promise.all([getPublicResults(page, 12, filters), getPublicClubs()]);
 
-  const totalPages = Math.ceil(total / 12);
+  const buildHref = (next: number) => {
+    const params = new URLSearchParams();
+    Object.entries({ ...searchParams, page: String(next) }).forEach(([k, v]) => {
+      if (v) params.set(k, String(v));
+    });
+    return `/results?${params.toString()}`;
+  };
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
-      <h1 style={{ fontWeight: 400, marginBottom: 'var(--space-6)' }}>Results</h1>
+    <div className="page-shell">
+      <Breadcrumbs items={[{ name: 'Home', href: '/' }, { name: 'Results', href: '/results' }]} />
+      <PageHeader eyebrow="Match Centre" title="Results" lead={`${total} completed ${total === 1 ? 'match' : 'matches'}.`} />
 
-      {!loading && results.length === 0 && <p className="text-muted">No results published yet.</p>}
+      <form method="get" className="filter-bar" role="search" aria-label="Filter results">
+        <div className="field">
+          <label htmlFor="r-q">Search</label>
+          <input id="r-q" name="q" type="search" className="input" defaultValue={searchParams.q || ''} placeholder="Club or venue" />
+        </div>
+        <div className="field">
+          <label htmlFor="r-club">Club</label>
+          <select id="r-club" name="club" className="input" defaultValue={searchParams.club || ''}>
+            <option value="">All clubs</option>
+            {clubs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+        <div className="field">
+          <label htmlFor="r-from">From</label>
+          <input id="r-from" name="from" type="date" className="input" defaultValue={searchParams.from || ''} />
+        </div>
+        <div className="field">
+          <label htmlFor="r-to">To</label>
+          <input id="r-to" name="to" type="date" className="input" defaultValue={searchParams.to || ''} />
+        </div>
+        <button type="submit" className="btn btn-primary">Apply</button>
+        <Link href="/results" className="btn btn-ghost">Reset</Link>
+      </form>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
-        {loading && <SkeletonCards count={5} />}
-        {results.map((result: any) => (
-          <div key={result.id} className="card elev-sm" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ flex: 1 }}>
-              <p className="card-meta" style={{ marginBottom: 'var(--space-1)' }}>{formatDate(result.fixtureDate || result.date)}</p>
-              <p style={{ fontFamily: 'var(--font-heading)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', margin: 0 }}>
-                <Avatar src={result.homeClub?.logoUrl} name={clubName(result.homeClub)} size={24} rounded="soft" />
-                {clubName(result.homeClub)}
-              </p>
-            </div>
-            <div style={{ textAlign: 'center', padding: '0 var(--space-4)', fontFamily: 'var(--font-heading)', fontSize: 24 }}>
-              {result.homeScore ?? '-'}
-              <span className="text-muted" style={{ fontSize: 14 }}> &ndash; </span>
-              {result.awayScore ?? '-'}
-            </div>
-            <div style={{ flex: 1 }}>
-              <p className="card-meta" style={{ marginBottom: 'var(--space-1)' }}>&nbsp;</p>
-              <p style={{ fontFamily: 'var(--font-heading)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', justifyContent: 'flex-end', margin: 0 }}>
-                {clubName(result.awayClub)}
-                <Avatar src={result.awayClub?.logoUrl} name={clubName(result.awayClub)} size={24} rounded="soft" />
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
+      {items.length === 0 ? (
+        <EmptyState title="No results yet" hint="Results appear here once referees submit their match reports." />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          {items.map((fixture) => {
+            const goals = fixture.matchEvents.filter((e) => e.type === 'GOAL');
+            const cards = fixture.matchEvents.filter((e) => e.type !== 'GOAL');
+            return (
+              <div key={fixture.id}>
+                <ResultCard fixture={fixture as any} />
+                {(goals.length > 0 || cards.length > 0) && (
+                  <p className="card-meta" style={{ marginTop: 'var(--space-1)', flexWrap: 'wrap' }}>
+                    {[...goals, ...cards].map((e) => (
+                      <span key={e.id} style={{ marginRight: 'var(--space-2)' }}>
+                        <span aria-hidden="true">{EVENT_LABEL[e.type]}</span>{' '}
+                        <span className="sr-only">{e.type.replace('_', ' ').toLowerCase()}: </span>
+                        {e.player.firstName} {e.player.lastName}
+                        {e.minute ? ` ${e.minute}'` : ''}
+                      </span>
+                    ))}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-      {totalPages > 1 && <Pagination page={page} totalPages={totalPages} onChange={setPage} />}
+      {pages > 1 && (
+        <nav aria-label="Pagination" style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center', marginTop: 'var(--space-6)' }}>
+          {page > 1 && <Link className="btn btn-secondary" href={buildHref(page - 1)}>&larr; Previous</Link>}
+          <span className="text-muted" style={{ alignSelf: 'center' }}>Page {page} of {pages}</span>
+          {page < pages && <Link className="btn btn-secondary" href={buildHref(page + 1)}>Next &rarr;</Link>}
+        </nav>
+      )}
     </div>
   );
 }

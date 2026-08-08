@@ -200,6 +200,73 @@ export async function deleteDisciplinaryCase(id: string) {
   return client.delete(`/disciplinary/${id}`);
 }
 
+/* ── Public website content management ───────────────────────────── */
+
+export async function getSiteContent() {
+  const client = getApiClient();
+  return client.get('/site-content');
+}
+
+export async function saveSiteContent(updates: Record<string, string>) {
+  const client = getApiClient();
+  return client.put('/site-content', updates);
+}
+
+export async function getAdminSponsors() {
+  const client = getApiClient();
+  return client.get('/sponsors');
+}
+
+export async function createSponsor(data: { name: string; description?: string; logoUrl?: string | null; websiteUrl?: string; category?: string }) {
+  const client = getApiClient();
+  return client.post('/sponsors', data);
+}
+
+export async function updateSponsor(id: string, data: { active?: boolean; name?: string; category?: string; websiteUrl?: string }) {
+  const client = getApiClient();
+  return client.patch(`/sponsors/${id}`, data);
+}
+
+export async function deleteSponsor(id: string) {
+  const client = getApiClient();
+  return client.delete(`/sponsors/${id}`);
+}
+
+export async function getAdminDownloads() {
+  const client = getApiClient();
+  return client.get('/downloads');
+}
+
+export async function createDownload(data: { title: string; description?: string; fileUrl: string; category?: string }) {
+  const client = getApiClient();
+  return client.post('/downloads', data);
+}
+
+export async function deleteDownload(id: string) {
+  const client = getApiClient();
+  return client.delete(`/downloads/${id}`);
+}
+
+export async function getAdminGallery() {
+  const client = getApiClient();
+  return client.get('/gallery');
+}
+
+export async function createGalleryImage(data: { title?: string; caption?: string; imageUrl: string; category?: string }) {
+  const client = getApiClient();
+  return client.post('/gallery', data);
+}
+
+export async function deleteGalleryImage(id: string) {
+  const client = getApiClient();
+  return client.delete(`/gallery/${id}`);
+}
+
+export async function getContactMessages() {
+  const client = getApiClient();
+  return client.get('/contact');
+}
+
 export async function getAuditLogs(opts?: { module?: string; limit?: number }) {
   const client = getApiClient();
   const params = new URLSearchParams();
@@ -242,7 +309,15 @@ export async function getAnnouncements() {
   return client.get('/announcements');
 }
 
-export async function createAnnouncement(data: { title: string; message: string; audience?: string | null; priority?: string; featuredImageUrl?: string | null }) {
+export async function createAnnouncement(data: {
+  title: string;
+  message: string;
+  audience?: string | null;
+  priority?: string;
+  featuredImageUrl?: string | null;
+  category?: string;
+  author?: string;
+}) {
   const client = getApiClient();
   return client.post('/announcements', data);
 }

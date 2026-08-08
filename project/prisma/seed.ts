@@ -20,13 +20,19 @@ const DEMO_PASSWORD = process.env.SEED_PASSWORD || DEFAULT_DEMO_PASSWORD;
 async function main() {
   console.log('Seeding Kilifi North Sub County League data...');
 
+  await prisma.matchEvent.deleteMany();
   await prisma.refereeAssignment.deleteMany();
+  await prisma.teamSheetEntry.deleteMany();
+  await prisma.teamSheet.deleteMany();
+  await prisma.disciplinaryCase.deleteMany();
   await prisma.fixture.deleteMany();
   await prisma.player.deleteMany();
+  await prisma.user.updateMany({ data: { clubId: null } });
   await prisma.user.deleteMany();
   await prisma.club.deleteMany();
   await prisma.venue.deleteMany();
   await prisma.announcement.deleteMany();
+  await prisma.download.deleteMany();
 
   const result = await seedDatabase(prisma, DEMO_PASSWORD);
 

@@ -35,10 +35,39 @@ export async function GET(request: NextRequest) {
       ...(effectiveClubId ? { clubId: effectiveClubId } : {}),
     };
 
+    // Private identity fields are only included for staff who legitimately
+    // administer the player; anonymous and out-of-scope callers never see
+    // them. Public pages should use lib/public-data.ts instead of this route.
+    const canSeePrivate = Boolean(
+      user && (user.role === 'PLATFORM_OWNER' || user.role === 'LEAGUE_MANAGER' || isTeamManagerInScope)
+    );
+
     const [players, total] = await Promise.all([
       prisma.player.findMany({
         where,
-        include: { club: true },
+        select: {
+          id: true,
+          clubId: true,
+          firstName: true,
+          lastName: true,
+          playerNumber: true,
+          position: true,
+          dateOfBirth: true,
+          photoUrl: true,
+          height: true,
+          weight: true,
+          county: true,
+          preferredFoot: true,
+          goals: true,
+          approved: true,
+          featured: true,
+          registrationNumber: true,
+          leagueManagerApproved: true,
+          platformOwnerApproved: true,
+          createdAt: true,
+          idNumber: canSeePrivate,
+          club: true,
+        },
         orderBy: { lastName: 'asc' },
         skip,
         take: limit,

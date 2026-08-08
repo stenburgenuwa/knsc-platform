@@ -17,6 +17,11 @@ export async function resetTestDb() {
     prisma.venue.deleteMany(),
     prisma.announcement.deleteMany(),
     prisma.auditLog.deleteMany(),
+    prisma.sponsor.deleteMany(),
+    prisma.download.deleteMany(),
+    prisma.galleryImage.deleteMany(),
+    prisma.siteContent.deleteMany(),
+    prisma.contactMessage.deleteMany(),
   ]);
   // Registration numbers are drawn from a global Postgres sequence, not tied
   // to any row, so it has to be reset independently for deterministic tests.

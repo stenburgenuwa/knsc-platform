@@ -138,6 +138,9 @@ export async function seedDatabase(prisma: PrismaClient, password: string): Prom
   await prisma.announcement.create({
     data: {
       title: 'Malindi United extends unbeaten run to five matches',
+      slug: 'malindi-united-extends-unbeaten-run-to-five-matches',
+      category: 'League News',
+      author: 'KNSCL Media',
       message:
         'With a commanding 2–0 victory over Mtwapa FC last Saturday, Malindi United continues to dominate the Kilifi North standings. The victory extends their unbeaten run and cements their position atop the table with 13 points from five matches, setting a strong pace for the season.',
       startDate: new Date(Date.now() - 2 * 86400000),
@@ -146,6 +149,8 @@ export async function seedDatabase(prisma: PrismaClient, password: string): Prom
   await prisma.announcement.create({
     data: {
       title: 'Referee assignments published for matchday 6',
+      slug: 'referee-assignments-published-for-matchday-6',
+      category: 'Announcements',
       message: 'The Referee Manager has published match officials for the upcoming round of fixtures.',
       startDate: new Date(Date.now() - 1 * 86400000),
     },
@@ -153,9 +158,46 @@ export async function seedDatabase(prisma: PrismaClient, password: string): Prom
   await prisma.announcement.create({
     data: {
       title: 'Club registration window opens for new season',
+      slug: 'club-registration-window-opens-for-new-season',
+      category: 'Announcements',
       message: 'Clubs wishing to register or update their squad list should contact the League Manager before kickoff.',
       startDate: new Date(),
     },
+  });
+
+  // Public-website content so the site is complete on a fresh install.
+  await prisma.siteContent.createMany({
+    data: [
+      { key: 'league.season', value: String(new Date().getFullYear()) },
+      { key: 'league.tagline', value: 'The official home of Kilifi North Sub County League football.' },
+      { key: 'hero.title', value: 'Kilifi North Sub County League' },
+      { key: 'hero.subtitle', value: 'Every fixture, every result, every player — the official record of football in Kilifi North.' },
+      { key: 'hero.ctaLabel', value: 'View Fixtures' },
+      { key: 'hero.ctaHref', value: '/fixtures' },
+      { key: 'contact.address', value: 'Kilifi North Sub County, Kilifi County, Kenya' },
+      { key: 'contact.email', value: 'info@knscl.co.ke' },
+    ],
+    skipDuplicates: true,
+  });
+
+  await prisma.download.createMany({
+    data: [
+      {
+        title: 'Competition Rules 2026',
+        description: 'The full rulebook governing league play, discipline and eligibility.',
+        fileUrl: 'https://example.org/knscl-competition-rules.pdf',
+        category: 'Competition Rules',
+        sortOrder: 1,
+      },
+      {
+        title: 'Player Registration Form',
+        description: 'Required for every new player registration submitted by a Team Manager.',
+        fileUrl: 'https://example.org/knscl-player-registration.pdf',
+        category: 'Registration Forms',
+        sortOrder: 2,
+      },
+    ],
+    skipDuplicates: true,
   });
 
   return { clubsCreated: clubs.length, usersCreated: users.length, password };

@@ -1,152 +1,146 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getPlayer } from '@/lib/public-api';
+import { notFound } from 'next/navigation';
 import Avatar from '@/components/Avatar';
-import StatCard from '@/components/StatCard';
+import { getPublicPlayer } from '@/lib/public-data';
+import { buildMetadata, jsonLd, breadcrumbSchema, absoluteUrl } from '@/lib/seo';
+import { Breadcrumbs, EmptyState, formatDate } from '@/components/public';
 
-const EVENT_LABELS: Record<string, string> = { GOAL: 'Goal', YELLOW_CARD: 'Yellow card', RED_CARD: 'Red card' };
+export const dynamic = 'force-dynamic';
 
-function formatDate(value?: string) {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+const EVENT_LABEL: Record<string, string> = { GOAL: 'Goal', YELLOW_CARD: 'Yellow card', RED_CARD: 'Red card' };
+
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const player = await getPublicPlayer(params.id);
+  if (!player) return buildMetadata({ title: 'Player not found', description: 'This player profile is unavailable.', path: `/players/${params.id}` });
+
+  const name = `${player.firstName} ${player.lastName}`;
+  return buildMetadata({
+    title: `${name} | ${player.club.name}`,
+    description: `${name} — ${player.position || 'player'} for ${player.club.name} in the Kilifi North Sub County League. Goals, cards and match history.`,
+    path: `/players/${player.id}`,
+    image: player.photoUrl,
+    type: 'profile',
+  });
 }
 
-// Recomputed from dateOfBirth on every render, so it's always correct as of
-// today rather than a value that goes stale after the player's next birthday.
-function calculateAge(dob?: string | null): number | null {
-  if (!dob) return null;
-  const birth = new Date(dob);
-  if (Number.isNaN(birth.getTime())) return null;
-  const today = new Date();
-  let age = today.getFullYear() - birth.getFullYear();
-  const monthDiff = today.getMonth() - birth.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
-  return age;
-}
+export default async function PlayerProfilePage({ params }: { params: { id: string } }) {
+  const player = await getPublicPlayer(params.id);
+  if (!player) notFound();
 
-export default function PlayerProfilePage({ params }: { params: { id: string } }) {
-  const [player, setPlayer] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await getPlayer(params.id);
-        setPlayer(res.data?.data);
-      } catch {
-        setNotFound(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [params.id]);
-
-  if (loading) {
-    return (
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
-        <p className="text-muted">Loading&hellip;</p>
-      </div>
-    );
-  }
-
-  if (notFound || !player) {
-    return (
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
-        <h1 style={{ fontWeight: 400 }}>Player not found</h1>
-        <Link href="/players" className="btn btn-ghost">&larr; Back to players directory</Link>
-      </div>
-    );
-  }
-
-  const age = calculateAge(player.dateOfBirth);
+  const name = `${player.firstName} ${player.lastName}`;
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name,
+    url: absoluteUrl(`/players/${player.id}`),
+    affiliation: { '@type': 'SportsTeam', name: player.club.name },
+    ...(player.height ? { height: `${player.height} cm` } : {}),
+  };
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: 'var(--space-8) var(--space-4)' }}>
-      <Link href="/players" className="btn btn-ghost" style={{ marginBottom: 'var(--space-3)' }}>&larr; Players directory</Link>
+    <div className="page-shell-narrow">
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(schema)} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLd(
+          breadcrumbSchema([{ name: 'Home', href: '/' }, { name: 'Players', href: '/players' }, { name, href: `/players/${player.id}` }])
+        )}
+      />
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginBottom: 'var(--space-3)', flexWrap: 'wrap' }}>
-        <Avatar src={player.photoUrl} name={`${player.firstName} ${player.lastName}`} size={88} />
+      <Breadcrumbs items={[{ name: 'Home', href: '/' }, { name: 'Players', href: '/players' }, { name, href: `/players/${player.id}` }]} />
+
+      <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
+        <Avatar src={player.photoUrl} name={name} size={96} />
         <div>
           <h1 style={{ fontWeight: 400, margin: 0 }}>
-            {player.playerNumber ? `#${player.playerNumber} ` : ''}{player.firstName} {player.lastName}
+            {player.playerNumber != null && <span className="text-muted">{player.playerNumber} </span>}
+            {name}
           </h1>
           <p className="text-muted" style={{ margin: 0 }}>
-            <Link href={`/clubs/${player.club?.id}`} className="text-muted">{player.club?.name}</Link>
+            <Link href={`/clubs/${player.club.id}`}>{player.club.name}</Link>
             {player.position ? ` · ${player.position}` : ''}
           </p>
+          {player.registrationNumber && (
+            <span className="tag tag-accent" style={{ marginTop: 6, display: 'inline-flex' }}>{player.registrationNumber}</span>
+          )}
         </div>
+      </header>
+
+      <div className="stat-strip" style={{ marginBottom: 'var(--space-6)' }}>
+        <div className="stat-cell"><span className="stat-value">{player.stats.matchesPlayed}</span><span className="stat-label">Matches</span></div>
+        <div className="stat-cell"><span className="stat-value">{player.stats.goals}</span><span className="stat-label">Goals</span></div>
+        <div className="stat-cell"><span className="stat-value">{player.stats.yellowCards}</span><span className="stat-label">Yellow cards</span></div>
+        <div className="stat-cell"><span className="stat-value">{player.stats.redCards}</span><span className="stat-label">Red cards</span></div>
       </div>
 
-      <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-6)', flexWrap: 'wrap' }}>
-        {player.registrationNumber ? (
-          <span className="tag tag-accent">{player.registrationNumber}</span>
-        ) : (
-          <span className="tag tag-neutral">Registration pending</span>
-        )}
-        {!player.approved && <span className="tag tag-neutral">Pending approval</span>}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
-        <StatCard label="Goals" value={player.stats?.goals ?? 0} tone="accent" />
-        <StatCard label="Yellow Cards" value={player.stats?.yellowCards ?? 0} />
-        <StatCard label="Red Cards" value={player.stats?.redCards ?? 0} />
-      </div>
-
-      <section style={{ marginBottom: 'var(--space-6)' }}>
-        <h3 style={{ marginBottom: 'var(--space-3)' }}>Personal Information</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: 'var(--space-3)' }}>
+      <section style={{ marginBottom: 'var(--space-8)' }}>
+        <div className="section-head"><h2 style={{ fontSize: 22 }}>Profile</h2></div>
+        <dl className="grid grid-cols-2 md:grid-cols-3" style={{ gap: 'var(--space-3)' }}>
           <div>
-            <p className="card-meta" style={{ marginBottom: 2 }}>Date of Birth</p>
-            <p style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{formatDate(player.dateOfBirth) || '—'}</p>
+            <dt className="card-meta" style={{ marginBottom: 2 }}>Date of birth</dt>
+            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{formatDate(player.dateOfBirth) || '—'}</dd>
           </div>
           <div>
-            <p className="card-meta" style={{ marginBottom: 2 }}>Age</p>
-            <p style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{age ?? '—'}</p>
+            <dt className="card-meta" style={{ marginBottom: 2 }}>Age</dt>
+            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{player.age ?? '—'}</dd>
           </div>
           <div>
-            <p className="card-meta" style={{ marginBottom: 2 }}>ID / Passport Number</p>
-            <p style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{player.idNumber || '—'}</p>
+            <dt className="card-meta" style={{ marginBottom: 2 }}>Position</dt>
+            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{player.position || '—'}</dd>
           </div>
           <div>
-            <p className="card-meta" style={{ marginBottom: 2 }}>Height</p>
-            <p style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{player.height ? `${player.height} cm` : '—'}</p>
+            <dt className="card-meta" style={{ marginBottom: 2 }}>Height</dt>
+            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{player.height ? `${player.height} cm` : '—'}</dd>
           </div>
           <div>
-            <p className="card-meta" style={{ marginBottom: 2 }}>Weight</p>
-            <p style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{player.weight ? `${player.weight} kg` : '—'}</p>
+            <dt className="card-meta" style={{ marginBottom: 2 }}>Weight</dt>
+            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{player.weight ? `${player.weight} kg` : '—'}</dd>
           </div>
           <div>
-            <p className="card-meta" style={{ marginBottom: 2 }}>County</p>
-            <p style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{player.county || '—'}</p>
+            <dt className="card-meta" style={{ marginBottom: 2 }}>Preferred foot</dt>
+            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{player.preferredFoot || '—'}</dd>
           </div>
-        </div>
+          <div>
+            <dt className="card-meta" style={{ marginBottom: 2 }}>County</dt>
+            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{player.county || '—'}</dd>
+          </div>
+        </dl>
       </section>
 
       <section>
-        <h3 style={{ marginBottom: 'var(--space-3)' }}>Match History</h3>
-        {(!player.matchHistory || player.matchHistory.length === 0) ? (
-          <p className="text-muted">No match history yet.</p>
+        <div className="section-head"><h2 style={{ fontSize: 22 }}>Match History</h2></div>
+        {player.matchHistory.length === 0 ? (
+          <EmptyState title="No recorded appearances yet" hint="Match involvement appears once results are published." />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {player.matchHistory.map((m: any, i: number) => (
-              <div
+              <Link
                 key={m.fixtureId}
-                style={{ padding: 'var(--space-2) 0', borderBottom: i < player.matchHistory.length - 1 ? '1px solid var(--color-divider)' : 'none' }}
+                href={`/matches/${m.fixtureId}`}
+                style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)',
+                  padding: 'var(--space-2) 0',
+                  borderBottom: i < player.matchHistory.length - 1 ? '1px solid var(--color-divider)' : 'none',
+                  color: 'inherit', textDecoration: 'none',
+                }}
               >
-                <p style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>
-                  {m.home ? 'vs' : '@'} {m.opponent} &nbsp; {m.forScore ?? '-'}&ndash;{m.againstScore ?? '-'}
-                </p>
-                <p className="card-meta">
-                  {formatDate(m.fixtureDate)}
-                  {m.events?.length > 0 && ` · ${m.events.map((e: any) => `${EVENT_LABELS[e.type] || e.type}${e.minute ? ` ${e.minute}'` : ''}`).join(', ')}`}
-                </p>
-              </div>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
+                  <Avatar src={m.opponentLogo} name={m.opponent} size={24} rounded="soft" />
+                  <span>
+                    <span style={{ fontFamily: 'var(--font-heading)' }}>
+                      {m.home ? 'vs' : '@'} {m.opponent}
+                    </span>
+                    <span className="card-meta" style={{ margin: 0 }}>
+                      {formatDate(m.fixtureDate, 'short')}
+                      {m.events.length > 0 &&
+                        ` · ${m.events.map((e: any) => `${EVENT_LABEL[e.type]}${e.minute ? ` ${e.minute}'` : ''}`).join(', ')}`}
+                    </span>
+                  </span>
+                </span>
+                <strong style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  {m.forScore ?? '-'}–{m.againstScore ?? '-'}
+                </strong>
+              </Link>
             ))}
           </div>
         )}
