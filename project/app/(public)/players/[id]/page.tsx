@@ -69,7 +69,7 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
             <Avatar src={player.photoUrl} name={name} size={100} rounded="square" />
             <div style={{ minWidth: 0 }}>
               <p className="eyebrow" style={{ marginBottom: 4 }}>
-                {[player.position, player.registrationNumber].filter(Boolean).join(' · ') || 'Registered player'}
+                {player.position || 'Registered player'}
               </p>
               {/* Availability is derived from cards, not stored by hand — a
                   suspended player is a fact of the match record. */}
@@ -89,6 +89,31 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
                   <Avatar src={player.club.logoUrl} name={player.club.name} size={22} rounded="soft" />
                   {player.club.name}
                 </Link>
+              </p>
+
+              {/*
+                The league credential. It closes the identity block the way a
+                licence number closes a registration document — labelled, in
+                the tabular numerals the rest of the site uses for football
+                numbers, never a bare code the reader has to guess at.
+
+                The number is read straight from the player record; it is
+                issued once during approval (lib/player-registration.ts) and
+                never recomputed here, so it survives refresh unchanged. Until
+                both approvals are in it does not exist, and the page says so
+                rather than inventing one.
+              */}
+              <p style={{ margin: 'var(--space-3) 0 0' }}>
+                <span className="stat-label" style={{ marginTop: 0 }}>KNSCL Registration No.</span>
+                {player.registrationNumber ? (
+                  <span className="num" style={{ fontSize: 22, fontWeight: 700, letterSpacing: '0.06em', color: '#fff' }}>
+                    {player.registrationNumber}
+                  </span>
+                ) : (
+                  <span className="text-muted" style={{ fontSize: 15 }}>
+                    Pending &mdash; issued once approval is complete
+                  </span>
+                )}
               </p>
             </div>
           </div>
