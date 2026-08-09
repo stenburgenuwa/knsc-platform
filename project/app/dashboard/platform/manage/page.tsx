@@ -12,6 +12,8 @@ import {
   updateFixture,
   deleteFixture,
   resetAllData,
+  previewRegistrationBackfill,
+  runRegistrationBackfill,
   getAuditLogs,
 } from '@/lib/admin-api';
 import { getClubs, getPlayers, getFixtures } from '@/lib/public-api';
@@ -60,6 +62,12 @@ export default function ManagePage() {
   const [draft, setDraft] = useState<any>({});
   const [confirming, setConfirming] = useState<{ kind: string; id?: string; label: string } | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Issuing KNSCL numbers to players approved before numbers existed. Kept
+  // here because it is a one-off data operation only the Platform Owner runs.
+  const [backfill, setBackfill] = useState<any>(null);
+  const [backfillBusy, setBackfillBusy] = useState(false);
+  const [backfillDone, setBackfillDone] = useState<any>(null);
 
   const load = async () => {
     try {
@@ -312,6 +320,90 @@ export default function ManagePage() {
 
       {/* ── Players ─────────────────────────────────────────── */}
       {!loading && tab === 'Players' && (
+        <>
+        <div className="card elev-sm" style={{ marginBottom: 'var(--space-4)' }}>
+          <h3 className="card-title">KNSCL Registration Numbers</h3>
+          <p className="card-meta" style={{ marginBottom: 'var(--space-2)' }}>
+            Players approved before official numbers existed have none. This issues them in the order the
+            players were originally registered &mdash; oldest first. Numbers already issued are never changed,
+            and players still awaiting approval are skipped. Safe to run more than once.
+          </p>
+
+          {backfillDone ? (
+            <>
+              <p style={{ margin: 0 }}>
+                {backfillDone.backfilled.length === 0
+                  ? 'Nothing to do — every approved player already has a number.'
+                  : `Issued ${backfillDone.backfilled.length} registration number${backfillDone.backfilled.length === 1 ? '' : 's'} (${backfillDone.range.from} – ${backfillDone.range.to}).`}
+              </p>
+              {backfillDone.preserved > 0 && (
+                <p className="card-meta">{backfillDone.preserved} existing number(s) left untouched.</p>
+              )}
+              {backfillDone.skippedAwaitingApproval > 0 && (
+                <p className="card-meta">{backfillDone.skippedAwaitingApproval} player(s) skipped — still awaiting approval.</p>
+              )}
+              {backfillDone.backfilled.length > 0 && (
+                <div style={{ marginTop: 'var(--space-2)', maxHeight: 220, overflowY: 'auto' }}>
+                  {backfillDone.backfilled.map((b: any) => (
+                    <p key={b.id} className="card-meta" style={{ margin: 0 }}>
+                      <strong style={{ fontFamily: 'var(--font-heading)' }}>{b.registrationNumber}</strong> &mdash; {b.name} ({b.club})
+                    </p>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {backfill && (
+                <p style={{ margin: '0 0 var(--space-2)' }}>
+                  {backfill.wouldBackfill} player(s) would receive a number.
+                  {backfill.alreadyNumbered > 0 && ` ${backfill.alreadyNumbered} already have one and will not change.`}
+                  {backfill.skippedAwaitingApproval > 0 && ` ${backfill.skippedAwaitingApproval} still awaiting approval will be skipped.`}
+                </p>
+              )}
+              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                <button
+                  className="btn btn-secondary"
+                  disabled={backfillBusy}
+                  onClick={async () => {
+                    setBackfillBusy(true);
+                    try {
+                      const res = await previewRegistrationBackfill();
+                      setBackfill(res.data?.data);
+                    } catch (err: any) {
+                      setStatus(err?.response?.data?.error || 'Could not check registration numbers.');
+                    } finally {
+                      setBackfillBusy(false);
+                    }
+                  }}
+                >
+                  {backfillBusy ? 'Checking…' : 'Check what needs a number'}
+                </button>
+                {backfill && backfill.wouldBackfill > 0 && (
+                  <button
+                    className="btn btn-primary"
+                    disabled={backfillBusy}
+                    onClick={async () => {
+                      setBackfillBusy(true);
+                      try {
+                        const res = await runRegistrationBackfill();
+                        setBackfillDone({ ...res.data?.data, skippedAwaitingApproval: res.data?.data?.skippedUnapproved });
+                        await load();
+                      } catch (err: any) {
+                        setStatus(err?.response?.data?.error || 'Could not issue registration numbers.');
+                      } finally {
+                        setBackfillBusy(false);
+                      }
+                    }}
+                  >
+                    Issue {backfill.wouldBackfill} registration number{backfill.wouldBackfill === 1 ? '' : 's'}
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
         <div className="card elev-sm">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 className="card-title">Players ({players.length})</h3>
@@ -327,6 +419,9 @@ export default function ManagePage() {
                     {p.playerNumber ? `#${p.playerNumber} ` : ''}{p.firstName} {p.lastName}
                   </p>
                   <p className="card-meta">{[p.club?.name, p.position, `${p.goals} goals`].filter(Boolean).join(' · ')}</p>
+                  {p.registrationNumber && (
+                    <p className="card-meta" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-ink)' }}>{p.registrationNumber}</p>
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flex: 'none' }}>
@@ -338,6 +433,7 @@ export default function ManagePage() {
             </div>
           ))}
         </div>
+        </>
       )}
 
       {/* ── Fixtures ────────────────────────────────────────── */}

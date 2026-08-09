@@ -66,7 +66,33 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
       <section className="bleed on-dark">
         <div className="bleed-inner" style={{ paddingTop: 'var(--space-8)', paddingBottom: 'var(--space-6)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
-            <Avatar src={player.photoUrl} name={name} size={100} rounded="square" />
+            {/*
+              The credential sits under the photo, the way a registration card
+              carries its number beneath the portrait. Labelled, in the tabular
+              numerals the rest of the site uses for football numbers, and read
+              straight from the player record — issued once during approval
+              (lib/player-registration.ts) and never recomputed here, so it
+              survives refresh unchanged. Until both approvals are in it does
+              not exist, and the page says so rather than inventing one.
+            */}
+            <div style={{ flex: 'none', textAlign: 'center' }}>
+              <Avatar src={player.photoUrl} name={name} size={100} rounded="square" />
+              {player.registrationNumber ? (
+                <>
+                  <span
+                    className="num"
+                    style={{ display: 'block', marginTop: 8, fontSize: 18, fontWeight: 700, letterSpacing: '0.06em', color: '#fff' }}
+                  >
+                    {player.registrationNumber}
+                  </span>
+                  <span className="stat-label" style={{ marginTop: 2 }}>KNSCL Registration No.</span>
+                </>
+              ) : (
+                <span className="text-muted" style={{ display: 'block', marginTop: 8, fontSize: 12, maxWidth: 100, lineHeight: 1.3 }}>
+                  Registration number pending approval
+                </span>
+              )}
+            </div>
             <div style={{ minWidth: 0 }}>
               <p className="eyebrow" style={{ marginBottom: 4 }}>
                 {player.position || 'Registered player'}
@@ -91,30 +117,6 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
                 </Link>
               </p>
 
-              {/*
-                The league credential. It closes the identity block the way a
-                licence number closes a registration document — labelled, in
-                the tabular numerals the rest of the site uses for football
-                numbers, never a bare code the reader has to guess at.
-
-                The number is read straight from the player record; it is
-                issued once during approval (lib/player-registration.ts) and
-                never recomputed here, so it survives refresh unchanged. Until
-                both approvals are in it does not exist, and the page says so
-                rather than inventing one.
-              */}
-              <p style={{ margin: 'var(--space-3) 0 0' }}>
-                <span className="stat-label" style={{ marginTop: 0 }}>KNSCL Registration No.</span>
-                {player.registrationNumber ? (
-                  <span className="num" style={{ fontSize: 22, fontWeight: 700, letterSpacing: '0.06em', color: '#fff' }}>
-                    {player.registrationNumber}
-                  </span>
-                ) : (
-                  <span className="text-muted" style={{ fontSize: 15 }}>
-                    Pending &mdash; issued once approval is complete
-                  </span>
-                )}
-              </p>
             </div>
           </div>
         </div>

@@ -80,6 +80,16 @@ export async function deleteFixture(id: string) {
   return client.delete(`/fixtures/${id}`);
 }
 
+export async function previewRegistrationBackfill() {
+  const client = getApiClient();
+  return client.get('/admin/backfill-registration-numbers');
+}
+
+export async function runRegistrationBackfill() {
+  const client = getApiClient();
+  return client.post('/admin/backfill-registration-numbers');
+}
+
 export async function resetAllData(confirmation: string) {
   const client = getApiClient();
   return client.post('/admin/reset', { confirmation });
