@@ -32,12 +32,13 @@ export default function Avatar({
 
   if (src) {
     // eslint-disable-next-line @next/next/no-img-element -- sources are data URLs or Blob CDN URLs, not statically known
-    return <img src={src} alt={name} style={{ ...shared, objectFit: 'cover', background: 'var(--color-neutral-100)' }} />;
+    return <img src={src} alt={name} className="avatar" style={{ ...shared, objectFit: 'cover', background: 'var(--color-neutral-100)' }} />;
   }
 
   return (
     <span
       aria-hidden="true"
+      className="avatar"
       style={{
         ...shared,
         display: 'inline-flex',
@@ -46,6 +47,7 @@ export default function Avatar({
         background: 'var(--color-neutral-100)',
         color: 'var(--color-neutral-600)',
         fontFamily: 'var(--font-heading)',
+        fontWeight: 700,
         fontSize: Math.max(10, Math.round(size * 0.36)),
         letterSpacing: '0.02em',
       }}

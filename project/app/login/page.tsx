@@ -35,9 +35,18 @@ export default function LoginPage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg)' }}>
       <div className="card elev-lg" style={{ maxWidth: 420, width: '100%', margin: 'var(--space-4)' }}>
-        <h1 style={{ fontWeight: 400, textAlign: 'center' }}>Sign In</h1>
-        <p className="text-muted" style={{ textAlign: 'center', marginBottom: 'var(--space-4)' }}>
-          Kilifi North Sub County League
+        {/* The league mark identifies the page; the heading is a card title,
+            not a display headline, so it stays at card scale. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
+          <span className="wordmark-mark" aria-hidden="true">KN</span>
+          <span className="wordmark-text">
+            <span className="wordmark-name" style={{ color: 'var(--color-ink)' }}>Kilifi North</span>
+            <span className="wordmark-sub" style={{ color: 'var(--color-accent)' }}>Sub County League</span>
+          </span>
+        </div>
+        <h1 style={{ fontSize: 24, letterSpacing: '-0.02em', marginBottom: 'var(--space-1)' }}>Sign In</h1>
+        <p className="text-muted" style={{ fontSize: 14, marginBottom: 'var(--space-4)' }}>
+          Staff and club accounts only.
         </p>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>

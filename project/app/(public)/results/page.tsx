@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getPublicResults, getPublicClubs } from '@/lib/public-data';
 import { buildMetadata } from '@/lib/seo';
-import { Breadcrumbs, EmptyState, ResultCard, PageHeader } from '@/components/public';
+import { Breadcrumbs, EmptyState, MatchdayList, PageHeader } from '@/components/public';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +10,6 @@ export const metadata = buildMetadata({
   description: 'Final scores, goalscorers and match reports from the Kilifi North Sub County League.',
   path: '/results',
 });
-
-const EVENT_LABEL: Record<string, string> = { GOAL: '⚽', YELLOW_CARD: '🟨', RED_CARD: '🟥' };
 
 export default async function ResultsPage({
   searchParams,
@@ -68,29 +66,7 @@ export default async function ResultsPage({
       {items.length === 0 ? (
         <EmptyState title="No results yet" hint="Results appear here once referees submit their match reports." />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-          {items.map((fixture) => {
-            const goals = fixture.matchEvents.filter((e) => e.type === 'GOAL');
-            const cards = fixture.matchEvents.filter((e) => e.type !== 'GOAL');
-            return (
-              <div key={fixture.id}>
-                <ResultCard fixture={fixture as any} />
-                {(goals.length > 0 || cards.length > 0) && (
-                  <p className="card-meta" style={{ marginTop: 'var(--space-1)', flexWrap: 'wrap' }}>
-                    {[...goals, ...cards].map((e) => (
-                      <span key={e.id} style={{ marginRight: 'var(--space-2)' }}>
-                        <span aria-hidden="true">{EVENT_LABEL[e.type]}</span>{' '}
-                        <span className="sr-only">{e.type.replace('_', ' ').toLowerCase()}: </span>
-                        {e.player.firstName} {e.player.lastName}
-                        {e.minute ? ` ${e.minute}'` : ''}
-                      </span>
-                    ))}
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <MatchdayList fixtures={items as any} played />
       )}
 
       {pages > 1 && (

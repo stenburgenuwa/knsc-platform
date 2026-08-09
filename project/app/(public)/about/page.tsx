@@ -1,6 +1,6 @@
 import { getSiteContent, getPublicClubs, getSponsors } from '@/lib/public-data';
 import { buildMetadata } from '@/lib/seo';
-import { Breadcrumbs, PageHeader } from '@/components/public';
+import { Breadcrumbs, PageHeader, SectionHead } from '@/components/public';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +27,7 @@ function Prose({ text }: { text: string }) {
   return (
     <div style={{ maxWidth: 720 }}>
       {text.split('\n').filter(Boolean).map((line, i) => (
-        <p key={i} style={{ marginBottom: 'var(--space-2)' }}>{line}</p>
+        <p key={i} style={{ marginBottom: 'var(--space-3)', fontSize: 16 }}>{line}</p>
       ))}
     </div>
   );
@@ -50,7 +50,7 @@ export default async function AboutPage() {
       <Breadcrumbs items={[{ name: 'Home', href: '/' }, { name: 'About', href: '/about' }]} />
       <PageHeader eyebrow="The League" title="About KNSCL" lead="Who we are and how the competition is run." />
 
-      <div className="stat-strip" style={{ marginBottom: 'var(--space-8)' }}>
+      <div className="stat-band" style={{ marginBottom: 'var(--space-8)', border: '1px solid var(--color-divider)' }}>
         <div className="stat-cell"><span className="stat-value">{clubs.length}</span><span className="stat-label">Clubs</span></div>
         <div className="stat-cell">
           <span className="stat-value">{clubs.reduce((sum, c) => sum + (c._count?.players ?? 0), 0)}</span>
@@ -62,24 +62,22 @@ export default async function AboutPage() {
 
       {sections.map((section) => (
         <section key={section.key} style={{ marginBottom: 'var(--space-6)' }}>
-          <div className="section-head"><h2 style={{ fontSize: 22 }}>{section.title}</h2></div>
+          <SectionHead title={section.title} />
           <Prose text={value(section.key)} />
         </section>
       ))}
 
       {content['about.leadership'] && (
         <section style={{ marginBottom: 'var(--space-6)' }}>
-          <div className="section-head"><h2 style={{ fontSize: 22 }}>Leadership</h2></div>
+          <SectionHead title="Leadership" />
           <Prose text={content['about.leadership']} />
         </section>
       )}
 
       {sponsors.length > 0 && (
         <section>
-          <div className="section-head"><h2 style={{ fontSize: 22 }}>Partners</h2></div>
-          <p className="text-muted">
-            {sponsors.map((s) => s.name).join(' · ')}
-          </p>
+          <SectionHead title="Partners" href="/sponsors" linkLabel="All partners" />
+          <p className="text-muted">{sponsors.map((s) => s.name).join(' · ')}</p>
         </section>
       )}
     </div>

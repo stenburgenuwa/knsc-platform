@@ -22,10 +22,10 @@ export default async function GalleryPage({ searchParams }: { searchParams: { ca
       <Breadcrumbs items={[{ name: 'Home', href: '/' }, { name: 'Gallery', href: '/gallery' }]} />
       <PageHeader eyebrow="Media" title="Gallery" lead="Moments from around the league." />
 
-      <nav aria-label="Gallery categories" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-6)' }}>
-        <Link href={catHref()} className={`btn ${!category ? 'btn-primary' : 'btn-secondary'}`}>All</Link>
+      <nav className="chip-row" aria-label="Gallery categories" style={{ marginBottom: 'var(--space-6)' }}>
+        <Link href={catHref()} className="chip" aria-current={!category ? 'true' : undefined}>All</Link>
         {GALLERY_CATEGORIES.map((c) => (
-          <Link key={c} href={catHref(c)} className={`btn ${category === c ? 'btn-primary' : 'btn-secondary'}`}>{c}</Link>
+          <Link key={c} href={catHref(c)} className="chip" aria-current={category === c ? 'true' : undefined}>{c}</Link>
         ))}
       </nav>
 

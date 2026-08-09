@@ -5,19 +5,20 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { Menu, X, Search } from 'lucide-react';
 
-// Fourteen destinations is more than a single row can carry, so the primary
-// competition links stay inline on desktop and the rest live under "More".
-const PRIMARY = [
+// Fourteen destinations is more than a single row can carry. The split is by
+// what a fan comes for: the competition itself stays inline, the league's
+// institutional pages sit under "More".
+const COMPETITION = [
   { label: 'Fixtures', href: '/fixtures' },
   { label: 'Results', href: '/results' },
   { label: 'Table', href: '/table' },
   { label: 'Clubs', href: '/clubs' },
   { label: 'Players', href: '/players' },
+  { label: 'Stats', href: '/statistics' },
   { label: 'News', href: '/news' },
 ];
 
-const SECONDARY = [
-  { label: 'Statistics', href: '/statistics' },
+const LEAGUE = [
   { label: 'Gallery', href: '/gallery' },
   { label: 'Sponsors', href: '/sponsors' },
   { label: 'Downloads', href: '/downloads' },
@@ -25,7 +26,7 @@ const SECONDARY = [
   { label: 'Contact', href: '/contact' },
 ];
 
-export default function PublicNav() {
+export default function PublicNav({ season }: { season?: string }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const pathname = usePathname();
@@ -37,51 +38,52 @@ export default function PublicNav() {
   };
 
   return (
-    <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--color-bg)', borderBottom: '1px solid var(--color-divider)' }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'var(--space-3) var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
-        <Link href="/" className="nav-brand" style={{ textDecoration: 'none', color: 'inherit', marginRight: 'auto', lineHeight: 1.1 }}>
-          <span style={{ display: 'block', fontSize: 18 }}>Kilifi North</span>
-          <span className="eyebrow" style={{ margin: 0 }}>Sub County League</span>
+    <header className="masthead">
+      <div className="masthead-utility">
+        <div className="masthead-utility-inner">
+          <span>{season ? `Season ${season}` : 'Kilifi County · Kenya'}</span>
+          <span style={{ display: 'flex', gap: 'var(--space-4)' }}>
+            <Link href="/contact">Contact</Link>
+            <Link href="/login">Sign In</Link>
+          </span>
+        </div>
+      </div>
+
+      <div className="masthead-main">
+        <Link href="/" className="wordmark" onClick={close}>
+          <span className="wordmark-mark" aria-hidden="true">KN</span>
+          <span className="wordmark-text">
+            <span className="wordmark-name">Kilifi North</span>
+            <span className="wordmark-sub">Sub County League</span>
+          </span>
         </Link>
 
-        <nav className="hidden lg:flex" aria-label="Main" style={{ gap: 'var(--space-4)', alignItems: 'center' }}>
-          {PRIMARY.map((link) => (
+        <nav className="masthead-nav" aria-label="Main">
+          {COMPETITION.map((link) => (
             <Link
               key={link.href}
               href={link.href}
+              className="nav-link"
               aria-current={isCurrent(link.href) ? 'page' : undefined}
-              style={{ color: isCurrent(link.href) ? 'var(--color-accent)' : 'inherit', textDecoration: 'none', fontSize: 14 }}
             >
               {link.label}
             </Link>
           ))}
 
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', display: 'flex' }}>
             <button
-              className="btn btn-ghost"
+              type="button"
+              className="nav-link"
               aria-expanded={moreOpen}
               aria-haspopup="true"
               onClick={() => setMoreOpen(!moreOpen)}
-              style={{ fontSize: 14 }}
             >
               More
             </button>
             {moreOpen && (
-              <div
-                style={{
-                  position: 'absolute', right: 0, top: '100%', marginTop: 4, minWidth: 180,
-                  background: 'var(--color-surface)', border: '1px solid var(--color-divider)',
-                  borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-md)', padding: 'var(--space-2)',
-                  display: 'flex', flexDirection: 'column', gap: 2,
-                }}
-              >
-                {SECONDARY.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={close}
-                    style={{ padding: '6px 8px', borderRadius: 'var(--radius-sm)', color: 'inherit', textDecoration: 'none', fontSize: 14 }}
-                  >
+              <div className="nav-menu">
+                {LEAGUE.map((link) => (
+                  <Link key={link.href} href={link.href} onClick={close}>
                     {link.label}
                   </Link>
                 ))}
@@ -91,18 +93,15 @@ export default function PublicNav() {
         </nav>
 
         {/* Plain GET form — search works with JavaScript disabled. */}
-        <form action="/search" method="get" role="search" className="hidden md:flex" style={{ gap: 4 }}>
+        <form action="/search" method="get" role="search" className="masthead-search">
           <label htmlFor="site-search" className="sr-only">Search the site</label>
-          <input id="site-search" name="q" type="search" className="input" placeholder="Search…" style={{ maxWidth: 150 }} />
-          <button type="submit" className="btn btn-icon" aria-label="Search">
-            <Search size={16} />
-          </button>
+          <Search size={14} aria-hidden="true" />
+          <input id="site-search" name="q" type="search" placeholder="Search" />
         </form>
 
-        <Link href="/login" className="btn btn-primary hidden sm:inline-flex">Sign In</Link>
-
         <button
-          className="btn btn-icon lg:hidden"
+          type="button"
+          className="masthead-toggle"
           aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={mobileOpen}
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -112,28 +111,43 @@ export default function PublicNav() {
       </div>
 
       {mobileOpen && (
-        <div className="lg:hidden" style={{ borderTop: '1px solid var(--color-divider)', maxHeight: '70vh', overflowY: 'auto' }}>
-          <nav aria-label="Mobile" style={{ display: 'flex', flexDirection: 'column', padding: 'var(--space-3) var(--space-4)' }}>
-            <form action="/search" method="get" role="search" style={{ display: 'flex', gap: 4, marginBottom: 'var(--space-3)' }}>
+        <div className="masthead-drawer">
+          <nav className="masthead-drawer-inner" aria-label="Mobile">
+            <form action="/search" method="get" role="search" style={{ display: 'flex', gap: 6, marginBottom: 'var(--space-2)' }}>
               <label htmlFor="mobile-search" className="sr-only">Search the site</label>
               <input id="mobile-search" name="q" type="search" className="input" placeholder="Search players, clubs, news…" />
-              <button type="submit" className="btn btn-secondary" aria-label="Search"><Search size={16} /></button>
+              <button type="submit" className="btn btn-primary" aria-label="Search"><Search size={16} /></button>
             </form>
-            {[...PRIMARY, ...SECONDARY].map((link) => (
+
+            <p className="drawer-group">Competition</p>
+            {COMPETITION.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
+                className="drawer-link"
                 onClick={close}
                 aria-current={isCurrent(link.href) ? 'page' : undefined}
-                style={{
-                  padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-divider)',
-                  color: isCurrent(link.href) ? 'var(--color-accent)' : 'inherit', textDecoration: 'none',
-                }}
               >
                 {link.label}
               </Link>
             ))}
-            <Link href="/login" className="btn btn-primary" onClick={close} style={{ marginTop: 'var(--space-3)' }}>Sign In</Link>
+
+            <p className="drawer-group">The League</p>
+            {LEAGUE.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="drawer-link"
+                onClick={close}
+                aria-current={isCurrent(link.href) ? 'page' : undefined}
+              >
+                {link.label}
+              </Link>
+            ))}
+
+            <Link href="/login" className="btn btn-primary" onClick={close} style={{ marginTop: 'var(--space-4)', width: '100%', justifyContent: 'center' }}>
+              Sign In
+            </Link>
           </nav>
         </div>
       )}

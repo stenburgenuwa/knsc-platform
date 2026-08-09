@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import Avatar from '@/components/Avatar';
 import { getPublicPlayer } from '@/lib/public-data';
 import { buildMetadata, jsonLd, breadcrumbSchema, absoluteUrl } from '@/lib/seo';
-import { Breadcrumbs, EmptyState, formatDate } from '@/components/public';
+import { Breadcrumbs, EmptyState, SectionHead, formatDate } from '@/components/public';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,8 +37,19 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
     ...(player.height ? { height: `${player.height} cm` } : {}),
   };
 
+  // Age is derived on read, never stored — see calculateAge in lib/public-data.
+  const facts = [
+    { label: 'Date of birth', value: formatDate(player.dateOfBirth) },
+    { label: 'Age', value: player.age != null ? String(player.age) : '' },
+    { label: 'Position', value: player.position },
+    { label: 'Height', value: player.height ? `${player.height} cm` : '' },
+    { label: 'Weight', value: player.weight ? `${player.weight} kg` : '' },
+    { label: 'Preferred foot', value: player.preferredFoot },
+    { label: 'County', value: player.county },
+  ];
+
   return (
-    <div className="page-shell-narrow">
+    <div>
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(schema)} />
       <script
         type="application/ld+json"
@@ -47,104 +58,91 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
         )}
       />
 
-      <Breadcrumbs items={[{ name: 'Home', href: '/' }, { name: 'Players', href: '/players' }, { name, href: `/players/${player.id}` }]} />
-
-      <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
-        <Avatar src={player.photoUrl} name={name} size={96} />
-        <div>
-          <h1 style={{ fontWeight: 400, margin: 0 }}>
-            {player.playerNumber != null && <span className="text-muted">{player.playerNumber} </span>}
-            {name}
-          </h1>
-          <p className="text-muted" style={{ margin: 0 }}>
-            <Link href={`/clubs/${player.club.id}`}>{player.club.name}</Link>
-            {player.position ? ` · ${player.position}` : ''}
-          </p>
-          {player.registrationNumber && (
-            <span className="tag tag-accent" style={{ marginTop: 6, display: 'inline-flex' }}>{player.registrationNumber}</span>
-          )}
+      <section className="bleed on-dark">
+        <div className="bleed-inner" style={{ paddingTop: 'var(--space-8)', paddingBottom: 'var(--space-6)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
+            <Avatar src={player.photoUrl} name={name} size={100} />
+            <div style={{ minWidth: 0 }}>
+              <p className="eyebrow" style={{ marginBottom: 4 }}>
+                {[player.position, player.registrationNumber].filter(Boolean).join(' · ') || 'Registered player'}
+              </p>
+              <h1 style={{ margin: 0, display: 'flex', alignItems: 'baseline', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+                {player.playerNumber != null && (
+                  <span className="num" style={{ fontSize: '0.7em', color: 'var(--color-accent-2)' }}>{player.playerNumber}</span>
+                )}
+                {name}
+              </h1>
+              <p style={{ margin: '6px 0 0' }}>
+                <Link href={`/clubs/${player.club.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <Avatar src={player.club.logoUrl} name={player.club.name} size={22} rounded="soft" />
+                  {player.club.name}
+                </Link>
+              </p>
+            </div>
+          </div>
         </div>
-      </header>
 
-      <div className="stat-strip" style={{ marginBottom: 'var(--space-6)' }}>
-        <div className="stat-cell"><span className="stat-value">{player.stats.matchesPlayed}</span><span className="stat-label">Matches</span></div>
-        <div className="stat-cell"><span className="stat-value">{player.stats.goals}</span><span className="stat-label">Goals</span></div>
-        <div className="stat-cell"><span className="stat-value">{player.stats.yellowCards}</span><span className="stat-label">Yellow cards</span></div>
-        <div className="stat-cell"><span className="stat-value">{player.stats.redCards}</span><span className="stat-label">Red cards</span></div>
-      </div>
-
-      <section style={{ marginBottom: 'var(--space-8)' }}>
-        <div className="section-head"><h2 style={{ fontSize: 22 }}>Profile</h2></div>
-        <dl className="grid grid-cols-2 md:grid-cols-3" style={{ gap: 'var(--space-3)' }}>
-          <div>
-            <dt className="card-meta" style={{ marginBottom: 2 }}>Date of birth</dt>
-            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{formatDate(player.dateOfBirth) || '—'}</dd>
+        <div style={{ borderTop: '1px solid rgb(255 255 255 / 0.14)' }}>
+          <div className="bleed-inner">
+            <div className="stat-band">
+              <div className="stat-cell"><span className="stat-value">{player.stats.matchesPlayed}</span><span className="stat-label">Matches</span></div>
+              <div className="stat-cell"><span className="stat-value">{player.stats.goals}</span><span className="stat-label">Goals</span></div>
+              <div className="stat-cell"><span className="stat-value">{player.stats.yellowCards}</span><span className="stat-label">Yellow cards</span></div>
+              <div className="stat-cell"><span className="stat-value">{player.stats.redCards}</span><span className="stat-label">Red cards</span></div>
+            </div>
           </div>
-          <div>
-            <dt className="card-meta" style={{ marginBottom: 2 }}>Age</dt>
-            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{player.age ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="card-meta" style={{ marginBottom: 2 }}>Position</dt>
-            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{player.position || '—'}</dd>
-          </div>
-          <div>
-            <dt className="card-meta" style={{ marginBottom: 2 }}>Height</dt>
-            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{player.height ? `${player.height} cm` : '—'}</dd>
-          </div>
-          <div>
-            <dt className="card-meta" style={{ marginBottom: 2 }}>Weight</dt>
-            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{player.weight ? `${player.weight} kg` : '—'}</dd>
-          </div>
-          <div>
-            <dt className="card-meta" style={{ marginBottom: 2 }}>Preferred foot</dt>
-            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{player.preferredFoot || '—'}</dd>
-          </div>
-          <div>
-            <dt className="card-meta" style={{ marginBottom: 2 }}>County</dt>
-            <dd style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{player.county || '—'}</dd>
-          </div>
-        </dl>
+        </div>
       </section>
 
-      <section>
-        <div className="section-head"><h2 style={{ fontSize: 22 }}>Match History</h2></div>
-        {player.matchHistory.length === 0 ? (
-          <EmptyState title="No recorded appearances yet" hint="Match involvement appears once results are published." />
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {player.matchHistory.map((m: any, i: number) => (
-              <Link
-                key={m.fixtureId}
-                href={`/matches/${m.fixtureId}`}
-                style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)',
-                  padding: 'var(--space-2) 0',
-                  borderBottom: i < player.matchHistory.length - 1 ? '1px solid var(--color-divider)' : 'none',
-                  color: 'inherit', textDecoration: 'none',
-                }}
-              >
-                <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
-                  <Avatar src={m.opponentLogo} name={m.opponent} size={24} rounded="soft" />
-                  <span>
-                    <span style={{ fontFamily: 'var(--font-heading)' }}>
-                      {m.home ? 'vs' : '@'} {m.opponent}
-                    </span>
-                    <span className="card-meta" style={{ margin: 0 }}>
-                      {formatDate(m.fixtureDate, 'short')}
-                      {m.events.length > 0 &&
-                        ` · ${m.events.map((e: any) => `${EVENT_LABEL[e.type]}${e.minute ? ` ${e.minute}'` : ''}`).join(', ')}`}
+      <div className="page-shell-narrow">
+        <Breadcrumbs items={[{ name: 'Home', href: '/' }, { name: 'Players', href: '/players' }, { name, href: `/players/${player.id}` }]} />
+
+        <section style={{ marginBottom: 'var(--space-8)' }}>
+          <SectionHead title="Profile" />
+          <dl className="grid grid-cols-2 md:grid-cols-3" style={{ gap: 'var(--space-4)' }}>
+            {facts.map((f) => (
+              <div key={f.label}>
+                <dt className="stat-label">{f.label}</dt>
+                <dd style={{ margin: '4px 0 0', fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 15 }}>{f.value || '—'}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        <section>
+          <SectionHead title="Match History" href="/results" linkLabel="All results" />
+          {player.matchHistory.length === 0 ? (
+            <EmptyState title="No recorded appearances yet" hint="Match involvement appears once results are published." />
+          ) : (
+            <div className="list-rule">
+              {player.matchHistory.map((m: any) => (
+                <Link
+                  key={m.fixtureId}
+                  href={`/matches/${m.fixtureId}`}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)', color: 'inherit', textDecoration: 'none' }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
+                    <Avatar src={m.opponentLogo} name={m.opponent} size={28} rounded="soft" />
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: 'block', fontFamily: 'var(--font-heading)', fontWeight: 600 }}>
+                        <span className="text-muted" style={{ fontWeight: 500 }}>{m.home ? 'vs' : 'away to'}</span> {m.opponent}
+                      </span>
+                      <span className="story-meta">
+                        {formatDate(m.fixtureDate, 'short')}
+                        {m.events.length > 0 &&
+                          ` · ${m.events.map((e: any) => `${EVENT_LABEL[e.type]}${e.minute ? ` ${e.minute}'` : ''}`).join(', ')}`}
+                      </span>
                     </span>
                   </span>
-                </span>
-                <strong style={{ fontVariantNumeric: 'tabular-nums' }}>
-                  {m.forScore ?? '-'}–{m.againstScore ?? '-'}
-                </strong>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
+                  <span className="match-row-score">
+                    {m.forScore ?? '-'}<span aria-hidden="true"> – </span>{m.againstScore ?? '-'}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

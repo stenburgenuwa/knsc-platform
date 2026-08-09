@@ -1,6 +1,6 @@
 import { getDownloads } from '@/lib/public-data';
 import { buildMetadata } from '@/lib/seo';
-import { Breadcrumbs, EmptyState, PageHeader } from '@/components/public';
+import { Breadcrumbs, EmptyState, PageHeader, SectionHead } from '@/components/public';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,27 +29,18 @@ export default async function DownloadsPage() {
       ) : (
         Object.entries(byCategory).map(([category, list]) => (
           <section key={category} style={{ marginBottom: 'var(--space-6)' }}>
-            <div className="section-head"><h2 style={{ fontSize: 20 }}>{category}</h2></div>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            <SectionHead title={category} />
+            <ul className="list-rule" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {list.map((d) => (
                 <li
                   key={d.id}
-                  style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)',
-                    padding: 'var(--space-3) 0', borderBottom: '1px solid var(--color-divider)', flexWrap: 'wrap',
-                  }}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}
                 >
                   <div style={{ minWidth: 0 }}>
-                    <p style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{d.title}</p>
-                    {d.description && <p className="card-meta" style={{ margin: 0 }}>{d.description}</p>}
+                    <p style={{ margin: 0, fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 15 }}>{d.title}</p>
+                    {d.description && <p className="story-meta">{d.description}</p>}
                   </div>
-                  <a
-                    className="btn btn-primary"
-                    href={d.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    download
-                  >
+                  <a className="btn btn-secondary" href={d.fileUrl} target="_blank" rel="noopener noreferrer" download>
                     Download<span className="sr-only"> {d.title}</span>
                   </a>
                 </li>

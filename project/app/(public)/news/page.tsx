@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getPublicNews, NEWS_CATEGORIES } from '@/lib/public-data';
 import { buildMetadata } from '@/lib/seo';
-import { Breadcrumbs, EmptyState, NewsCard, PageHeader } from '@/components/public';
+import { Breadcrumbs, EmptyState, NewsCard, PageHeader, formatDate } from '@/components/public';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,25 +17,49 @@ export default async function NewsPage({ searchParams }: { searchParams: { page?
   const { items, pages } = await getPublicNews(page, 9, category);
 
   const catHref = (c?: string) => (c ? `/news?category=${encodeURIComponent(c)}` : '/news');
+  const [leadStory, ...rest] = items;
 
   return (
     <div className="page-shell">
       <Breadcrumbs items={[{ name: 'Home', href: '/' }, { name: 'News', href: '/news' }]} />
       <PageHeader eyebrow="Newsroom" title="News" lead="Match reports, league announcements and club stories." />
 
-      <nav aria-label="News categories" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-6)' }}>
-        <Link href={catHref()} className={`btn ${!category ? 'btn-primary' : 'btn-secondary'}`}>All</Link>
+      <nav className="chip-row" aria-label="News categories" style={{ marginBottom: 'var(--space-6)' }}>
+        <Link href={catHref()} className="chip" aria-current={!category ? 'true' : undefined}>All</Link>
         {NEWS_CATEGORIES.map((c) => (
-          <Link key={c} href={catHref(c)} className={`btn ${category === c ? 'btn-primary' : 'btn-secondary'}`}>{c}</Link>
+          <Link key={c} href={catHref(c)} className="chip" aria-current={category === c ? 'true' : undefined}>{c}</Link>
         ))}
       </nav>
 
       {items.length === 0 ? (
         <EmptyState title="No stories published yet" hint="Check back soon for league news and announcements." />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: 'var(--space-4)' }}>
-          {items.map((article) => <NewsCard key={article.id} article={article} />)}
-        </div>
+        <>
+          {/* The newest story leads; the rest follow in a denser grid, so the
+              page has a front page rather than nine equal tiles. */}
+          <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'var(--space-6)', marginBottom: 'var(--space-8)' }}>
+            <div className="lg:col-span-7">
+              <NewsCard article={leadStory} lead />
+            </div>
+            {rest.slice(0, 4).length > 0 && (
+              <div className="lg:col-span-5 list-rule">
+                {rest.slice(0, 4).map((article) => (
+                  <Link key={article.id} href={`/news/${article.slug || article.id}`} className="story">
+                    <p className="eyebrow" style={{ margin: 0 }}>{article.category || 'League News'}</p>
+                    <h3 className="story-title" style={{ fontSize: 17, margin: '4px 0' }}>{article.title}</h3>
+                    <p className="story-meta">{formatDate(article.startDate)}</p>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {rest.length > 4 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4" style={{ gap: 'var(--space-6)' }}>
+              {rest.slice(4).map((article) => <NewsCard key={article.id} article={article} />)}
+            </div>
+          )}
+        </>
       )}
 
       {pages > 1 && (

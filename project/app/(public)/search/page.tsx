@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Avatar from '@/components/Avatar';
 import { globalSearch } from '@/lib/public-data';
 import { buildMetadata } from '@/lib/seo';
-import { Breadcrumbs, EmptyState, PageHeader } from '@/components/public';
+import { Breadcrumbs, EmptyState, PageHeader, SectionHead } from '@/components/public';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,25 +28,25 @@ function ResultGroup({
   if (items.length === 0) return null;
   return (
     <section style={{ marginBottom: 'var(--space-6)' }}>
-      <div className="section-head"><h2 style={{ fontSize: 20 }}>{title} ({items.length})</h2></div>
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      <SectionHead title={`${title} (${items.length})`} />
+      <ul className="list-rule" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
         {items.map((item) => (
-          <li key={item.id} style={{ borderBottom: '1px solid var(--color-divider)' }}>
+          <li key={item.id}>
             <Link
               href={hrefFor(item)}
-              style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-2) 0', color: 'inherit', textDecoration: 'none' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', color: 'inherit', textDecoration: 'none' }}
             >
               {(item.photoUrl !== undefined || item.logoUrl !== undefined) && (
                 <Avatar
                   src={item.photoUrl ?? item.logoUrl}
                   name={item.name}
-                  size={32}
+                  size={34}
                   rounded={item.logoUrl !== undefined ? 'soft' : 'circle'}
                 />
               )}
-              <span>
-                <span style={{ display: 'block', fontFamily: 'var(--font-heading)' }}>{item.name}</span>
-                <span className="card-meta" style={{ margin: 0 }}>{item.subtitle}</span>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', fontFamily: 'var(--font-heading)', fontWeight: 600 }}>{item.name}</span>
+                <span className="story-meta">{item.subtitle}</span>
               </span>
             </Link>
           </li>

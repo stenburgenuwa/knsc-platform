@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getSponsors } from '@/lib/public-data';
 import { buildMetadata } from '@/lib/seo';
-import { Breadcrumbs, EmptyState, PageHeader, SponsorCard } from '@/components/public';
+import { Breadcrumbs, EmptyState, PageHeader, SectionHead, SponsorCard } from '@/components/public';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,8 +34,8 @@ export default async function SponsorsPage() {
       ) : (
         Object.entries(byCategory).map(([category, list]) => (
           <section key={category} style={{ marginBottom: 'var(--space-8)' }}>
-            <div className="section-head"><h2 style={{ fontSize: 22 }}>{category}</h2></div>
-            <div className="logo-grid">
+            <SectionHead title={category} />
+            <div className="logo-wall">
               {list.map((sponsor) => <SponsorCard key={sponsor.id} sponsor={sponsor} />)}
             </div>
             {list.some((s) => s.description) && (

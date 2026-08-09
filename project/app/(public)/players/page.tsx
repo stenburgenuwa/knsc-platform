@@ -37,6 +37,16 @@ export default async function PlayersPage({
     return `/players?${params.toString()}`;
   };
 
+  // Position chips keep the other active filters and reset paging.
+  const positionHref = (position?: string) => {
+    const params = new URLSearchParams();
+    if (searchParams.q) params.set('q', searchParams.q);
+    if (searchParams.club) params.set('club', searchParams.club);
+    if (position) params.set('position', position);
+    const query = params.toString();
+    return query ? `/players?${query}` : '/players';
+  };
+
   return (
     <div className="page-shell">
       <Breadcrumbs items={[{ name: 'Home', href: '/' }, { name: 'Players', href: '/players' }]} />
@@ -54,18 +64,26 @@ export default async function PlayersPage({
             {clubs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
-        {positions.length > 0 && (
-          <div className="field">
-            <label htmlFor="p-position">Position</label>
-            <select id="p-position" name="position" className="input" defaultValue={searchParams.position || ''}>
-              <option value="">All positions</option>
-              {positions.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
-          </div>
-        )}
+        {/* Keeps the chip-selected position when the form is submitted. */}
+        {searchParams.position && <input type="hidden" name="position" value={searchParams.position} />}
         <button type="submit" className="btn btn-primary">Apply</button>
         <Link href="/players" className="btn btn-ghost">Reset</Link>
       </form>
+
+      {/* Position is the filter people actually reach for, so it gets a row of
+          one-click chips rather than being buried in a select. */}
+      {positions.length > 0 && (
+        <nav className="chip-row" aria-label="Filter by position" style={{ marginBottom: 'var(--space-6)' }}>
+          <Link href={positionHref()} className="chip" aria-current={!searchParams.position ? 'true' : undefined}>
+            All positions
+          </Link>
+          {positions.map((p) => (
+            <Link key={p} href={positionHref(p)} className="chip" aria-current={searchParams.position === p ? 'true' : undefined}>
+              {p}
+            </Link>
+          ))}
+        </nav>
+      )}
 
       {items.length === 0 ? (
         <EmptyState title="No players match those filters" hint="Try a different club or clear the search." />

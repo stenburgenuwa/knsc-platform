@@ -2,170 +2,519 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Classical design system tokens/components load from /classical/styles.css
-   (linked in app/layout.tsx). This file only carries app-level resets that
-   defer to those tokens rather than re-declaring look and feel. */
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: var(--font-body);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* Design tokens and base components load from /classical/styles.css (linked
+   in app/layout.tsx). This file carries the public competition site's own
+   patterns — matchday boards, score lines, standings — plus app-level resets. */
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   Public website — competition-facing patterns layered on top of the
-   Classical tokens. Kept here rather than in the design system file so
-   the system itself stays generic.
+   Layout rhythm
+   Not everything sits in the same 1200px box. Editorial pages run
+   narrower; matchday boards run full-bleed against a dark ground.
    ════════════════════════════════════════════════════════════════ */
 
-.page-shell { max-width: 1200px; margin: 0 auto; padding: var(--space-8) var(--space-4); }
-.page-shell-narrow { max-width: 820px; margin: 0 auto; padding: var(--space-8) var(--space-4); }
+.page-shell { max-width: 1240px; margin: 0 auto; padding: var(--space-8) var(--space-4); }
+.page-shell-narrow { max-width: 760px; margin: 0 auto; padding: var(--space-8) var(--space-4); }
+.bleed { width: 100%; }
+.bleed-inner { max-width: 1240px; margin: 0 auto; padding: 0 var(--space-4); }
 
-/* Skip link — visible only once focused via keyboard. */
+/* Dark ground for matchday and league identity. */
+.on-dark {
+  background: var(--color-ink);
+  color: #fff;
+}
+.on-dark h1, .on-dark h2, .on-dark h3, .on-dark h4 { color: #fff; }
+.on-dark a { color: var(--color-accent-300); }
+.on-dark .text-muted { color: rgb(255 255 255 / 0.62); }
+.on-dark .card-meta { color: rgb(255 255 255 / 0.62); }
+.on-dark .eyebrow { color: var(--color-accent-300); }
+
 .skip-link {
-  position: absolute; left: -9999px; top: 0; z-index: 100;
+  position: absolute; left: -9999px; top: 0; z-index: 200;
   padding: var(--space-2) var(--space-3);
   background: var(--color-surface); border: 1px solid var(--color-accent);
   border-radius: var(--radius-md);
 }
 .skip-link:focus { left: var(--space-3); top: var(--space-3); }
 
-/* — section headers — */
+/* ════════════════════════════════════════════════════════════════════
+   Masthead
+   Two tiers, as a newspaper or a club site has: a thin utility strip
+   carrying season and account, then the wordmark and the competition
+   nav. The active section is marked with a rule, not a colour swap —
+   colour is reserved for match state.
+   ════════════════════════════════════════════════════════════════ */
+
+.masthead { position: sticky; top: 0; z-index: 50; background: var(--color-ink); color: #fff; }
+
+.masthead-utility {
+  border-bottom: 1px solid rgb(255 255 255 / 0.12);
+  font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; font-weight: 600;
+  color: rgb(255 255 255 / 0.66);
+}
+.masthead-utility-inner {
+  max-width: 1240px; margin: 0 auto; padding: 7px var(--space-4);
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+}
+.masthead-utility a { color: rgb(255 255 255 / 0.8); text-decoration: none; }
+.masthead-utility a:hover { color: #fff; }
+
+.masthead-main {
+  max-width: 1240px; margin: 0 auto; padding: var(--space-3) var(--space-4);
+  display: flex; align-items: center; gap: var(--space-4);
+}
+
+/* Wordmark: a stacked lockup with a gold keyline, so the identity reads
+   as a badge rather than as body text. */
+.wordmark {
+  display: flex; align-items: center; gap: var(--space-3);
+  color: #fff; text-decoration: none; margin-right: auto; min-width: 0;
+}
+.wordmark-mark {
+  flex: none; width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--color-accent); color: #fff;
+  font-family: var(--font-heading); font-weight: 800; font-size: 13px; letter-spacing: 0.02em;
+  border-radius: var(--radius-sm);
+}
+.wordmark-text { display: flex; flex-direction: column; line-height: 1.05; min-width: 0; }
+.wordmark-name {
+  font-family: var(--font-heading); font-weight: 800; font-size: 17px;
+  letter-spacing: -0.02em; text-transform: uppercase;
+}
+.wordmark-sub {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--color-accent-300);
+}
+
+.masthead-nav { display: none; align-items: stretch; gap: var(--space-1); }
+@media (min-width: 1024px) { .masthead-nav { display: flex; } }
+
+.nav-link {
+  display: flex; align-items: center; padding: var(--space-2) var(--space-3);
+  font-family: var(--font-heading); font-weight: 600; font-size: 13px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: rgb(255 255 255 / 0.82); text-decoration: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+}
+.nav-link:hover { color: #fff; border-bottom-color: rgb(255 255 255 / 0.3); }
+.nav-link[aria-current='page'] { color: #fff; border-bottom-color: var(--color-accent-2); }
+
+.nav-menu {
+  position: absolute; right: 0; top: 100%; margin-top: var(--space-2); min-width: 190px; z-index: 60;
+  background: var(--color-surface); border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md); padding: var(--space-2) 0;
+}
+.nav-menu a {
+  display: block; padding: var(--space-2) var(--space-4);
+  font-size: 14px; color: var(--color-text); text-decoration: none;
+}
+.nav-menu a:hover { background: var(--color-neutral-100); color: var(--color-accent-800); }
+
+/* Search sits in the masthead as a field, not an icon-only mystery button. */
+.masthead-search { display: none; position: relative; }
+@media (min-width: 768px) { .masthead-search { display: block; } }
+.masthead-search input {
+  width: 170px; padding: 7px var(--space-3) 7px 32px; font-size: 13px;
+  background: rgb(255 255 255 / 0.08); border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: var(--radius-sm); color: #fff;
+}
+.masthead-search input::placeholder { color: rgb(255 255 255 / 0.5); }
+.masthead-search input:focus { outline: 2px solid var(--color-accent-2); outline-offset: 1px; background: rgb(255 255 255 / 0.14); }
+.masthead-search svg { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: rgb(255 255 255 / 0.55); pointer-events: none; }
+
+.masthead-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; flex: none;
+  background: none; border: 1px solid rgb(255 255 255 / 0.24); border-radius: var(--radius-sm);
+  color: #fff; cursor: pointer;
+}
+@media (min-width: 1024px) { .masthead-toggle { display: none; } }
+
+.masthead-drawer { border-top: 1px solid rgb(255 255 255 / 0.12); max-height: 72vh; overflow-y: auto; }
+.masthead-drawer-inner { padding: var(--space-4); }
+.masthead-drawer a.drawer-link {
+  display: block; padding: var(--space-3) 0;
+  border-bottom: 1px solid rgb(255 255 255 / 0.1);
+  font-family: var(--font-heading); font-weight: 600; font-size: 15px;
+  letter-spacing: 0.02em; color: rgb(255 255 255 / 0.85); text-decoration: none;
+}
+.masthead-drawer a.drawer-link[aria-current='page'] { color: var(--color-accent-2); }
+.masthead-drawer .drawer-group {
+  margin-top: var(--space-4); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; color: rgb(255 255 255 / 0.45);
+}
+
+/* ── Section headers ─────────────────────────────────────────────── */
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase;
+  color: var(--color-accent-700); margin: 0 0 var(--space-2);
+}
+
+/* A rule that starts under the heading and runs to the action, so sections
+   read as chapters rather than floating blocks. */
 .section-head {
   display: flex; justify-content: space-between; align-items: baseline;
-  gap: var(--space-3); margin-bottom: var(--space-4);
-  border-bottom: 1px solid var(--color-divider); padding-bottom: var(--space-2);
+  gap: var(--space-4); margin-bottom: var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--color-ink);
 }
-.section-head h2, .section-head h3 { margin: 0; font-weight: 400; }
-.eyebrow {
-  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
-  color: var(--color-accent-700); margin: 0 0 var(--space-1);
-}
+.section-head h2, .section-head h3 { margin: 0; }
+.on-dark .section-head { border-bottom-color: rgb(255 255 255 / 0.3); }
 
-/* — match cards: the core competition unit — */
-.match-card {
-  display: block; padding: var(--space-3);
-  border: 1px solid var(--color-divider); border-radius: var(--radius-md);
-  color: inherit; text-decoration: none; background: transparent;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+/* ════════════════════════════════════════════════════════════════════
+   Match components
+   The score line is the most-read object on the site, so it gets its own
+   grid: crest + club on the left, a locked-width numeral column on the
+   right. Numbers never shift position between rows.
+   ════════════════════════════════════════════════════════════════ */
+
+.match {
+  display: block;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  color: inherit; text-decoration: none;
+  transition: border-color 0.14s ease;
 }
-a.match-card:hover {
-  transform: translateY(-2px); box-shadow: var(--shadow-md);
-  border-color: color-mix(in srgb, var(--color-accent) 34%, var(--color-divider));
-}
-.match-card-meta {
+a.match:hover { border-color: var(--color-accent); }
+a.match:hover .match-cta { color: var(--color-accent-800); }
+
+.match-head {
   display: flex; justify-content: space-between; align-items: center; gap: var(--space-2);
-  font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
-  color: color-mix(in srgb, var(--color-text) 55%, transparent);
-  margin-bottom: var(--space-2);
-}
-.match-team {
-  display: flex; align-items: center; gap: var(--space-2);
-  min-width: 0; font-family: var(--font-heading); font-size: 15px;
-}
-.match-team span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.match-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: 3px 0; }
-.match-score {
-  font-family: var(--font-heading); font-size: 20px; font-variant-numeric: tabular-nums;
-  flex: none; min-width: 1.5em; text-align: right;
-}
-.match-kickoff {
-  font-family: var(--font-heading); font-size: 18px; text-align: center;
-  padding: 0 var(--space-3); flex: none;
+  padding-bottom: var(--space-2); margin-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-neutral-200);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--color-neutral-600);
 }
 
-/* — form badges (W/D/L) — */
+.match-side {
+  display: grid; grid-template-columns: 1fr auto;
+  align-items: center; gap: var(--space-3);
+  padding: 3px 0;
+}
+.match-club { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.match-club span {
+  font-family: var(--font-heading); font-weight: 600; font-size: 15px;
+  letter-spacing: -0.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* The losing side recedes rather than the winner shouting. */
+.match-side.is-beaten .match-club span { color: var(--color-neutral-500); font-weight: 500; }
+
+.match-score {
+  font-family: var(--font-numeric); font-variant-numeric: tabular-nums;
+  font-weight: 800; font-size: 22px; letter-spacing: -0.03em;
+  min-width: 1.4ch; text-align: right; color: var(--color-ink);
+}
+.match-side.is-beaten .match-score { color: var(--color-neutral-500); }
+
+.match-time {
+  font-family: var(--font-numeric); font-variant-numeric: tabular-nums;
+  font-weight: 700; font-size: 15px; color: var(--color-accent-700);
+}
+.match-foot {
+  display: flex; justify-content: space-between; align-items: center; gap: var(--space-2);
+  margin-top: var(--space-2); padding-top: var(--space-2);
+  border-top: 1px solid var(--color-neutral-200);
+  font-size: 12px; color: var(--color-neutral-600);
+}
+.match-cta { font-weight: 600; color: var(--color-accent-700); white-space: nowrap; }
+
+/* ── Matchday list ───────────────────────────────────────────────────
+   A fixtures page is a schedule, not a gallery. Matches are grouped under
+   the date they are played and laid out home–score–away, so the eye runs
+   down a single column of scores instead of hunting across cards. */
+
+.matchday { margin-bottom: var(--space-6); }
+.matchday-date {
+  position: sticky; top: 0; z-index: 2;
+  display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3);
+  padding: var(--space-2) 0; margin: 0 0 var(--space-1);
+  background: var(--color-bg);
+  border-bottom: 2px solid var(--color-ink);
+  font-family: var(--font-heading); font-weight: 700; font-size: 14px;
+  letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-ink);
+}
+.matchday-date span:last-child {
+  font-family: var(--font-body); font-weight: 500; font-size: 12px;
+  letter-spacing: 0.04em; color: var(--color-neutral-600);
+}
+
+/* Two columns on desktop: the fixture itself, then a fixed venue/officials
+   column. Without it the score line floats in the middle of a wide screen
+   with dead space either side. */
+.match-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) 210px;
+  align-items: center; gap: var(--space-4);
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--color-divider);
+  color: inherit; text-decoration: none;
+}
+.match-row:last-child { border-bottom: none; }
+a.match-row:hover { background: var(--color-neutral-100); }
+a.match-row:hover .match-row-club { color: var(--color-accent-800); }
+
+/* Capped so the mirrored line sits at the head of its column instead of
+   drifting into the middle of a wide screen. */
+.match-row-line {
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: var(--space-3);
+  max-width: 620px;
+}
+.match-row-side { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.match-row-side.is-home { justify-content: flex-end; }
+.match-row-club {
+  font-family: var(--font-heading); font-weight: 600; font-size: 15px; letter-spacing: -0.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.match-row-side.is-beaten .match-row-club { color: var(--color-neutral-500); font-weight: 500; }
+
+/* The centre column is a fixed-width slot so every score on the page lines
+   up vertically, whatever the club names do. */
+.match-row-mid {
+  flex: none; min-width: 86px; text-align: center;
+  font-family: var(--font-numeric); font-variant-numeric: tabular-nums;
+}
+.match-row-score {
+  display: inline-block; padding: 3px 10px;
+  background: var(--color-ink); color: #fff;
+  border-radius: var(--radius-sm);
+  font-weight: 800; font-size: 17px; letter-spacing: 0.02em;
+}
+.match-row-kickoff { font-weight: 700; font-size: 15px; color: var(--color-ink); }
+.match-row-meta {
+  display: flex; flex-direction: column; gap: 2px;
+  text-align: right; margin: 0;
+  font-size: 12px; color: var(--color-neutral-600);
+}
+.match-row-scorers {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-1) var(--space-4);
+  margin: var(--space-2) 0 0; font-size: 12px; color: var(--color-neutral-600);
+}
+.match-row-scorers .is-home { text-align: right; }
+
+/* Below the two-column breakpoint — or inside a narrow container — the venue
+   drops under the fixture and the row centres. */
+.matchday-compact .match-row { grid-template-columns: 1fr; gap: var(--space-2); }
+.matchday-compact .match-row-meta {
+  flex-direction: row; flex-wrap: wrap; justify-content: center;
+  gap: var(--space-1) var(--space-3); text-align: center;
+}
+@media (max-width: 860px) {
+  .match-row { grid-template-columns: 1fr; gap: var(--space-2); }
+  .match-row-meta {
+    flex-direction: row; flex-wrap: wrap; justify-content: center;
+    gap: var(--space-1) var(--space-3); text-align: center;
+  }
+}
+@media (max-width: 640px) {
+  .match-row-club { font-size: 13px; white-space: normal; }
+  .match-row-mid { min-width: 66px; }
+  .match-row-side .avatar { display: none; }
+}
+
+/* Hero fixture — the single next match, sized to be read across a room. */
+.match-hero {
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: var(--space-4);
+  padding: var(--space-6) var(--space-4);
+}
+.match-hero-club { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); text-align: center; min-width: 0; }
+.match-hero-club span {
+  font-family: var(--font-heading); font-weight: 700; font-size: clamp(15px, 2.4vw, 20px);
+  letter-spacing: -0.02em;
+}
+.match-hero-mid { text-align: center; }
+.match-hero-score {
+  font-family: var(--font-numeric); font-variant-numeric: tabular-nums;
+  font-weight: 800; font-size: clamp(38px, 8vw, 60px); letter-spacing: -0.05em; line-height: 1;
+}
+
+/* ── Form badges (W/D/L) ─────────────────────────────────────────── */
+
 .form-strip { display: inline-flex; gap: 3px; }
 .form-badge {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 18px; height: 18px; border-radius: 3px;
-  font-size: 10px; font-weight: 600; line-height: 1;
+  width: 19px; height: 19px; border-radius: var(--radius-sm);
+  font-family: var(--font-numeric); font-size: 11px; font-weight: 700; line-height: 1;
+  color: #fff;
 }
-.form-w { background: var(--color-accent-200); color: var(--color-accent-900); }
-.form-d { background: var(--color-neutral-200); color: var(--color-neutral-800); }
-.form-l { background: color-mix(in srgb, var(--color-text) 12%, transparent); color: var(--color-neutral-700); }
+.form-w { background: var(--color-win); }
+.form-d { background: var(--color-draw); }
+.form-l { background: var(--color-loss); }
 
-/* — standings table — */
+/* ════════════════════════════════════════════════════════════════════
+   Standings
+   ════════════════════════════════════════════════════════════════ */
+
 .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.table-standings { min-width: 640px; }
-.table-standings td, .table-standings th { font-variant-numeric: tabular-nums; }
-.table-standings .col-club { text-align: left; min-width: 180px; }
-.table-standings tbody tr.is-leader { background: color-mix(in srgb, var(--color-accent) 7%, transparent); }
 
-/* Numeric columns are noise on a phone — hide the secondary ones and let
-   position / club / played / GD / points carry the table. */
-@media (max-width: 640px) {
+.table-standings { min-width: 660px; }
+.table-standings td { padding: var(--space-2) var(--space-3); }
+.table-standings .col-pos {
+  width: 44px;
+  font-family: var(--font-numeric); font-variant-numeric: tabular-nums;
+  font-weight: 700; color: var(--color-neutral-600);
+}
+.table-standings .col-club { min-width: 190px; }
+.table-standings .col-num {
+  text-align: right; width: 46px;
+  font-family: var(--font-numeric); font-variant-numeric: tabular-nums;
+}
+.table-standings .col-pts {
+  text-align: right; width: 56px;
+  font-family: var(--font-numeric); font-variant-numeric: tabular-nums;
+  font-weight: 800; font-size: 16px; color: var(--color-ink);
+}
+/* A rule under the leader instead of a coloured wash. */
+.table-standings tbody tr.is-leader td { border-bottom-color: var(--color-ink); }
+.table-standings tbody tr.is-leader .col-pos { color: var(--color-accent); }
+
+/* On a phone, W/D/L/GF/GA are noise — position, club, played, GD and points
+   answer the question. The rest is available on the club page. */
+@media (max-width: 700px) {
   .table-standings { min-width: 0; }
   .table-standings .col-optional { display: none; }
+  .table-standings .col-club { min-width: 0; }
 }
 
-/* — media / hero — */
-.hero-figure {
-  position: relative; overflow: hidden; border-radius: var(--radius-lg);
-  background: var(--color-neutral-200);
-}
-.hero-figure img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.media-16x9 { aspect-ratio: 16 / 9; width: 100%; object-fit: cover; display: block; background: var(--color-neutral-200); }
-.media-4x3 { aspect-ratio: 4 / 3; width: 100%; object-fit: cover; display: block; background: var(--color-neutral-200); }
+/* ════════════════════════════════════════════════════════════════════
+   Editorial
+   ════════════════════════════════════════════════════════════════ */
 
-/* — stat strip — */
-.stat-strip {
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px;
-  background: var(--color-divider); border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md); overflow: hidden;
+.story { display: block; color: inherit; text-decoration: none; }
+.story:hover .story-title { color: var(--color-accent-700); }
+.story-media {
+  aspect-ratio: 16 / 10; width: 100%; object-fit: cover; display: block;
+  background: var(--color-neutral-200); border-radius: var(--radius-md);
 }
-@media (min-width: 768px) { .stat-strip { grid-template-columns: repeat(4, 1fr); } }
-.stat-cell { background: var(--color-bg); padding: var(--space-3); text-align: center; }
-.stat-value { font-family: var(--font-heading); font-size: 30px; line-height: 1.1; display: block; }
+.story-title {
+  font-family: var(--font-heading); font-weight: 700; letter-spacing: -0.02em;
+  line-height: 1.15; color: var(--color-ink); margin: var(--space-2) 0 var(--space-1);
+  transition: color 0.14s ease;
+}
+.story-lead .story-title { font-size: clamp(24px, 3.2vw, 36px); }
+.story-title { font-size: 18px; }
+
+/* Without a photograph the story carries itself on type: a rule above it and
+   room around it stand in for the missing image. */
+.story-textled { border-top: 3px solid var(--color-ink); padding-top: var(--space-3); }
+.story-lead.story-textled .story-title { font-size: clamp(26px, 3.6vw, 40px); }
+.story-meta { font-size: 12px; color: var(--color-neutral-600); display: flex; gap: 8px; align-items: center; }
+
+/* Long-form body copy. A measure of ~68 characters and a raised first
+   paragraph, so an article reads as writing rather than as UI text. */
+.article-body {
+  white-space: pre-wrap;
+  max-width: 62ch;
+  font-size: 17px;
+  line-height: 1.72;
+  margin-bottom: var(--space-6);
+}
+.article-body::first-line { font-weight: 500; }
+
+/* Divider-separated list — used where a card grid would be repetitive. */
+.list-rule { display: flex; flex-direction: column; }
+.list-rule > * { padding: var(--space-3) 0; border-bottom: 1px solid var(--color-divider); }
+.list-rule > *:last-child { border-bottom: none; }
+
+/* ── Stat band ───────────────────────────────────────────────────── */
+
+.stat-band { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--color-divider); }
+@media (min-width: 760px) { .stat-band { grid-template-columns: repeat(4, 1fr); } }
+.stat-cell { background: var(--color-bg); padding: var(--space-4) var(--space-3); }
+.on-dark .stat-band { background: rgb(255 255 255 / 0.14); }
+.on-dark .stat-cell { background: var(--color-ink); }
+.stat-value {
+  display: block;
+  font-family: var(--font-numeric); font-variant-numeric: tabular-nums;
+  font-weight: 800; font-size: clamp(28px, 4vw, 40px); line-height: 1; letter-spacing: -0.04em;
+  color: var(--color-ink);
+}
+.on-dark .stat-value { color: #fff; }
 .stat-label {
-  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  display: block; margin-top: 6px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--color-neutral-600);
 }
+.on-dark .stat-label { color: rgb(255 255 255 / 0.6); }
 
-/* — filter bar — */
+/* ── Filters ─────────────────────────────────────────────────────── */
+
 .filter-bar {
   display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: flex-end;
-  margin-bottom: var(--space-4);
+  padding: var(--space-3); margin-bottom: var(--space-6);
+  background: var(--color-surface); border: 1px solid var(--color-divider); border-radius: var(--radius-md);
 }
-.filter-bar .field { margin-bottom: 0; min-width: 150px; flex: 1 1 150px; }
-@media (min-width: 768px) { .filter-bar .field { flex: 0 1 190px; } }
+.filter-bar .field { margin-bottom: 0; flex: 1 1 150px; min-width: 140px; }
+@media (min-width: 768px) { .filter-bar .field { flex: 0 1 180px; } }
 
-/* — logo grid (sponsors) — */
-.logo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4); }
-@media (min-width: 640px) { .logo-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (min-width: 1024px) { .logo-grid { grid-template-columns: repeat(5, 1fr); } }
+/* Horizontally scrollable chip row — better than wrapping on mobile. */
+.chip-row {
+  display: flex; gap: var(--space-2); overflow-x: auto; padding-bottom: var(--space-2);
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.chip-row::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none; padding: 7px 14px; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--color-divider); border-radius: var(--radius-md);
+  background: var(--color-surface); color: var(--color-text); text-decoration: none;
+  white-space: nowrap;
+}
+.chip:hover { border-color: var(--color-neutral-500); color: var(--color-text); }
+.chip[aria-current='true'] { background: var(--color-ink); border-color: var(--color-ink); color: #fff; }
 
-/* — empty / error states — */
+/* ── Logo wall ───────────────────────────────────────────────────── */
+
+/* Flex, not a fixed grid: a league with two partners gets two sensible cells
+   rather than three empty ones, and a league with one does not get a banner
+   stretched across the page. */
+.logo-wall {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  border-top: 1px solid var(--color-divider); border-left: 1px solid var(--color-divider);
+}
+.logo-wall > * {
+  flex: 1 1 180px; max-width: 260px;
+  background: var(--color-surface); min-height: 110px;
+  border-right: 1px solid var(--color-divider); border-bottom: 1px solid var(--color-divider);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  padding: var(--space-3); text-align: center; text-decoration: none; color: inherit;
+}
+
+/* ── States ──────────────────────────────────────────────────────── */
+
 .state-block {
-  text-align: center; padding: var(--space-8) var(--space-4);
-  border: 1px dashed var(--color-divider); border-radius: var(--radius-md);
-  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  padding: var(--space-8) var(--space-4); text-align: center;
+  border: 1px dashed var(--color-neutral-300); border-radius: var(--radius-md);
+  color: var(--color-neutral-600);
 }
 
-/* — timeline (match report events) — */
+/* ── Match timeline ──────────────────────────────────────────────── */
+
 .timeline { list-style: none; margin: 0; padding: 0; }
-.timeline li {
-  display: flex; gap: var(--space-3); align-items: baseline;
-  padding: var(--space-2) 0; border-bottom: 1px solid var(--color-divider);
-}
+.timeline li { display: flex; gap: var(--space-4); align-items: baseline; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-divider); }
 .timeline li:last-child { border-bottom: none; }
 .timeline .minute {
-  font-family: var(--font-heading); font-variant-numeric: tabular-nums;
-  min-width: 3.2em; flex: none; color: var(--color-accent-700);
+  font-family: var(--font-numeric); font-variant-numeric: tabular-nums; font-weight: 700;
+  min-width: 3.4em; flex: none; color: var(--color-ink);
 }
 
-/* Respect users who ask for less motion. */
+/* ── Skeletons ───────────────────────────────────────────────────── */
+
+@keyframes skeleton-pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+.skeleton { display: block; border-radius: var(--radius-sm); background: var(--color-neutral-200); animation: skeleton-pulse 1.4s ease-in-out infinite; }
+.skeleton-text { height: 11px; margin-bottom: 8px; }
+.skeleton-text:last-child { margin-bottom: 0; }
+
+/* Motion is confined to state changes; with it disabled nothing is lost. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;

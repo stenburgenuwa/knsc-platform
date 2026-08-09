@@ -1,6 +1,6 @@
 import { getSiteContent } from '@/lib/public-data';
 import { buildMetadata } from '@/lib/seo';
-import { Breadcrumbs, PageHeader } from '@/components/public';
+import { Breadcrumbs, PageHeader, SectionHead } from '@/components/public';
 import ContactForm from '@/components/public/ContactForm';
 
 export const dynamic = 'force-dynamic';
@@ -28,14 +28,14 @@ export default async function ContactPage() {
       <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'var(--space-6)' }}>
         <div>
           <section style={{ marginBottom: 'var(--space-6)' }}>
-            <div className="section-head"><h2 style={{ fontSize: 20 }}>League Office</h2></div>
+            <SectionHead title="League Office" />
             <address style={{ fontStyle: 'normal', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
               <div>
-                <p className="card-meta" style={{ margin: 0 }}>Address</p>
+                <p className="stat-label" style={{ margin: 0 }}>Address</p>
                 <p style={{ margin: 0 }}>{content['contact.address'] || 'Kilifi North Sub County, Kilifi County, Kenya'}</p>
               </div>
               <div>
-                <p className="card-meta" style={{ margin: 0 }}>Email</p>
+                <p className="stat-label" style={{ margin: 0 }}>Email</p>
                 <p style={{ margin: 0 }}>
                   <a href={`mailto:${content['contact.email'] || 'info@knscl.co.ke'}`}>
                     {content['contact.email'] || 'info@knscl.co.ke'}
@@ -44,7 +44,7 @@ export default async function ContactPage() {
               </div>
               {content['contact.phone'] && (
                 <div>
-                  <p className="card-meta" style={{ margin: 0 }}>Phone</p>
+                  <p className="stat-label" style={{ margin: 0 }}>Phone</p>
                   <p style={{ margin: 0 }}>
                     <a href={`tel:${content['contact.phone'].replace(/\s+/g, '')}`}>{content['contact.phone']}</a>
                   </p>
@@ -55,7 +55,7 @@ export default async function ContactPage() {
 
           {socials.length > 0 && (
             <section style={{ marginBottom: 'var(--space-6)' }}>
-              <div className="section-head"><h2 style={{ fontSize: 20 }}>Follow the league</h2></div>
+              <SectionHead title="Follow the league" />
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
                 {socials.map((s) => (
                   <li key={s.label}>
@@ -68,7 +68,7 @@ export default async function ContactPage() {
 
           {content['contact.mapEmbed'] && (
             <section>
-              <div className="section-head"><h2 style={{ fontSize: 20 }}>Find us</h2></div>
+              <SectionHead title="Find us" />
               <div style={{ aspectRatio: '16 / 10', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--color-divider)' }}>
                 <iframe
                   src={content['contact.mapEmbed']}

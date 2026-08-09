@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getNewsArticle } from '@/lib/public-data';
 import { buildMetadata, jsonLd, breadcrumbSchema, absoluteUrl, SITE_NAME } from '@/lib/seo';
-import { Breadcrumbs, NewsCard, formatDate } from '@/components/public';
+import { Breadcrumbs, NewsCard, SectionHead, formatDate } from '@/components/public';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,22 +49,22 @@ export default async function NewsArticlePage({ params }: { params: { slug: stri
       <Breadcrumbs items={[{ name: 'Home', href: '/' }, { name: 'News', href: '/news' }, { name: article.title, href: `/news/${article.slug || article.id}` }]} />
 
       <p className="eyebrow">{article.category || 'News'}</p>
-      <h1 style={{ fontWeight: 400 }}>{article.title}</h1>
-      <p className="text-muted" style={{ marginBottom: 'var(--space-4)' }}>
+      <h1 style={{ margin: 0 }}>{article.title}</h1>
+      <p className="story-meta" style={{ margin: 'var(--space-3) 0 var(--space-6)', paddingBottom: 'var(--space-3)', borderBottom: '1px solid var(--color-divider)' }}>
         <time dateTime={new Date(article.startDate).toISOString()}>{formatDate(article.startDate)}</time>
-        {article.author && ` · ${article.author}`}
+        {article.author && <span>· {article.author}</span>}
       </p>
 
       {article.featuredImageUrl && (
-        <img src={article.featuredImageUrl} alt="" className="media-16x9 plate" style={{ marginBottom: 'var(--space-6)' }} />
+        <img src={article.featuredImageUrl} alt="" className="media-16x9" style={{ marginBottom: 'var(--space-6)', borderRadius: 'var(--radius-md)' }} />
       )}
 
-      <div style={{ whiteSpace: 'pre-wrap', fontSize: 16, lineHeight: 1.7, marginBottom: 'var(--space-6)' }}>
-        {article.message}
-      </div>
+      {/* Body copy gets a measure and a lead paragraph — this is the one page
+          on the site that is meant to be read rather than scanned. */}
+      <div className="article-body">{article.message}</div>
 
-      <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 'var(--space-8)' }}>
-        <span className="text-muted" style={{ alignSelf: 'center', fontSize: 13 }}>Share:</span>
+      <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center', marginBottom: 'var(--space-8)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-divider)' }}>
+        <span className="stat-label" style={{ display: 'inline', marginRight: 'var(--space-2)' }}>Share</span>
         <a
           className="btn btn-secondary"
           href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(article.title)}`}
@@ -93,8 +93,8 @@ export default async function NewsArticlePage({ params }: { params: { slug: stri
 
       {article.related.length > 0 && (
         <section>
-          <div className="section-head"><h2 style={{ fontSize: 22 }}>Related Stories</h2></div>
-          <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-4)' }}>
+          <SectionHead title="Related Stories" href="/news" linkLabel="Newsroom" />
+          <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-6)' }}>
             {article.related.map((r) => <NewsCard key={r.id} article={r} />)}
           </div>
         </section>

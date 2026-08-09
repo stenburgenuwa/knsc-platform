@@ -1,295 +1,287 @@
-/* Classical — design-system tokens and component classes. This file is the source of truth for the system's look; retune it here and see readme.md. */
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Lora:wght@400;600&display=swap');
+/* ══════════════════════════════════════════════════════════════════════
+   KNSCL Design System
+   Kilifi North Sub County League — competition & sports-editorial identity.
+
+   Typography does the work: Archivo (grotesk, strong numerals) carries
+   headlines, scores and league data; IBM Plex Sans carries reading text and
+   interface labels. Colour is deliberately narrow — deep pitch ink for
+   structure, Indian Ocean teal as the league's primary, warm gold reserved
+   for genuine emphasis. Corners are near-square and shadows are almost
+   absent: separation comes from borders, weight and ground colour, not
+   decoration.
+
+   Every class name here predates this retune and is still used by the
+   administration dashboards, so names are stable even where the look changed.
+   ══════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --color-bg: #f3f2f2;
-  --color-surface: #eae9e9;
-  --color-text: #201f1d;
-  --color-accent: #b68235;
-  --color-accent-2: #ac803e;
-  --color-divider: color-mix(in srgb, #201f1d 16%, transparent);
+  /* — ground & ink — */
+  --color-bg: #f6f5f2;          /* warm paper, never pure white */
+  --color-surface: #ffffff;
+  --color-ink: #0c1613;          /* pitch at night — structural dark */
+  --color-text: #16211d;
+  --color-divider: #d9d6cf;
 
-  /* Tonal ramps — generated in OKLCH on one shared lightness scale, so the
-     same step of any role matches the others in visual value. */
-  --color-neutral-100: #f8f4f4;
-  --color-neutral-200: #eae7e7;
-  --color-neutral-300: #d7d3d3;
-  --color-neutral-400: #bab6b6;
-  --color-neutral-500: #9b9797;
-  --color-neutral-600: #7d7979;
-  --color-neutral-700: #605d5d;
-  --color-neutral-800: #444141;
-  --color-neutral-900: #2d2b2b;
+  /* — league primary: Indian Ocean teal, with gold reserved for emphasis — */
+  --color-accent: #0d6e5e;
+  --color-accent-2: #b07d10;
 
-  --color-accent-100: #fff3e4;
-  --color-accent-200: #ffe3bf;
-  --color-accent-300: #facb8d;
-  --color-accent-400: #e1ad66;
-  --color-accent-500: #c28d41;
-  --color-accent-600: #a06f24;
-  --color-accent-700: #7d5411;
-  --color-accent-800: #5a3b0a;
-  --color-accent-900: #3a270d;
+  --color-neutral-100: #f2f1ed;
+  --color-neutral-200: #e5e3dc;
+  --color-neutral-300: #d0cdc4;
+  --color-neutral-400: #aca79c;
+  --color-neutral-500: #8a857a;
+  --color-neutral-600: #6b665c;
+  --color-neutral-700: #4e4a42;
+  --color-neutral-800: #33302a;
+  --color-neutral-900: #1b1916;
 
-  --color-accent-2-100: #fff3e4;
-  --color-accent-2-200: #ffe3be;
-  --color-accent-2-300: #f5cd96;
-  --color-accent-2-400: #dbaf70;
-  --color-accent-2-500: #bc8f4e;
-  --color-accent-2-600: #9b7232;
-  --color-accent-2-700: #79561f;
-  --color-accent-2-800: #573d14;
-  --color-accent-2-900: #382810;
+  --color-accent-100: #e3f3ef;
+  --color-accent-200: #bfe3db;
+  --color-accent-300: #8ecdc0;
+  --color-accent-400: #57b0a0;
+  --color-accent-500: #2b9182;
+  --color-accent-600: #0d6e5e;
+  --color-accent-700: #0a584b;
+  --color-accent-800: #08453b;
+  --color-accent-900: #06322b;
 
-  --font-heading: "Cormorant Garamond", system-ui, sans-serif;
-  --font-heading-weight: 600; /* review round 3: bold retired — semibold is the
-     interface headings' ceiling (they need the weight at small sizes); display
-     text goes lighter still, to the normal cut (see the deck) */
-  --font-body: "Lora", system-ui, sans-serif;
+  --color-accent-2-100: #fdf3d9;
+  --color-accent-2-200: #f7e0a6;
+  --color-accent-2-300: #eec96f;
+  --color-accent-2-400: #dcae3c;
+  --color-accent-2-500: #c4941c;
+  --color-accent-2-600: #b07d10;
+  --color-accent-2-700: #8c620b;
+  --color-accent-2-800: #6b4a08;
+  --color-accent-2-900: #4a3306;
 
-  --space-1: 4.6px;
-  --space-2: 9.2px;
-  --space-3: 13.8px;
-  --space-4: 18.4px;
-  --space-6: 27.6px;
-  --space-8: 36.8px;
+  /* — match state — */
+  --color-win: #0d6e5e;
+  --color-draw: #8a857a;
+  --color-loss: #b3261e;
+  --color-live: #c8102e;
 
+  /* — type — */
+  --font-heading: Archivo, "Helvetica Neue", Arial, sans-serif;
+  --font-heading-weight: 700;
+  --font-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  /* Scores, positions and points are set in this: same grotesk, locked to
+     tabular figures so columns of numbers align. */
+  --font-numeric: Archivo, "Helvetica Neue", Arial, sans-serif;
+
+  /* — spacing (4px base) — */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 14px;
+  --space-4: 20px;
+  --space-6: 32px;
+  --space-8: 48px;
+  --space-12: 72px;
+
+  /* — near-square corners; nothing is a pill — */
   --radius-sm: 2px;
-  --radius-md: 4px;
-  --radius-lg: 7px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
 
-  /* Elevation — derived from the ground: soft ink-tinted shadows on a
-     light theme, a hairline edge + ambient darkness on a dark one. */
-  --shadow-sm: 0 1px 2px color-mix(in srgb, #2d2b2b 14%, transparent);
-  --shadow-md: 0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);
-  --shadow-lg: 0 12px 32px color-mix(in srgb, #2d2b2b 22%, transparent);
+  /* — elevation is a last resort; borders do the separating — */
+  --shadow-sm: 0 1px 2px rgb(12 22 19 / 0.06);
+  --shadow-md: 0 2px 8px rgb(12 22 19 / 0.10);
+  --shadow-lg: 0 16px 40px rgb(12 22 19 / 0.18);
 }
 
+*, *::before, *::after { box-sizing: border-box; }
+
 body {
+  margin: 0;
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
 }
-h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: var(--font-heading-weight); }
 
-.plate{filter:sepia(0.22) saturate(0.82) contrast(1.05);box-sizing:border-box;
-  border:6px solid var(--color-surface);outline:1px solid var(--color-divider)}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   Components — built with the tokens above. Plain CSS
-   on plain HTML: no JavaScript, no build step. Each class is documented in
-   readme.md and demonstrated in foundations/ and components/.
-   ══════════════════════════════════════════════════════════════════════ */
-
-*, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; font-size: 15px; line-height: 1.55; font-weight: 400; }
+/* Headings are tight, heavy and dark — the loudest thing on the page. */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  line-height: 1.12; letter-spacing: -0.015em; margin: 0 0 var(--space-2);
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+  margin: 0 0 var(--space-2);
 }
-h1 { font-size: 42px; }
-h2 { font-size: 32px; }
-h3 { font-size: 25px; }
-h4 { font-size: 20px; }
-h5 { font-size: 16px; }
-h6 { font-size: 13px; }
-h6 { letter-spacing: 0.08em; text-transform: uppercase; }
+h1 { font-size: clamp(34px, 6vw, 56px); letter-spacing: -0.035em; }
+h2 { font-size: clamp(24px, 3.4vw, 34px); letter-spacing: -0.03em; }
+h3 { font-size: 21px; }
+h4 { font-size: 17px; }
+h5 { font-size: 15px; }
+h6 {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--color-neutral-600);
+}
+
 p { margin: 0 0 var(--space-3); }
-a { color: var(--color-accent); text-underline-offset: 3px; }
+a { color: var(--color-accent-700); text-underline-offset: 3px; }
+a:hover { color: var(--color-accent-800); }
 img { display: block; max-width: 100%; }
 figure { margin: 0; }
-figcaption {
-  font-size: 11px; margin-top: var(--space-1);
-  color: color-mix(in srgb, var(--color-text) 55%, transparent);
-}
-.text-muted { color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+figcaption { font-size: 12px; margin-top: var(--space-1); color: var(--color-neutral-600); }
+
+.text-muted { color: var(--color-neutral-600); }
 :focus { outline: none; }
 :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-::selection { background: color-mix(in srgb, var(--color-accent) 30%, transparent); }
+::selection { background: var(--color-accent-200); }
 
-/* — rules — */
-.hr {
-  height: 1px; border: 0; margin: var(--space-4) 0;
-  background: var(--color-divider);
+/* Numbers carry the competition — always tabular so columns line up. */
+.num {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
-/* — buttons — */
+.hr { height: 1px; border: 0; margin: var(--space-4) 0; background: var(--color-divider); }
+
+/* — buttons: one solid primary, everything else quiet — */
 .btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   cursor: pointer; text-decoration: none;
-  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: 14px; line-height: 1.2; color: var(--color-text); /* matches the .input's 14px —
-     the pair sits side by side in sign-up rows */
-  background: transparent; border: 1px solid transparent;
-  padding: var(--space-2) calc(var(--space-3) * 1.2);
+  font-family: var(--font-body);
+  font-weight: 600; font-size: 14px; line-height: 1.2;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 10px var(--space-4);
   border-radius: var(--radius-md);
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
 }
-.btn:active:not(:disabled) { transform: translateY(1px); }
 .btn svg { display: block; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.btn-primary { color: var(--color-accent); border-color: var(--color-accent); }
-.btn-primary:hover { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
-.btn-primary:active { background: color-mix(in srgb, var(--color-accent) 22%, transparent); }
-.btn-secondary { border-color: var(--color-divider); }
-.btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
-.btn-secondary:active { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
-.btn-ghost { color: var(--color-accent); padding-inline: var(--space-1); }
-.btn-ghost:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
-.btn-ghost:active { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
-.btn-icon { width: 36px; height: 36px; padding: 0; }
+
+.btn-primary { background: var(--color-accent); border-color: var(--color-accent); color: #fff; }
+.btn-primary:hover { background: var(--color-accent-700); border-color: var(--color-accent-700); color: #fff; }
+.btn-primary:active { background: var(--color-accent-800); }
+
+.btn-secondary { border-color: var(--color-divider); background: var(--color-surface); }
+.btn-secondary:hover { border-color: var(--color-neutral-500); }
+
+.btn-ghost { color: var(--color-accent-700); padding-inline: var(--space-1); font-weight: 600; }
+.btn-ghost:hover { color: var(--color-accent-800); text-decoration: underline; }
+
+.btn-icon { width: 38px; height: 38px; padding: 0; }
 .btn-block { width: 100%; margin-top: var(--space-2); }
 
+/* On dark grounds the outline button inverts. */
+.on-dark .btn-secondary { background: transparent; border-color: rgb(255 255 255 / 0.28); color: #fff; }
+.on-dark .btn-secondary:hover { border-color: #fff; }
+
 /* — forms — */
+.field { margin-bottom: var(--space-3); }
 .field > label {
-  display: block; font-size: 12px; margin-bottom: 5px;
-  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+  display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px;
+  color: var(--color-neutral-700);
 }
 .input {
-  width: 100%; min-height: 36px; padding: 6px 10px; font: inherit;
+  width: 100%; min-height: 40px; padding: 8px 11px; font: inherit;
   font-size: 14px; color: var(--color-text); caret-color: var(--color-accent);
-  background: transparent;
+  background: var(--color-surface);
   border: 1px solid var(--color-divider); border-radius: var(--radius-md);
 }
-.input:hover { border-color: color-mix(in srgb, var(--color-text) 45%, transparent); }
+.input:hover { border-color: var(--color-neutral-400); }
 .input:focus-visible { border-color: var(--color-accent); outline-offset: 0; }
-textarea.input { min-height: 90px; resize: vertical; }
+textarea.input { min-height: 96px; resize: vertical; }
+
 .radio { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
-.radio input, .seg-opt input {
-  position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;
-}
-.radio .dot {
-  width: 16px; height: 16px; flex: none; border-radius: 50%;
-  border: 1.5px solid var(--color-divider);
-}
+.radio input, .seg-opt input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.radio .dot { width: 16px; height: 16px; flex: none; border-radius: 50%; border: 1.5px solid var(--color-neutral-400); }
 .radio:hover .dot { border-color: var(--color-accent); }
-.radio input:checked + .dot {
-  border-color: var(--color-accent); background: var(--color-accent);
-  box-shadow: inset 0 0 0 4px var(--color-bg);
-}
+.radio input:checked + .dot { border-color: var(--color-accent); background: var(--color-accent); box-shadow: inset 0 0 0 3px var(--color-surface); }
 .radio input:focus-visible + .dot { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-.seg {
-  display: inline-flex; overflow: hidden;
-  border: 1px solid var(--color-divider); border-radius: var(--radius-md);
-}
-.seg-opt {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 12px; font-size: 13px; cursor: pointer;
-}
+
+.seg { display: inline-flex; overflow: hidden; border: 1px solid var(--color-divider); border-radius: var(--radius-md); }
+.seg-opt { display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .seg-opt + .seg-opt { border-left: 1px solid var(--color-divider); }
-.seg-opt:has(input:checked) { color: var(--color-accent); box-shadow: inset 0 0 0 1px var(--color-accent); }
-.seg-opt:not(:has(input:checked)):hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.seg-opt:has(input:checked) { background: var(--color-accent); color: #fff; }
+.seg-opt:not(:has(input:checked)):hover { background: var(--color-neutral-100); }
 .seg-opt:has(input:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: -2px; }
 
-/* — cards — */
+/* — cards: a container, not a decoration. No lift, no glow. — */
 .card {
   display: flex; flex-direction: column; gap: var(--space-2);
-  padding: var(--space-3); border-radius: var(--radius-md); background: transparent; border: 1px solid var(--color-divider);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
 }
-.card.elev-sm:hover, .card.elev-md:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: color-mix(in srgb, var(--color-accent) 30%, var(--color-divider));
+.card-kicker {
+  font-family: var(--font-body);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--color-accent-700);
 }
-.card-kicker { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent); }
-.card-title {
-  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: 17px; line-height: 1.2;
-}
-.card-body { margin: 0; font-size: 13px; opacity: 0.8; flex: 1; }
-.card-meta {
-  display: flex; align-items: center; gap: 6px; font-size: 11px;
-  color: color-mix(in srgb, var(--color-text) 50%, transparent);
-}
-.elev-sm { box-shadow: var(--shadow-sm); }
-.elev-md { box-shadow: var(--shadow-md); }
-.elev-lg { box-shadow: var(--shadow-lg); }
+.card-title { font-family: var(--font-heading); font-weight: 700; font-size: 17px; line-height: 1.2; letter-spacing: -0.015em; color: var(--color-ink); }
+.card-body { margin: 0; font-size: 14px; color: var(--color-neutral-700); flex: 1; }
+.card-meta { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-neutral-600); }
 
-/* — tags — */
+.elev-sm { box-shadow: none; }
+.elev-md { box-shadow: var(--shadow-sm); }
+.elev-lg { box-shadow: var(--shadow-md); }
+
+/* — tags: square, quiet, informational — */
 .tag {
-  display: inline-flex; align-items: center; font-size: 11px;
-  letter-spacing: 0.02em; padding: 3px 10px;
-  border-radius: calc(var(--radius-md) * 0.75);
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font-body);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  padding: 3px 7px; border-radius: var(--radius-sm);
 }
 .tag-accent { background: var(--color-accent-100); color: var(--color-accent-800); }
 .tag-accent-2 { background: var(--color-accent-2-100); color: var(--color-accent-2-800); }
-.tag-neutral { background: var(--color-neutral-100); color: var(--color-neutral-800); }
-.tag-outline { border: 1px solid var(--color-accent); color: var(--color-accent); }
+.tag-neutral { background: var(--color-neutral-200); color: var(--color-neutral-800); }
+.tag-outline { border: 1px solid var(--color-accent); color: var(--color-accent-700); }
+.tag-live { background: var(--color-live); color: #fff; }
+/* Match-state tags borrow the disciplinary colours a fan already reads on the
+   pitch: a yellow and a red, not two arbitrary brand tints. */
+.tag-warning { background: #fbf0cf; color: #6b4e00; }
+.tag-danger { background: #fbe3e1; color: #8c1c15; }
 
 /* — navigation — */
-.nav {
-  display: flex; align-items: center; gap: var(--space-4);
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--color-divider);
-}
-.nav-brand {
-  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: 18px; margin-right: auto;
-}
-.nav a { color: inherit; text-decoration: none; font-size: 14px; }
+.nav { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-divider); }
+.nav-brand { font-family: var(--font-heading); font-weight: 800; font-size: 18px; letter-spacing: -0.02em; margin-right: auto; }
+.nav a { color: inherit; text-decoration: none; font-size: 14px; font-weight: 500; }
 .nav a:hover, .nav a[aria-current='page'] { color: var(--color-accent); }
 
-/* — tables — */
+/* — tables: data-dense, quiet rules, loud numbers — */
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .table th {
-  text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
-  color: color-mix(in srgb, var(--color-text) 60%, transparent);
-  padding: var(--space-2); border-bottom: 1px solid var(--color-divider);
+  text-align: left; font-family: var(--font-body);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--color-neutral-600);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-neutral-300);
+  white-space: nowrap;
 }
-.table td {
-  padding: var(--space-2);
-  border-bottom: 1px solid var(--color-divider);
-}
-.table tbody tr { transition: background 0.15s ease; }
-.table tbody tr:hover { background: color-mix(in srgb, var(--color-text) 4%, transparent); }
-
-/* — skeleton loaders — */
-@keyframes skeleton-pulse {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
-}
-.skeleton {
-  display: block; border-radius: var(--radius-sm);
-  background: var(--color-neutral-200);
-  animation: skeleton-pulse 1.4s ease-in-out infinite;
-}
-.skeleton-text { height: 11px; margin-bottom: 8px; }
-.skeleton-text:last-child { margin-bottom: 0; }
-
-/* — hero band — */
-.hero-band {
-  position: relative; overflow: hidden;
-  background:
-    radial-gradient(circle at 18% 20%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 55%),
-    radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--color-accent-2) 8%, transparent), transparent 50%),
-    var(--color-surface);
-  border-bottom: 1px solid var(--color-divider);
-}
-.hero-band::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--color-text) 5%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--color-text) 5%, transparent) 1px, transparent 1px);
-  background-size: 44px 44px;
-  mask-image: radial-gradient(ellipse 70% 90% at 50% 0%, black 0%, transparent 75%);
-}
+.table td { padding: var(--space-3); border-bottom: 1px solid var(--color-divider); }
+.table tbody tr:last-child td { border-bottom: none; }
+.table tbody tr { transition: background 0.12s ease; }
+.table tbody tr:hover { background: var(--color-neutral-100); }
 
 /* — dialog — */
-.dialog-backdrop {
-  position: fixed; inset: 0; display: grid; place-items: center;
-  padding: var(--space-4);
-  background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
-}
-.dialog {
-  width: min(440px, 100%); display: flex; flex-direction: column; gap: var(--space-3);
-  padding: var(--space-4); border-radius: var(--radius-lg);
-  background: var(--color-surface); box-shadow: var(--shadow-lg); border: 1px solid var(--color-divider);
-}
-.dialog-title {
-  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: 20px;
-}
-.dialog-body { font-size: 14px; opacity: 0.85; }
+.dialog-backdrop { position: fixed; inset: 0; display: grid; place-items: center; padding: var(--space-4); background: rgb(12 22 19 / 0.55); z-index: 100; }
+.dialog { width: min(460px, 100%); display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-lg); border: 1px solid var(--color-divider); }
+.dialog-title { font-family: var(--font-heading); font-weight: 700; font-size: 22px; letter-spacing: -0.02em; }
+.dialog-body { font-size: 14px; color: var(--color-neutral-700); }
 .dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
 
+/* Legacy: the sepia photo plate from the previous system. Neutralised to a
+   plain bordered frame so old markup still renders sensibly. */
+.plate { box-sizing: border-box; border: 1px solid var(--color-divider); border-radius: var(--radius-md); overflow: hidden; }
+
+/* — fixed-ratio media, so a grid of photographs never jumps as images load — */
+.media-16x9, .media-4x3 {
+  display: block; width: 100%; object-fit: cover;
+  background: var(--color-neutral-200);
+}
+.media-16x9 { aspect-ratio: 16 / 9; }
+.media-4x3 { aspect-ratio: 4 / 3; }

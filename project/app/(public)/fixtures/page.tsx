@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getPublicFixtures, getPublicClubs, getVenues, getFixtureRounds } from '@/lib/public-data';
 import { buildMetadata } from '@/lib/seo';
-import { Breadcrumbs, EmptyState, FixtureCard, PageHeader } from '@/components/public';
+import { Breadcrumbs, EmptyState, MatchdayList, PageHeader } from '@/components/public';
 
 export const dynamic = 'force-dynamic';
 
@@ -93,9 +93,7 @@ export default async function FixturesPage({
       {items.length === 0 ? (
         <EmptyState title="No fixtures match those filters" hint="Try widening the date range or clearing the club filter." />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: 'var(--space-4)' }}>
-          {items.map((fixture) => <FixtureCard key={fixture.id} fixture={fixture as any} />)}
-        </div>
+        <MatchdayList fixtures={items as any} />
       )}
 
       {pages > 1 && (
