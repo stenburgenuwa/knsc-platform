@@ -140,9 +140,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       const nowLast = lastName ?? existing.lastName;
       const nowId = idNumber ?? existing.idNumber;
       const nowDob = dateOfBirth !== undefined ? dateOfBirth : existing.dateOfBirth;
-      if (!nowFirst?.trim() || !nowLast?.trim() || !nowId?.trim() || !nowDob) {
+      const nowPhoto = photoUrl !== undefined ? photoUrl : existing.photoUrl;
+      if (!nowFirst?.trim() || !nowLast?.trim() || !nowId?.trim() || !nowDob || !nowPhoto?.trim()) {
         return NextResponse.json(
-          { success: false, error: 'First name, last name, ID / passport number and date of birth are required before resubmitting.' },
+          { success: false, error: 'First name, last name, ID / passport number, date of birth and a player photo are required before resubmitting.' },
           { status: 400 }
         );
       }

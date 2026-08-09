@@ -101,13 +101,16 @@ export async function POST(request: NextRequest) {
 
     // Mandatory identity fields, enforced here rather than only in the form so
     // the rule holds for any caller. Middle name and position are optional and
-    // must never block a registration.
+    // must never block a registration. The photo is mandatory because the
+    // League Manager approves on it — a registration without one cannot be
+    // verified against the person.
     const missing = [
       !clubId && 'club',
       !firstName?.trim() && 'first name',
       !lastName?.trim() && 'last name',
       !idNumber?.trim() && 'ID / passport number',
       !dateOfBirth && 'date of birth',
+      !photoUrl?.trim() && 'player photo',
     ].filter(Boolean);
     if (missing.length > 0) {
       return NextResponse.json(

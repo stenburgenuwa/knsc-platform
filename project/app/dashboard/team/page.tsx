@@ -91,10 +91,15 @@ export default function TeamManagerDashboard() {
       setPlayerStatus('Your account is not linked to a club yet.');
       return;
     }
-    // Mandatory: first name, last name, ID/passport, date of birth. Middle
-    // name and position are optional and must never block a registration.
+    // Mandatory: first name, last name, ID/passport, date of birth and a
+    // cropped photo. Middle name and position are optional and must never
+    // block a registration.
     if (!playerForm.firstName.trim() || !playerForm.lastName.trim() || !playerForm.idNumber.trim() || !playerForm.dateOfBirth) {
       setPlayerStatus('First name, last name, ID / passport number and date of birth are required.');
+      return;
+    }
+    if (!playerForm.photoUrl) {
+      setPlayerStatus('A player photo is required — upload one and crop it before submitting.');
       return;
     }
     try {
@@ -141,6 +146,10 @@ export default function TeamManagerDashboard() {
   const saveEdit = async (playerId: string, resubmit: boolean) => {
     if (!editForm.firstName.trim() || !editForm.lastName.trim() || !editForm.idNumber.trim() || !editForm.dateOfBirth) {
       setEditStatus('First name, last name, ID / passport number and date of birth are required.');
+      return;
+    }
+    if (resubmit && !editForm.photoUrl) {
+      setEditStatus('A player photo is required before resubmitting — use Upload on this row to add one.');
       return;
     }
     setSavingEdit(true);
@@ -219,6 +228,20 @@ export default function TeamManagerDashboard() {
                 <label htmlFor="p-dob">Date of birth</label>
                 <input id="p-dob" type="date" className="input" required value={playerForm.dateOfBirth} onChange={(e) => setPlayerForm({ ...playerForm, dateOfBirth: e.target.value })} />
               </div>
+              {/* Mandatory: the League Manager approves against this photo. */}
+              <ImageUpload
+                label="Player photo"
+                kind="player"
+                rounded="square"
+                name={`${playerForm.firstName} ${playerForm.lastName}`.trim()}
+                value={playerForm.photoUrl}
+                onChange={(url) => setPlayerForm({ ...playerForm, photoUrl: url })}
+              />
+              {!playerForm.photoUrl && (
+                <p className="card-meta" style={{ marginTop: -8 }}>
+                  Upload a photo and crop it to a square before submitting.
+                </p>
+              )}
 
               <p className="card-kicker" style={{ marginTop: 'var(--space-3)' }}>Optional details</p>
               <div className="grid grid-cols-2" style={{ gap: 'var(--space-2)' }}>
@@ -244,14 +267,6 @@ export default function TeamManagerDashboard() {
                   <input id="p-weight" type="number" className="input" value={playerForm.weight} onChange={(e) => setPlayerForm({ ...playerForm, weight: e.target.value })} />
                 </div>
               </div>
-              <ImageUpload
-                label="Player photo"
-                kind="player"
-                rounded="square"
-                name={`${playerForm.firstName} ${playerForm.lastName}`.trim()}
-                value={playerForm.photoUrl}
-                onChange={(url) => setPlayerForm({ ...playerForm, photoUrl: url })}
-              />
               <button type="submit" className="btn btn-primary btn-block">Submit for Approval</button>
               {playerStatus && <p className="card-meta">{playerStatus}</p>}
             </form>

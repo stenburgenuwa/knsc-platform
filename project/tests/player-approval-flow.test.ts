@@ -20,11 +20,15 @@ function req(method: string, body?: any, token?: string) {
   });
 }
 
+// A 1x1 WebP stands in for the square crop the Team Manager uploads.
+const PHOTO = 'data:image/webp;base64,UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==';
+
 const VALID = {
   firstName: 'Juma',
   lastName: 'Kahindi',
   idNumber: '31234567',
   dateOfBirth: '2001-04-12',
+  photoUrl: PHOTO,
 };
 
 describe('Player registration, approval and rejection', () => {
@@ -61,11 +65,12 @@ describe('Player registration, approval and rejection', () => {
   const register = (overrides: Record<string, unknown> = {}) =>
     createPlayer(req('POST', { clubId, ...VALID, ...overrides }, tmToken));
 
-  it('registers a player with only the four mandatory fields', async () => {
+  it('registers a player with only the mandatory fields', async () => {
     const res = await register();
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.data.firstName).toBe('Juma');
+    expect(body.data.photoUrl).toBe(PHOTO);
     expect(body.data.position).toBeNull();
     expect(body.data.middleName).toBeNull();
   });
@@ -82,6 +87,8 @@ describe('Player registration, approval and rejection', () => {
     ['last name', { lastName: '' }],
     ['ID / passport number', { idNumber: '' }],
     ['date of birth', { dateOfBirth: '' }],
+    ['player photo', { photoUrl: '' }],
+    ['player photo at all', { photoUrl: undefined }],
   ])('refuses a registration with no %s', async (_label, overrides) => {
     const res = await register(overrides);
     expect(res.status).toBe(400);
@@ -90,6 +97,31 @@ describe('Player registration, approval and rejection', () => {
   it('does not block a registration on a missing middle name or position', async () => {
     const res = await register({ middleName: '', position: '' });
     expect(res.status).toBe(201);
+  });
+
+  it('names the photo among the missing fields so the manager knows what to add', async () => {
+    const res = await register({ photoUrl: '' });
+    expect((await res.json()).error).toMatch(/player photo/i);
+  });
+
+  it('refuses a resubmission with the photo removed', async () => {
+    const created = await (await register()).json();
+    const id = created.data.id;
+    await rejectPlayer(req('PATCH', { reason: 'Photo unclear' }, lmToken), { params: { id } });
+
+    const res = await patchPlayer(req('PATCH', { photoUrl: '', resubmit: true }, tmToken), { params: { id } });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/photo/i);
+    expect((await prisma.player.findUniqueOrThrow({ where: { id } })).rejectedAt).not.toBeNull();
+  });
+
+  it('allows a resubmission that keeps the existing photo', async () => {
+    const created = await (await register()).json();
+    const id = created.data.id;
+    await rejectPlayer(req('PATCH', { reason: 'Wrong ID' }, lmToken), { params: { id } });
+
+    const res = await patchPlayer(req('PATCH', { idNumber: '39998888', resubmit: true }, tmToken), { params: { id } });
+    expect(res.status).toBe(200);
   });
 
   it('issues a registration number only once both approvers have signed off', async () => {
