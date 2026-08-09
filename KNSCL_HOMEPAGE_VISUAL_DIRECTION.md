@@ -152,16 +152,16 @@ identity decision, specific to KNSCL, and impossible to arrive at generically.
 | | **02 MATCHDAY** |
 |---|---|
 | **Visual purpose** | The event. The page's single monument. |
-| **Composition** | Full-bleed ink. 12-col grid: match on cols 1–8, vertical hairline, rail on cols 9–12. Club names left-aligned; numerals in a locked right-hand column. |
+| **Composition** | Full-bleed ink. 12-col grid: match on cols 1–8, vertical hairline, rail on cols 9–12. Within the match: **club → score/status → club**, the status always centred between the clubs. |
 | **Relative size** | ~55–60% of first viewport. Largest section on the page. |
 | **Typography** | Score at `clamp(72px, 11vw, 128px)` / 800 / tracking `-0.05em` / tabular. Club names at `clamp(20px, 2.6vw, 32px)` / 700. Labels at 11px uppercase. |
 | **Image treatment** | Optional ground photograph at low luminance behind the ink, using the existing overlay technique. Must look finished with none. |
 | **Colour** | Ink ground, white type, crests supply colour. Status label in teal, or `--color-live` red when live. |
 | **Density** | Spacious. The most generous section on the page. |
-| **Alignment** | Club names flush left; numerals flush right in a fixed column so both scores align perfectly. |
+| **Alignment** | Symmetrical about the score. Crests and club names balanced either side; the numeral optically centred. |
 | **Relationship** | Runs directly out of the masthead with no gap — one uninterrupted ink field from the top of the page. |
-| **Desktop** | Two-part split at 8/4. |
-| **Mobile** | Rail moves below. Score scales *up* proportionally. Stacked layout survives untouched — see §11. |
+| **Desktop** | Two-part split at 8/4; match on a horizontal axis. |
+| **Mobile** | Rail moves below. Match axis rotates to vertical, keeping club → score → club order and the score central. Score scales *up* proportionally — see §11. |
 
 | | **03 COMPETITION** |
 |---|---|
@@ -296,61 +296,82 @@ The League  ▓▓▓ ink        ← hard cut
 The most important composition on the site. It must feel like an **event**, not a
 database row.
 
-### The core decision — a board, not a mirror
+### The core decision — the status always sits between the clubs
 
-Almost every football site centres the match: `HOME — score — AWAY`, mirrored
-about an axis. It is the expected solution, and it has two costs: it wastes the
-horizontal centre of a wide screen, and it collapses badly on mobile, where the
-crests and names get squeezed toward the middle.
+*Revised 9 August 2026 following design validation. See §15.4 for the reasoning
+behind the change from the earlier flush-right variant.*
 
-KNSCL does the opposite:
+The hero match expresses one relationship, and it must be legible at every width:
 
-> **Clubs stack. Names run flush left. Scores lock into a single flush-right
-> numeral column.**
+> **CLUB → SCORE / STATUS → CLUB**
+
+The score or status is **always the centre of the composition**, physically
+between the two clubs. This is how a fan says a fixture aloud, and it is what
+makes the block read as a *match* rather than as a list entry.
+
+What changes across breakpoints is the **axis**, not the arrangement.
 
 ```
-   ┌──┐                                    ╷
-   │MU│   MALINDI UNITED               2   │
-   └──┘                                    │  ← numerals share one
-   ┌──┐                                    │     flush-right column
-   │MF│   MTWAPA FC                    0   │
-   └──┘                                    ╵
+DESKTOP — horizontal axis
+   ┌────┐                                      ┌────┐
+   │ MU │            2  —  0                   │ MF │
+   └────┘                                      └────┘
+ Malindi United                              Mtwapa FC
+
+
+MOBILE — vertical axis, identical order
+   ┌────┐  Malindi United
+   └────┘
+   ══════════   2 — 0   ══════════        ← status band, still central
+   ┌────┐  Mtwapa FC
+   └────┘
 ```
 
-This gives four things a mirrored layout cannot:
+This is **not** a stacked card layout. The three parts keep their order and the
+centre element keeps its dominance; only the reading axis rotates. Nothing is
+re-parented, nothing is hidden, and the score never leaves the middle.
 
-1. **A vertical numeral column** — two enormous digits stacked, forming a strong
-   compositional edge on the right. This is the "board" reading.
-2. **Perfect mobile survival.** The layout is already vertical; it needs no
-   restructuring at any width.
-3. **Long club names cause no problem.** "Kilifi Township FC" and "Tezo Stars
-   Junior" have room to breathe instead of colliding with a centred score.
-4. **It is not what everyone else does.** That matters.
+### The centre never empties
 
-### The numeral column never empties
+The mechanism that lets one composition serve both season states:
 
-The mechanism that makes one composition serve both season states:
+| State | Centre holds | Example |
+|---|---|---|
+| **B — full time** | The score | `2 — 0` |
+| **B — upcoming** | Kickoff time | `15:00` |
+| **B — live** | Live score + minute | `1 — 1` · `67'` |
+| **A — pre-season** | Opening fixture kickoff | `15:00` |
 
-| State | Numeral column holds |
-|---|---|
-| **B — result** | The two scores. `2` / `0` |
-| **B — upcoming** | Kickoff time. `15:00` |
-| **A — pre-season** | Kickoff time of the opening fixture. `15:00` |
+The composition is **identical** in every state. Only the content of the centre
+changes. There is no second layout, no empty state, and nothing to hide.
 
-The composition is **identical** in every state. Only the content of the numeral
-column changes. There is no second layout, no empty state, and nothing to hide.
+### Where the flush-right numeral column survives
 
-### Anatomy
+The earlier flush-right treatment is not discarded — it moves to where it is
+genuinely superior. **Secondary match lists** (the "also this round" rail, the
+fixtures and results pages) keep club names flush left with scores locked into a
+single right-hand numeral column, because that is what makes a *list* scannable:
+every score in one vertical line.
+
+```
+HERO MATCH          club → score → club        (centred, monumental)
+MATCH LISTS         club ............ score    (flush-right column, scannable)
+```
+
+Two treatments, each doing the job it is best at — and together they form part of
+the KNSCL signature described in §15.3.
+
+### Anatomy — desktop
 
 ```
 ┌─ MATCHDAY 04 · SUNDAY 9 AUGUST ────────────── FULL TIME ─┐  ① eyebrow rail
 │                                                          │
-│   ┌────┐                                                 │
-│   │ MU │   MALINDI UNITED                       2        │  ② the board
-│   └────┘                                                 │
-│   ┌────┐                                                 │
-│   │ MF │   MTWAPA FC                            0        │
-│   └────┘                                                 │
+│                                                          │
+│    ┌──────┐                              ┌──────┐        │
+│    │  MU  │        2   —   0             │  MF  │        │  ② the match
+│    └──────┘                              └──────┘        │
+│  Malindi United                        Mtwapa FC         │
+│                                                          │
 │                                                          │
 │   ──────────────────────────────────────────────         │  ③ hairline
 │   MALINDI MUNICIPAL STADIUM          MATCH REPORT →      │  ④ footing
@@ -360,9 +381,13 @@ column changes. There is no second layout, no empty state, and nothing to hide.
 **① Eyebrow rail** — 11px uppercase, `0.14em` tracking, 62% white. Round and date
 left; status right. Status is the only place `--color-live` red appears.
 
-**② The board** — crest 56px at 2px radius (a plate, not a circle); club name
-`clamp(20px, 2.6vw, 32px)` / 700 / tracking `-0.02em`; numeral
-`clamp(72px, 11vw, 128px)` / 800 / tracking `-0.05em` / tabular.
+**② The match** — crest **72–88px** at 2px radius (a plate, not a circle); club
+name `clamp(18px, 2.2vw, 28px)` / 700 / tracking `-0.02em`, **title case, never
+uppercase**; numeral `clamp(72px, 11vw, 128px)` / 800 / tracking `-0.05em` /
+tabular.
+
+Crests are deliberately large. They carry identity, colour and football all at
+once — the three things a ruled page is otherwise short of (see §15.2).
 
 The losing side recedes to 60% white — the winner is not shouted, the loser is
 quieted. This is already the established KNSCL treatment and should be preserved.
@@ -371,15 +396,41 @@ quieted. This is already the established KNSCL treatment and should be preserved
 
 **④ Footing** — venue 13px uppercase; match report link right, in `accent-300`.
 
+### Matchday temperature
+
+A fixture is an **appointment**, and that is most of what separates football from
+editorial. The eyebrow rail carries relative time, not just a date:
+
+| Condition | Eyebrow reads |
+|---|---|
+| Match in progress | `LIVE · 67'` — in `--color-live` |
+| Today | `TODAY · KICKOFF 15:00` |
+| Tomorrow | `TOMORROW · 15:00` |
+| Within 7 days | `IN 3 DAYS · SUN 9 AUGUST` |
+| Further out | `SUNDAY 9 AUGUST` |
+| Completed | `FULL TIME` |
+
+This costs one date calculation and no pixels of decoration, and it is the single
+cheapest way to make the page feel like a competition rather than a record.
+
+**Vocabulary is part of the art direction.** Use football language throughout:
+`MATCHDAY 04` not "Round 4"; `FULL TIME` not "Completed"; `KICKOFF` not "Start
+time"; `FIXTURES` not "Upcoming events".
+
 ### Negative space
 
 The single most important instruction for this section:
 
-> **Leave the area beneath the club names empty.**
+> **Leave the area beneath the match empty.**
 
 The temptation will be to fill it — with a stat strip, a form guide, a ticket
 call-to-action. Do not. The monument requires silence around it. An empty lower
 third is what separates an event from a data row.
+
+The one permitted exception: a **form strip** (`W D L`) beneath each club name,
+in State B only, using the existing `--color-win/draw/loss` badges. It is
+competition information rather than decoration, it is three 19px squares, and it
+adds the only other colour on the ink ground besides the crests.
 
 ### Background treatment
 
@@ -460,12 +511,35 @@ Large numerals set tight read as a designed mark. Large numerals at default
 tracking read as unstyled text. This is the difference between a scoreboard and
 a spreadsheet, and it costs one CSS property.
 
+### Uppercase discipline
+
+The ruled aesthetic has a failure mode: if labels, navigation, club names and
+headlines are *all* uppercase with wide tracking, the page stops reading as
+football and starts reading as a legal form or a government notice.
+
+> **Uppercase is for furniture only — labels, navigation, eyebrows, metadata,
+> status and table headers.**
+>
+> **Clubs, people and headlines keep their natural case.**
+
+| Uppercase | Natural case |
+|---|---|
+| `MATCHDAY 04` · `FULL TIME` | Malindi United |
+| `TABLE` · `CLUBS` · `NEWS` | Omar Salim |
+| `LEAGUE NEWS` (category) | "Club registration window opens…" |
+| `P W D L GD PTS` | Malindi Municipal Stadium |
+
+The one exception is the crest wall, where club names are set at 11px uppercase
+because at that size they function as labels beneath the crests rather than as
+names in their own right.
+
 ### Prohibitions
 
 - No third font family.
 - No weight below 500 for Archivo (the loaded range is 500–800).
 - No heading larger than the score, anywhere on the page.
 - No italic. No letter-spaced lowercase. No text shadow. No gradient text.
+- No uppercase on club names, player names or headlines outside the crest wall.
 
 ---
 
@@ -774,14 +848,17 @@ object on the screen at every width.
 
 ```
 ┌─────────────────────────┐
-│ MD 04 · SUN 9 AUG   FT  │  ← eyebrow condenses
+│ MD 04 · IN 3 DAYS   FT  │  ← eyebrow condenses, keeps temperature
 │                         │
-│  ┌──┐                   │
-│  │MU│ MALINDI      2    │  ← unchanged structure
-│  └──┘ UNITED            │     names wrap, numerals hold
-│  ┌──┐                   │
-│  │MF│ MTWAPA FC    0    │
-│  └──┘                   │
+│  ┌────┐                 │
+│  │ MU │ Malindi United  │  ← club
+│  └────┘  W D W          │
+│ ═══════════════════════ │
+│         2 — 0           │  ← score/status stays CENTRAL
+│ ═══════════════════════ │
+│  ┌────┐                 │
+│  │ MF │ Mtwapa FC       │  ← club
+│  └────┘  L D L          │
 │                         │
 │  MALINDI MUNICIPAL      │
 │  MATCH REPORT →         │
@@ -791,8 +868,13 @@ object on the screen at every width.
 └─────────────────────────┘
 ```
 
-**This is the payoff of the stacked board.** A mirrored layout would have to be
-rebuilt for mobile; this one simply narrows.
+**The axis rotates; the relationship does not.** Club → score → club survives
+intact, the score remains physically between the two clubs, and it remains the
+largest object on the screen. This is explicitly **not** a stacked card layout —
+nothing is boxed, nothing is re-parented, and the centre never moves to a corner.
+
+The score band is bounded by two hairlines rather than by a container, so the
+mobile treatment stays inside the ruled language of the page.
 
 ### Per-section behaviour
 
@@ -968,6 +1050,377 @@ rendering of public pages · existing dashboards, which share these tokens.
 
 ---
 
+## 15. DESIGN VALIDATION
+
+*Added 9 August 2026, before implementation.*
+
+---
+
+### 15.1 KNSCL brand authenticity
+
+**Question:** do official KNSCL identity assets already exist that the direction
+should adopt rather than invent around?
+
+**Method:** searched the repository for image assets, inspected the Prisma schema
+for league-level branding fields, and reviewed the CMS-editable content keys.
+
+#### Findings
+
+| Checked | Result |
+|---|---|
+| Image assets in repo | **One file only** — `app/icon.svg` |
+| League logo field in schema | **None.** `logoUrl` exists on `Club` and `Sponsor` only |
+| League brand colour field | **None** |
+| CMS-editable branding keys | **None.** `EDITABLE_KEYS` carries no logo or colour key |
+| Official typography specification | **None** |
+| Brand guidelines in repo | **None** |
+
+**Conclusion: no official KNSCL visual identity assets exist.**
+
+The `KN` wordmark, the teal and the gold were all inferred during the earlier
+redesign. They are placeholders of my authorship, not league property.
+
+#### One genuine defect found
+
+`app/icon.svg` — the site favicon — is still drawn in `#b68235`, the **old
+Classical gold** that was removed from the design system when the tokens were
+rewritten. The current accent is `#0d6e5e`. The favicon is therefore the one
+surviving element of a retired palette.
+
+```
+app/icon.svg      stroke="#b68235"    ← retired Classical gold
+styles.css        --color-accent:     #0d6e5e   ← current league teal
+```
+
+Recorded here rather than fixed, since this pass is documentation only. It should
+be corrected during implementation — a one-line colour change, not a redesign.
+
+#### Direction
+
+Per the brief: **no new colours are to be invented.** The restrained
+ink / paper / teal system is retained exactly as specified in §6.
+
+**When official assets do arrive**, THE BOARD absorbs them without conceptual
+change, because the concept is structural rather than chromatic:
+
+| Asset | How THE BOARD incorporates it |
+|---|---|
+| Official badge | Replaces the `KN` lettermark in the masthead lockup and the favicon. The board is unaffected — it never depended on the mark. |
+| Official primary colour | Replaces `--color-accent`. One token. Every link, active state and win indicator follows automatically. |
+| Official secondary colour | Replaces `--color-accent-2`. Used for emphasis only. |
+| Official typeface | Replaces `--font-heading` / `--font-body`. The scale relationships in §5 hold regardless of family. |
+| Brand photography | Fills the slots already designed for it in §10 |
+
+> The concept survives a rebrand because **THE BOARD is a structure, not a
+> palette.** Rules, alignment, numerals and shared edges are colour-agnostic.
+
+#### One unused real asset worth noting
+
+`Club.colours` exists in the schema (a free-text field) and is currently unused by
+the design. Club kit colours are how supporters identify teams, and a 3px colour
+edge on a club's row would be genuinely footballing.
+
+**Not adopted now**, because the field is free text (`"Red and white"`) and cannot
+be parsed into a colour reliably. Recorded as a future option that would require a
+structured colour field first. Flagged rather than guessed at.
+
+---
+
+### 15.2 Football identity
+
+**Question:** does THE BOARD read as a modern football competition platform, or as
+a newspaper / government portal / generic editorial site?
+
+**This is the most serious risk in the direction, and the critique is fair.**
+
+#### The risk, stated honestly
+
+Hairline rules, tabular data, small uppercase labels, no shadows, no motion and a
+restrained palette describe THE BOARD accurately — and they equally describe a
+financial newspaper, a national statistics portal, or a Swiss-style editorial
+site. **The device is not inherently football.** Executed without correction, it
+could produce something austere and bureaucratic: a fixtures PDF with better type.
+
+That would be a different failure from AI slop, but still a failure.
+
+#### What actually makes an interface feel like football
+
+| Signal | Present in the direction? |
+|---|---|
+| Confident numerals at scale | ✅ Yes — §5, the core of the concept |
+| Club crests and colour | ✅ Yes — §1 principle 3, crest wall |
+| Match state as urgent and time-bound | ⚠️ **Was missing** |
+| Competition tension — form, position, streaks | ⚠️ **Was under-used** |
+| Named people — scorers, players | ✅ Yes — leading scorer rail |
+| Place — grounds, venues | ✅ Yes — matchday footing |
+| Football vocabulary | ⚠️ **Was unspecified** |
+
+#### Five adjustments made
+
+**A — Matchday temperature.** The eyebrow rail now carries relative time —
+`LIVE · 67'`, `TODAY`, `IN 3 DAYS` — rather than a bare date. A fixture is an
+appointment; a newspaper is not. Added to §4.
+
+**B — Larger crests.** The matchday crest increases from 56px to **72–88px**.
+Crests deliver identity, colour and football simultaneously, which is exactly what
+a ruled page is otherwise short of. Added to §4.
+
+**C — Form strips on the matchday board.** `W D L` badges beneath each club name
+in State B, using the existing win/draw/loss colours. Competition information, not
+decoration — and the only other colour on the ink ground besides the crests. Added
+to §4 as the single permitted exception to the negative-space rule.
+
+**D — Football vocabulary as art direction.** `MATCHDAY 04`, `FULL TIME`,
+`KICKOFF` — not "Round 4", "Completed", "Start time". Language carries as much
+football identity as layout does, and it costs nothing. Added to §4.
+
+**E — Uppercase discipline.** A real danger of the ruled aesthetic is that
+*everything* becomes uppercase with wide tracking, at which point the page reads
+as a legal form. Resolved explicitly:
+
+> **Uppercase is for labels, navigation, eyebrows and metadata only.
+> Club names, player names and headlines stay in title or sentence case.**
+
+The `clubs`, the `people` and the `stories` keep their natural case. Only the
+furniture is uppercase. Added to §5.
+
+#### Verdict
+
+With these five adjustments, **THE BOARD holds.** The concept was structurally
+sound but tonally cold; the corrections restore energy through *content* — time
+pressure, crests, form, language — rather than through gradients, glassmorphism,
+animation or decorative effects. No prohibited technique was used to fix it.
+
+The youth and community character is carried by the crests themselves — sixteen
+handmade, inconsistent, unmistakably local badges — and by naming real people and
+real grounds. That is more authentic than any stylistic gesture could be.
+
+---
+
+### 15.3 Visual distinctiveness
+
+**Question:** will implementing this direction actually avoid the AI-slop patterns
+in the audit?
+
+#### Verification against each pattern
+
+The test is not "will we remember not to?" but **"does the structure make it
+impossible?"**
+
+| Slop pattern | Structurally prevented by |
+|---|---|
+| Repeated card grids | §1 principle 1 — cells share hairlines, so a "card" cannot exist without violating the construction |
+| Identical section structures | §3 — four distinct column splits (8/4, 8/4, 12, 7/5) and five different padding values |
+| Generic SaaS layouts | §1 — the device is a results board; there is no sidebar, no widget, no tile |
+| Excessive rounded containers | §6 — hard ceiling of 3px, structural elements at 0 |
+| Excessive shadows | §6 — **zero shadows**; `--shadow-*` tokens forbidden on this page |
+| Generic hero sections | §2 and the UX direction — the hero is deleted, not replaced |
+| Generic profile cards | §7 — crest wall is a ruled matrix; players are not on the homepage as avatars |
+| Stock photography | §10 — absolute prohibition; every slot degrades to type |
+| Excessive pills | §6 — only form badges and the score chip, both at 2px |
+| Decorative gradients | §6 — colour is structural only; the sole gradient permitted is a photographic overlay |
+| "Dashboard everywhere" | §3 — three width modes and a deliberate spine, not a uniform container |
+
+#### The KNSCL visual signature
+
+Distinctiveness means a viewer could identify the site from a fragment. Three
+elements do that work:
+
+**1. The centred monumental score.** `club → 2 — 0 → club` with the numeral at
+128px, tabular, tracked to `-0.05em`, on flat ink. No card, no shadow, no
+gradient. This is the page's monument and its most memorable frame.
+
+**2. The hairline matrix.** The same construction — shared edges, no gaps, no
+radius — recurs in the crest wall, the league table, the partner row and the
+fixture lists. **One construction technique used everywhere** is what makes a
+design system read as authored rather than assembled.
+
+**3. Crest-only chroma.** An ink-and-paper page whose entire colour comes from
+sixteen amateur club badges. No other football site looks like this, because no
+other football site has *these* sixteen crests. This is the most defensible
+element of the identity: it is literally unrepeatable.
+
+Supporting signature: the **flush-right numeral column** in match lists, so every
+score on a page falls in one vertical line.
+
+> A screenshot of any section should be identifiable as KNSCL by construction —
+> ruled edges, monumental tabular numerals, and crest colour on ink or paper.
+
+---
+
+### 15.4 Responsive integrity
+
+**Question:** does the concept survive at desktop, tablet and mobile — and does
+the Matchday Board avoid degrading into a conventional stacked card layout?
+
+#### The change this validation produced
+
+The earlier draft specified a **flush-right numeral column** for the hero match:
+clubs stacked, names flush left, both scores locked into a right-hand column.
+
+That was reconsidered against two of this pass's requirements — the football
+identity concern in §15.2, and the instruction to preserve
+`club → score/status → club`.
+
+**Assessment:** the flush-right treatment was the better *list* layout and the
+weaker *event* layout. Reading `Malindi United ....... 2` is how a results column
+reads; it is not how a match feels. The centred score is the more footballing
+composition, and it directly addresses the "too newspaper" risk.
+
+**Resolution — both are kept, each where it is stronger:**
+
+| Context | Treatment |
+|---|---|
+| **Hero match** | `club → score/status → club`, centred, monumental |
+| **Match lists** (also-this-round rail, fixtures, results) | Flush-right numeral column, scannable |
+
+§4 has been revised accordingly. Nothing was discarded; the flush-right column
+moved to where it earns its place.
+
+#### Breakpoint validation
+
+| | Desktop ≥1024 | Tablet 640–1023 | Mobile <640 |
+|---|---|---|---|
+| Grid | 12 col | 8 col | 4 col |
+| Matchday | 8/4 split, horizontal match axis | 8/4 retained, crests 64px | Rail below; **match axis rotates to vertical** |
+| Score | 128px | ~96px | ≥72px, still the largest object on screen |
+| Competition | 8/4, full table | 8/4, table drops GF/GA | Rail below; table keeps pos/club/P/GD/PTS |
+| Clubs | 6 across | 4 across | 3 across, crest 40px |
+| News | 7/5 hairline split | 7/5 retained | Lead full width, list below |
+| The League | 4 columns | 2 columns | 1 column |
+
+#### The Matchday Board on mobile — the critical case
+
+**Requirement:** must not become a conventional stacked card layout; must preserve
+`club → score/status → club`.
+
+**How the direction satisfies it:**
+
+1. **The order is preserved literally.** Club, then score/status, then club — top
+   to bottom instead of left to right.
+2. **The score stays physically between the clubs.** It does not move to a corner,
+   a badge or a right-hand column. It remains the centre of the composition.
+3. **The score remains dominant.** Minimum 72px, scaling with viewport width. It
+   is the largest object on the screen at every size.
+4. **Nothing becomes a card.** The score band is bounded by two hairlines, not by
+   a container. No radius, no shadow, no padding-box. The mobile treatment stays
+   inside the ruled language.
+5. **Only the axis rotates.** No re-parenting, no hiding, no alternate component.
+
+```
+   DESKTOP                              MOBILE
+   club ─── score ─── club              club
+                                          │
+                                        score      ← same relationship,
+                                          │           rotated axis
+                                        club
+```
+
+#### Other responsive risks checked
+
+| Risk | Mitigation |
+|---|---|
+| Long club names ("Tezo Stars Junior") colliding with a centred score | Names sit *below* crests on their own line, not beside the score. Wrapping is free. |
+| Crest wall becoming a scroller | Fixed at 3 columns on mobile; the wall's value is seeing the whole competition at once |
+| Table overflowing the page | Scrolls inside its own `overflow-x` container; body never scrolls horizontally |
+| Uppercase labels wrapping awkwardly at 390px | Labels stay 11px and do not scale; eyebrow abbreviates (`MATCHDAY 04` → `MD 04`) |
+| Form strips crowding club names on mobile | Permitted to drop below 480px — metadata goes before content goes |
+
+**Verdict: the concept holds at all three sizes.** The mobile Matchday Board is a
+rotation of the desktop composition, not a substitution for it.
+
+---
+
+## 16. IMPLEMENTATION GUARDRAILS
+
+Binding rules for the implementation phase. These are not suggestions.
+
+### The governing rule
+
+> **Improve hierarchy before decoration.
+> Improve composition before components.
+> Improve typography before effects.**
+
+If a section is not working, the answer is never a visual effect. It is the
+hierarchy, the composition or the type — in that order.
+
+### Do not
+
+1. **Do not add UI elements without a documented purpose.** Every element on the
+   page must trace to a user need in `KNSCL_HOMEPAGE_UX_DIRECTION.md` §2 or a
+   treatment in this document. If it appears in neither, it does not ship.
+2. **Do not convert every section into a card.** Cards are permitted for a news
+   story. Nothing else on this page.
+3. **Do not add decorative effects to compensate for weak hierarchy.** A section
+   that needs a shadow to separate it from its neighbour has a spacing or ground
+   problem, not a depth problem.
+4. **Do not introduce gradients** unless specifically justified. The only
+   permitted gradient on this page is the ink overlay on a photographic ground,
+   specified in §4. No decorative, mesh, radial or text gradients.
+5. **Do not introduce stock photography.** Ever. No illustrations, patterns or
+   placeholder images substituting for real photographs either.
+6. **Do not introduce arbitrary colours.** The palette in §6 is closed. No new
+   token, no inline hex, no third accent. Colour is structural or it does not
+   appear.
+7. **Do not introduce unnecessary animations.** Only `color`, `background-color`
+   and `border-color` may transition, at ≤200ms. Nothing moves, scales or fades.
+8. **Do not change the visual concept during implementation.** THE BOARD is
+   approved. If something cannot be built within it, raise it — do not quietly
+   substitute a different idea mid-build.
+9. **Do not add a section to fill space.** The page is deliberately shorter than
+   the one it replaces.
+10. **Do not display a zero-value statistic.** Suppress it. A zero is not
+    information.
+11. **Do not let any heading exceed the score.** Section labels stay at 13px.
+12. **Do not create a parallel class system.** Extend the existing tokens and
+    utilities. No new dependency, icon set or design system.
+
+### Preserve
+
+13. **Preserve the typography hierarchy.** The scale in §5 — extremes with a
+    deliberate gap between 17px and 32px — is load-bearing. Filling that gap
+    reintroduces the generated look.
+14. **Preserve the ruled / shared-edge composition.** Structure comes from
+    hairlines and touching cells. No gaps between grid cells, no floating
+    containers.
+15. **Preserve the Matchday Board as the primary visual anchor.** Nothing on the
+    page may compete with it — not a heading, not an image, not a promotion.
+16. **Preserve the distinction between data records and UI containers.**
+
+    > A **record** is ruled, shares edges with its neighbours, and carries data.
+    > A **container** is boxed, floats, and carries interface.
+    >
+    > Match rows, table rows, crest cells and partner cells are **records**.
+    > Treating a record as a container is the specific mistake that produced the
+    > current site.
+
+17. **Preserve `club → score/status → club`** at every breakpoint. The axis may
+    rotate; the relationship may not break.
+18. **Preserve crest-only chroma.** Every saturated pixel is a crest, a match
+    state or the single teal accent.
+19. **Preserve the empty space beneath the match.** Only the form strip may
+    occupy it.
+20. **Preserve existing functionality** — routes, data, the private-field boundary
+    in `lib/public-data.ts`, server rendering of public pages, and the dashboards
+    that share these tokens.
+
+### Fix in passing
+
+21. `app/icon.svg` still uses the retired Classical gold `#b68235`. Update it to
+    `--color-accent` `#0d6e5e` during implementation. One-line change.
+
+### The three tests, restated
+
+Before adding any element:
+
+- **The rule test.** Could this be a rule instead of a box? Then make it a rule.
+- **The removal test.** Would removing this effect make the interface clearer?
+  Then remove it.
+- **The extreme test.** Is this at an extreme of the type scale? If it sits in the
+  middle with everything else, it is not carrying hierarchy.
+
+---
+
 ## Appendix — Summary of visual decisions
 
 | Decision | Rationale |
@@ -976,8 +1429,12 @@ rendering of public pages · existing dashboards, which share these tokens.
 | Ruled, never boxed | Removes the card-grid character in one structural move |
 | Numbers as imagery | Honest response to having no photography; a `2` at 128px beats a mediocre photo |
 | Crests as the only chroma | KNSCL's real, specific, unrepeatable colour asset |
-| Stacked board, not mirrored score | Creates a vertical numeral column; survives mobile untouched; not what everyone else does |
-| Numeral column never empties | One composition serves both season states |
+| Score always centred between the clubs | `club → score → club` is how a match is read aloud; the centred score is the *event* layout. Axis rotates on mobile; relationship never breaks. *(Revised in §15.4)* |
+| Flush-right numeral column kept for match **lists** | Best layout for scanning many scores; both treatments retained, each where it is stronger |
+| The centre never empties | One composition serves both season states |
+| Matchday temperature — `LIVE`, `TODAY`, `IN 3 DAYS` | A fixture is an appointment; this is what separates football from editorial *(added §15.2)* |
+| Crests enlarged to 72–88px | Crests carry identity, colour and football at once — what a ruled page is otherwise short of |
+| Uppercase for furniture only | Clubs, people and headlines keep natural case, or the page reads as a legal form |
 | Section labels drop to 13px | Stops headings competing with data — the key anti-slop typographic move |
 | Type at extremes, gap in the middle | The 14–32px cluster is what makes pages read as generated |
 | Zero shadows | Elevation by ground change and rule weight only |
