@@ -559,18 +559,23 @@ export async function getSiteContent(): Promise<Record<string, string>> {
 
 /* ── Homepage ────────────────────────────────────────────────────── */
 
+// The homepage runs in one of two states, derived from the data rather than
+// from a setting: until a single fixture is COMPLETED the season has not
+// started, and the page shows what exists instead of reporting what does not.
+export type SeasonState = 'PRE_SEASON' | 'ACTIVE';
+
 export async function getHomepageData() {
-  const [content, statistics, standings, news, sponsors, featuredPlayers] = await Promise.all([
+  const [content, statistics, standings, news, sponsors, clubs, fixtureCount] = await Promise.all([
     getSiteContent(),
     getLeagueStatistics(),
     getStandings(),
-    getPublicNews(1, 4),
+    getPublicNews(1, 5),
     getSponsors(),
-    prisma.player.findMany({
-      where: { approved: true, featured: true },
-      select: PUBLIC_PLAYER_SUMMARY,
-      take: 4,
+    prisma.club.findMany({
+      select: { ...PUBLIC_CLUB_SUMMARY, _count: { select: { players: { where: { approved: true } } } } },
+      orderBy: { name: 'asc' },
     }),
+    prisma.fixture.count(),
   ]);
 
   const [nextMatches, latestResults] = await Promise.all([
@@ -578,29 +583,60 @@ export async function getHomepageData() {
       where: { status: 'UPCOMING' },
       select: PUBLIC_FIXTURE,
       orderBy: [{ featured: 'desc' }, { fixtureDate: 'asc' }],
-      take: 3,
+      take: 4,
     }),
     prisma.fixture.findMany({
       where: { status: 'COMPLETED' },
       select: PUBLIC_FIXTURE,
       orderBy: [{ featured: 'desc' }, { fixtureDate: 'desc' }],
-      take: 3,
+      take: 4,
     }),
   ]);
 
-  // Fall back to top scorers when nobody has been flagged as featured, so the
-  // section is never empty on a freshly seeded league.
-  const players = featuredPlayers.length > 0 ? featuredPlayers : statistics.topScorers.slice(0, 4);
+  const seasonState: SeasonState = statistics.totals.matches > 0 ? 'ACTIVE' : 'PRE_SEASON';
+
+  // The hero is the most recent result once football has been played, and the
+  // opening fixture before that. One slot, filled from whichever exists.
+  const [heroMatch, ...otherResults] = latestResults;
+  const heroFixture = heroMatch ?? nextMatches[0] ?? null;
+  const nextFixture = heroMatch ? nextMatches[0] ?? null : nextMatches[1] ?? null;
+
+  // Form is looked up by club id so the matchday board can show it beside each
+  // club without a second query.
+  const formByClub: Record<string, ('W' | 'D' | 'L')[]> = {};
+  for (const row of standings) formByClub[row.id] = row.form ?? [];
+
+  // Crest wall: every club, carrying league position once it means something.
+  const positionByClub = new Map(standings.map((row) => [row.id, row.position]));
+  const crestWall = clubs.map((club) => ({
+    id: club.id,
+    name: club.name,
+    shortName: club.shortName,
+    logoUrl: club.logoUrl,
+    squad: club._count.players,
+    position: seasonState === 'ACTIVE' ? positionByClub.get(club.id) ?? null : null,
+  }));
 
   return {
     content,
+    seasonState,
     statistics,
-    standings: standings.slice(0, 5),
-    nextMatches,
-    latestResults,
+    standings: standings.slice(0, 6),
+    formByClub,
+    heroFixture,
+    nextFixture,
+    otherResults,
+    upcoming: heroMatch ? nextMatches.slice(1, 4) : nextMatches.slice(1, 4),
+    crestWall,
+    totals: {
+      clubs: clubs.length,
+      fixtures: fixtureCount,
+      players: statistics.totals.players,
+      played: statistics.totals.matches,
+      goals: statistics.totals.goals,
+    },
     news: news.items,
     sponsors,
-    featuredPlayers: players,
   };
 }
 

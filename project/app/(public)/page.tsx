@@ -2,18 +2,16 @@ import Link from 'next/link';
 import Avatar from '@/components/Avatar';
 import { getHomepageData } from '@/lib/public-data';
 import { buildMetadata } from '@/lib/seo';
+import { formatDate } from '@/components/public';
 import {
-  EmptyState,
-  FixtureCard,
-  LeagueTable,
-  NewsCard,
-  NextMatchBoard,
-  PlayerCard,
-  ResultCard,
-  SectionHead,
-  SponsorCard,
-  formatDate,
-} from '@/components/public';
+  CompetitionTable,
+  CrestWall,
+  MatchList,
+  MatchdayBoard,
+  NewsLead,
+  NewsList,
+  SeasonFigures,
+} from '@/components/public/home';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,186 +22,220 @@ export const metadata = buildMetadata({
   path: '/',
 });
 
-// Homepage order answers a fan's questions in the order they ask them:
-// who are we → what's next → what just happened → where does that leave the
-// table → who's performing → what's the story → who backs the league.
-export default async function HomePage() {
-  const { content, statistics, standings, nextMatches, latestResults, news, sponsors, featuredPlayers } = await getHomepageData();
+/*
+  THE BOARD — see KNSCL_HOMEPAGE_VISUAL_DIRECTION.md.
 
+  Six sections, two of which swap content by season state. No hero: the
+  masthead already establishes identity, so the page opens on matchday.
+
+    MATCHDAY     ink    primary anchor — club → score/status → club
+    COMPETITION  paper  table in-season, real season figures before it
+    CLUBS        paper  one ruled crest wall, not sixteen cards
+    NEWS         paper  one dominant story, the rest as a rule list
+    PARTNERS     ink    closes on the ground the page opened on
+
+  State is derived from the data (any COMPLETED fixture), never configured.
+*/
+export default async function HomePage() {
+  const {
+    content, seasonState, statistics, standings, formByClub,
+    heroFixture, nextFixture, otherResults, upcoming,
+    crestWall, totals, news, sponsors,
+  } = await getHomepageData();
+
+  const active = seasonState === 'ACTIVE';
   const season = content['league.season'] || String(new Date().getFullYear());
-  const [nextMatch, ...laterMatches] = nextMatches;
   const [leadStory, ...moreNews] = news;
-  const leader = statistics.leader;
   const topScorer = statistics.topScorers[0];
+
+  // A statistic with no value is not information. Zeros are dropped rather
+  // than rendered, in both states.
+  const figures = [
+    { value: totals.clubs, label: 'Clubs' },
+    { value: totals.fixtures, label: 'Fixtures' },
+    { value: totals.players, label: 'Players' },
+    ...(active ? [{ value: totals.played, label: 'Played' }, { value: totals.goals, label: 'Goals' }] : []),
+  ].filter((f) => Number(f.value) > 0);
+
+  // The rail beside the hero: what is coming, then what else has happened.
+  const railFixtures = active ? [nextFixture, ...otherResults].filter(Boolean) : upcoming;
 
   return (
     <div>
-      {/* ── Identity + matchday board ─────────────────────────── */}
+      {/* ── 02 MATCHDAY ─────────────────────────────────────────────
+          Runs straight out of the masthead, so the page opens on one
+          uninterrupted ink field. */}
       <section className="bleed on-dark">
-        <div className="bleed-inner" style={{ paddingTop: 'var(--space-8)', paddingBottom: 'var(--space-8)' }}>
-          <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'var(--space-8)', alignItems: 'center' }}>
-            <div className="lg:col-span-5">
-              <p className="eyebrow">Season {season}</p>
-              <h1 style={{ marginBottom: 'var(--space-3)' }}>
-                {content['hero.title'] || 'Kilifi North Sub County League'}
-              </h1>
-              <p className="text-muted" style={{ fontSize: 16, maxWidth: 460, marginBottom: 'var(--space-4)' }}>
-                {content['hero.subtitle'] ||
-                  'Every fixture, every result, every player — the official record of football in Kilifi North.'}
-              </p>
-              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                <Link href={content['hero.ctaHref'] || '/fixtures'} className="btn btn-primary">
-                  {content['hero.ctaLabel'] || 'View Fixtures'}
-                </Link>
-                <Link href="/table" className="btn btn-secondary">League Table</Link>
+        <div className="bleed-inner" style={{ paddingTop: 'var(--space-6)', paddingBottom: 'var(--space-6)' }}>
+          {heroFixture ? (
+            <div className="home-md-split">
+              <MatchdayBoard fixture={heroFixture as any} formByClub={formByClub} />
+
+              <div>
+                <p className="home-label">
+                  <span>{active ? 'Around the league' : 'Opening fixtures'}</span>
+                  <Link href={active ? '/results' : '/fixtures'}>All &rarr;</Link>
+                </p>
+                {railFixtures.length > 0 ? (
+                  <MatchList fixtures={railFixtures as any} />
+                ) : (
+                  <p className="text-muted" style={{ fontSize: 14, margin: 0 }}>
+                    The rest of the round will be published shortly.
+                  </p>
+                )}
               </div>
             </div>
+          ) : (
+            /* No fixtures at all — state the season, do not report a void. */
+            <div style={{ paddingTop: 'var(--space-6)', paddingBottom: 'var(--space-4)' }}>
+              <p className="home-md-rail" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+                <span>Season {season}</span>
+              </p>
+              <p className="home-kickoff" style={{ margin: 'var(--space-4) 0 0' }}>{totals.clubs}</p>
+              <p className="home-score-note" style={{ marginTop: 'var(--space-2)' }}>
+                Clubs confirmed · Fixtures to be published
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
 
-            <div className="lg:col-span-7">
-              {nextMatch ? (
-                <div style={{ border: '1px solid rgb(255 255 255 / 0.18)', borderRadius: 'var(--radius-md)' }}>
-                  <p
-                    className="eyebrow"
-                    style={{ margin: 0, padding: 'var(--space-3) var(--space-4)', borderBottom: '1px solid rgb(255 255 255 / 0.18)' }}
-                  >
-                    Next match
-                  </p>
-                  <NextMatchBoard fixture={nextMatch as any} />
-                  <div style={{ padding: 'var(--space-3) var(--space-4)', borderTop: '1px solid rgb(255 255 255 / 0.18)', textAlign: 'center' }}>
-                    <Link href="/fixtures" className="btn btn-secondary">All fixtures</Link>
-                  </div>
-                </div>
+      {/* ── 03 COMPETITION ──────────────────────────────────────────
+          Hard cut from ink to paper: the contrast is the section break. */}
+      <section className="bleed">
+        <div className="bleed-inner" style={{ paddingTop: 'var(--space-8)', paddingBottom: 'var(--space-8)' }}>
+          <div className="home-split">
+            <div>
+              <p className="home-label">
+                <span>{active ? 'Table' : 'The season'}</span>
+                {active && <Link href="/table">Full table &rarr;</Link>}
+              </p>
+
+              {active ? (
+                <CompetitionTable rows={standings as any} />
               ) : (
-                <div style={{ border: '1px solid rgb(255 255 255 / 0.18)', borderRadius: 'var(--radius-md)', padding: 'var(--space-8)', textAlign: 'center' }}>
-                  <p className="text-muted" style={{ margin: 0 }}>The next round of fixtures will be published shortly.</p>
-                </div>
+                <>
+                  <SeasonFigures figures={figures} />
+                  <p style={{ marginTop: 'var(--space-6)' }}>
+                    <Link href="/fixtures" className="btn btn-secondary">Fixture list</Link>
+                  </p>
+                </>
               )}
             </div>
-          </div>
-        </div>
 
-        {/* Season at a glance, tied to the identity band rather than floating
-            as its own card row. */}
-        <div style={{ borderTop: '1px solid rgb(255 255 255 / 0.14)' }}>
-          <div className="bleed-inner">
-            <div className="stat-band">
-              <div className="stat-cell"><span className="stat-value">{statistics.totals.clubs}</span><span className="stat-label">Clubs</span></div>
-              <div className="stat-cell"><span className="stat-value">{statistics.totals.players}</span><span className="stat-label">Players</span></div>
-              <div className="stat-cell"><span className="stat-value">{statistics.totals.matches}</span><span className="stat-label">Matches played</span></div>
-              <div className="stat-cell"><span className="stat-value">{statistics.totals.goals}</span><span className="stat-label">Goals scored</span></div>
+            <div>
+              {active && topScorer ? (
+                <>
+                  <p className="home-label"><span>Leading scorer</span></p>
+                  <Link
+                    href={`/players/${topScorer.id}`}
+                    style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', color: 'inherit', textDecoration: 'none' }}
+                  >
+                    <Avatar src={topScorer.photoUrl} name={`${topScorer.firstName} ${topScorer.lastName}`} size={52} />
+                    <span>
+                      <span style={{ display: 'block', fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 17 }}>
+                        {topScorer.firstName} {topScorer.lastName}
+                      </span>
+                      <span className="story-meta">{topScorer.club?.name}</span>
+                    </span>
+                  </Link>
+                  <p style={{ margin: 'var(--space-4) 0 0' }}>
+                    <span className="home-figure-value">{topScorer.goals}</span>
+                    <span className="home-figure-label">{topScorer.goals === 1 ? 'Goal' : 'Goals'}</span>
+                  </p>
+                  {figures.length > 0 && (
+                    <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-divider)' }}>
+                      <SeasonFigures figures={figures.slice(0, 2)} />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="home-label"><span>First matchday</span></p>
+                  {heroFixture ? (
+                    <>
+                      <p style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 22, letterSpacing: '-0.02em', margin: 0 }}>
+                        {formatDate(heroFixture.fixtureDate)}
+                      </p>
+                      <p className="story-meta" style={{ marginTop: 6 }}>
+                        {heroFixture.homeClub.name} v {heroFixture.awayClub.name}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-muted" style={{ fontSize: 14, margin: 0 }}>
+                      The opening fixtures will be announced shortly.
+                    </p>
+                  )}
+                  <p style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-divider)' }}>
+                    <span className="home-figure-value">{season}</span>
+                    <span className="home-figure-label">Season</span>
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </div>
       </section>
 
-      <div className="page-shell">
-        {/* ── What just happened ──────────────────────────────── */}
-        <section style={{ marginBottom: 'var(--space-12)' }}>
-          <SectionHead title="Latest Results" href="/results" linkLabel="All results" />
-          {latestResults.length === 0 ? (
-            <EmptyState title="No results published yet" hint="Scores appear as soon as match reports are approved." />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-4)' }}>
-              {latestResults.map((f) => <ResultCard key={f.id} fixture={f as any} />)}
-            </div>
-          )}
-        </section>
-
-        {/* ── Where that leaves the competition ───────────────── */}
-        <section style={{ marginBottom: 'var(--space-12)' }}>
-          <SectionHead title="League Table" href="/table" linkLabel="Full table" />
-          <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'var(--space-6)' }}>
-            <div className="lg:col-span-8">
-              <LeagueTable rows={standings} compact />
-            </div>
-
-            {/* Leader and top scorer read as consequences of the table, not as
-                two more cards in an unrelated grid. */}
-            <aside className="lg:col-span-4 list-rule">
-              {leader && (
-                <Link href={`/clubs/${leader.id}`} style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', color: 'inherit', textDecoration: 'none' }}>
-                  <Avatar src={leader.logoUrl} name={leader.clubName} size={44} rounded="soft" />
-                  <div>
-                    <p className="eyebrow" style={{ margin: 0 }}>Top of the table</p>
-                    <p style={{ margin: 0, fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 17 }}>{leader.clubName}</p>
-                    <p className="card-meta" style={{ margin: 0 }}>
-                      <span className="num">{leader.points}</span> pts from <span className="num">{leader.played}</span> matches
-                    </p>
-                  </div>
-                </Link>
-              )}
-              {topScorer && (
-                <Link href={`/players/${topScorer.id}`} style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', color: 'inherit', textDecoration: 'none' }}>
-                  <Avatar src={topScorer.photoUrl} name={`${topScorer.firstName} ${topScorer.lastName}`} size={44} />
-                  <div>
-                    <p className="eyebrow" style={{ margin: 0 }}>Leading scorer</p>
-                    <p style={{ margin: 0, fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 17 }}>
-                      {topScorer.firstName} {topScorer.lastName}
-                    </p>
-                    <p className="card-meta" style={{ margin: 0 }}>
-                      <span className="num">{topScorer.goals}</span> goals · {topScorer.club?.name}
-                    </p>
-                  </div>
-                </Link>
-              )}
-              <Link href="/statistics" className="btn btn-secondary" style={{ justifyContent: 'center' }}>
-                Season statistics
-              </Link>
-            </aside>
+      {/* ── 04 CLUBS ────────────────────────────────────────────────
+          Sixteen clubs is small enough to show rather than link to. The
+          crests are also the only real colour the league owns. */}
+      {crestWall.length > 0 && (
+        <section className="bleed">
+          <div className="bleed-inner" style={{ paddingBottom: 'var(--space-8)' }}>
+            <p className="home-label">
+              <span>Clubs</span>
+              <Link href="/clubs">All {crestWall.length} clubs &rarr;</Link>
+            </p>
+            <CrestWall clubs={crestWall} />
           </div>
         </section>
+      )}
 
-        {/* ── Coming up ───────────────────────────────────────── */}
-        {laterMatches.length > 0 && (
-          <section style={{ marginBottom: 'var(--space-12)' }}>
-            <SectionHead title="Also Coming Up" href="/fixtures" linkLabel="All fixtures" />
-            <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'var(--space-4)' }}>
-              {laterMatches.map((f) => <FixtureCard key={f.id} fixture={f as any} />)}
+      {/* ── 05 NEWS ─────────────────────────────────────────────────── */}
+      {leadStory && (
+        <section className="bleed">
+          <div className="bleed-inner" style={{ paddingBottom: 'var(--space-12)' }}>
+            <p className="home-label">
+              <span>News</span>
+              <Link href="/news">Newsroom &rarr;</Link>
+            </p>
+            <div className="home-news">
+              <NewsLead article={leadStory} />
+              {moreNews.length > 0 && <NewsList articles={moreNews} />}
             </div>
-          </section>
-        )}
+          </div>
+        </section>
+      )}
 
-        {/* ── Stories ─────────────────────────────────────────── */}
-        {leadStory && (
-          <section style={{ marginBottom: 'var(--space-12)' }}>
-            <SectionHead title="Latest News" href="/news" linkLabel="Newsroom" />
-            <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'var(--space-6)' }}>
-              <div className="lg:col-span-7">
-                <NewsCard article={leadStory} lead />
-              </div>
-              {moreNews.length > 0 && (
-                <div className="lg:col-span-5 list-rule">
-                  {moreNews.map((article) => (
-                    <Link key={article.id} href={`/news/${article.slug || article.id}`} className="story">
-                      <p className="eyebrow" style={{ margin: 0 }}>{article.category || 'League News'}</p>
-                      <h3 className="story-title" style={{ fontSize: 17, margin: '4px 0' }}>{article.title}</h3>
-                      <p className="story-meta">{formatDate(article.startDate)}</p>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-
-        {/* ── Players ─────────────────────────────────────────── */}
-        {featuredPlayers.length > 0 && (
-          <section style={{ marginBottom: 'var(--space-12)' }}>
-            <SectionHead title="Players to Watch" href="/players" linkLabel="All players" />
-            <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: 'var(--space-4)' }}>
-              {featuredPlayers.map((p: any) => <PlayerCard key={p.id} player={p} />)}
-            </div>
-          </section>
-        )}
-      </div>
-
-      {/* ── Partners ──────────────────────────────────────────── */}
+      {/* ── 06 PARTNERS ─────────────────────────────────────────────
+          Closes on the ground the page opened on. */}
       {sponsors.length > 0 && (
-        <section className="bleed" style={{ borderTop: '1px solid var(--color-divider)', paddingTop: 'var(--space-8)', paddingBottom: 'var(--space-8)' }}>
-          <div className="bleed-inner">
-            <h6 style={{ textAlign: 'center', marginBottom: 'var(--space-4)' }}>Official Partners</h6>
-            <div className="logo-wall">
-              {sponsors.slice(0, 5).map((s) => <SponsorCard key={s.id} sponsor={s} />)}
+        <section className="bleed on-dark home-flush">
+          <div className="bleed-inner" style={{ paddingTop: 'var(--space-6)', paddingBottom: 'var(--space-6)' }}>
+            <p className="home-label"><span>Partners</span></p>
+            <div className="home-partners">
+              {sponsors.slice(0, 6).map((s) =>
+                s.websiteUrl ? (
+                  <a key={s.id} href={s.websiteUrl} target="_blank" rel="noopener noreferrer sponsored" className="home-partner">
+                    {s.logoUrl
+                      ? <img src={s.logoUrl} alt={s.name} loading="lazy" />
+                      : <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 15 }}>{s.name}</span>}
+                    <span style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgb(255 255 255 / 0.5)' }}>
+                      {s.category || 'Partner'}
+                    </span>
+                  </a>
+                ) : (
+                  <div key={s.id} className="home-partner">
+                    {s.logoUrl
+                      ? <img src={s.logoUrl} alt={s.name} loading="lazy" />
+                      : <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 15 }}>{s.name}</span>}
+                    <span style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgb(255 255 255 / 0.5)' }}>
+                      {s.category || 'Partner'}
+                    </span>
+                  </div>
+                )
+              )}
             </div>
           </div>
         </section>
