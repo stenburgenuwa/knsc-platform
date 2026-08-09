@@ -7,7 +7,7 @@ export const MAX_IMAGE_DIMENSION = 256;
 const OUTPUT_TYPE = 'image/webp';
 const OUTPUT_QUALITY = 0.8;
 
-function loadImage(file: File): Promise<HTMLImageElement> {
+function loadImage(file: Blob): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -25,7 +25,7 @@ function loadImage(file: File): Promise<HTMLImageElement> {
 
 // Scales to fit within a square of MAX_IMAGE_DIMENSION, preserving aspect
 // ratio, and never upscales a small source image.
-export async function resizeImage(file: File): Promise<Blob> {
+export async function resizeImage(file: Blob): Promise<Blob> {
   const img = await loadImage(file);
 
   const scale = Math.min(MAX_IMAGE_DIMENSION / img.width, MAX_IMAGE_DIMENSION / img.height, 1);
@@ -44,3 +44,8 @@ export async function resizeImage(file: File): Promise<Blob> {
   if (!blob) throw new Error('Your browser could not process this image.');
   return blob;
 }
+
+// Already-square output from the cropper still has to come down to the storage
+// budget, so it goes through the same downscale. Named separately only to make
+// the call sites read honestly about what they are passing.
+export const resizeBlob = resizeImage;

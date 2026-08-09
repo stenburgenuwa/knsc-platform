@@ -230,7 +230,7 @@ export default function WebsiteAdminPage() {
               {players.map((p) => (
                 <label key={p.id} className="radio" style={{ justifyContent: 'space-between', padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-divider)', width: '100%' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                    <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={28} />
+                    <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={28} rounded="square" />
                     <span>{p.firstName} {p.lastName} <span className="text-muted">· {p.club?.name}</span></span>
                   </span>
                   <input type="checkbox" checked={!!p.featured} onChange={(e) => toggleFeaturedPlayer(p.id, e.target.checked)} style={{ position: 'static', width: 16, height: 16, opacity: 1, pointerEvents: 'auto' }} />

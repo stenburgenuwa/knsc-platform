@@ -186,7 +186,7 @@ export default function PlatformOwnerDashboard() {
                 {pending.map((p, i) => (
                   <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-2) 0', borderBottom: i < pending.length - 1 ? '1px solid var(--color-divider)' : 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                      <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={36} />
+                      <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={36} rounded="square" />
                       <div>
                         <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>{p.firstName} {p.lastName}</p>
                         <p className="card-meta">

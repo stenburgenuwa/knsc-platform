@@ -321,7 +321,7 @@ export default function ManagePage() {
           {players.map((p) => (
             <div key={p.id} style={rowStyle}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
-                <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={36} />
+                <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={36} rounded="square" />
                 <div>
                   <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>
                     {p.playerNumber ? `#${p.playerNumber} ` : ''}{p.firstName} {p.lastName}

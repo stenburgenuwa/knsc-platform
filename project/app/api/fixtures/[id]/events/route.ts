@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth-guard';
+import { playersInFixture, syncSuspensionCases } from '@/lib/suspensions';
 
 export const dynamic = 'force-dynamic';
+
+const EVENT_TYPES = ['GOAL', 'OWN_GOAL', 'YELLOW_CARD', 'RED_CARD'];
 
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   const events = await prisma.matchEvent.findMany({
@@ -20,9 +23,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   try {
     const { playerId, type, minute } = await request.json();
 
-    if (!playerId || !['GOAL', 'YELLOW_CARD', 'RED_CARD'].includes(type)) {
+    if (!playerId || !EVENT_TYPES.includes(type)) {
       return NextResponse.json(
-        { success: false, error: 'playerId and a valid type (GOAL, YELLOW_CARD, RED_CARD) are required' },
+        { success: false, error: `playerId and a valid type (${EVENT_TYPES.join(', ')}) are required` },
         { status: 400 }
       );
     }
@@ -56,13 +59,34 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       );
     }
 
+    // Only the players their Team Manager actually named can appear in the
+    // match record. Enforced whenever a sheet exists for that club; a fixture
+    // whose sheet was never submitted still falls back to the club check above
+    // so a referee is never locked out of recording a real match.
+    const sheet = await prisma.teamSheet.findUnique({
+      where: { fixtureId_clubId: { fixtureId: params.id, clubId: player.clubId } },
+      include: { entries: { select: { playerId: true } } },
+    });
+    if (sheet && !sheet.entries.some((e) => e.playerId === playerId)) {
+      return NextResponse.json(
+        { success: false, error: 'That player is not on this club’s team sheet for this match' },
+        { status: 400 }
+      );
+    }
+
     const [event] = await prisma.$transaction([
       prisma.matchEvent.create({
         data: { fixtureId: params.id, playerId, type, minute: minute ? Number(minute) : null },
         include: { player: { include: { club: true } } },
       }),
+      // An own goal counts for the opposition, so it must never be added to
+      // the scorer's tally or the golden boot would reward mistakes.
       ...(type === 'GOAL' ? [prisma.player.update({ where: { id: playerId }, data: { goals: { increment: 1 } } })] : []),
     ]);
+
+    if (type === 'YELLOW_CARD' || type === 'RED_CARD') {
+      await syncSuspensionCases([playerId]);
+    }
 
     return NextResponse.json({ success: true, data: event }, { status: 201 });
   } catch (error) {

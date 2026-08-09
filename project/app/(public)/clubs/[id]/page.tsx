@@ -163,7 +163,7 @@ export default async function ClubProfilePage({ params }: { params: { id: string
                           <td className="num" style={{ textAlign: 'right', color: 'var(--color-neutral-500)' }}>{p.playerNumber ?? '–'}</td>
                           <td>
                             <Link href={`/players/${p.id}`} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'inherit', textDecoration: 'none' }}>
-                              <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={26} />
+                              <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={26} rounded="square" />
                               <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 600 }}>{p.firstName} {p.lastName}</span>
                             </Link>
                           </td>

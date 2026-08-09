@@ -7,6 +7,7 @@ import { getFixtures } from '@/lib/public-api';
 import StatCard from '@/components/StatCard';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import AnnouncementsPanel from '@/components/AnnouncementsPanel';
+import MatchReportViewer from '@/components/MatchReportViewer';
 import { downloadCsv } from '@/lib/csv';
 
 function formatDate(value?: string) {
@@ -55,13 +56,18 @@ export default function RefereeManagerDashboard() {
   const [draft, setDraft] = useState<any>({});
   const [confirming, setConfirming] = useState<{ id: string; label: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  // Reports filed by the referees this manager oversees, kept as the
+  // permanent record of what was officiated.
+  const [reportArchive, setReportArchive] = useState<any[]>([]);
+  const [viewingReportId, setViewingReportId] = useState<string | null>(null);
 
   const load = async () => {
     try {
-      const [summary, refereesRes, fixturesRes] = await Promise.all([
+      const [summary, refereesRes, fixturesRes, archiveRes] = await Promise.all([
         getDashboardSummary(),
         getReferees(),
         getFixtures(1, 50),
+        getFixtures(1, 100, { status: 'all', reportStatus: 'SUBMITTED,APPROVED,RETURNED' }),
       ]);
       setData(summary.data?.data);
       const refList = refereesRes.data?.data || [];
@@ -69,6 +75,7 @@ export default function RefereeManagerDashboard() {
       const sortedRefs = sortByAvailability(refList);
       const fixtures = fixturesRes.data?.data || [];
       setUnassigned(fixtures.filter((f: any) => !f.refereeAssignment));
+      setReportArchive(archiveRes.data?.data || []);
       setPicks((p) => {
         const next = { ...p };
         for (const f of fixtures) {
@@ -284,6 +291,57 @@ export default function RefereeManagerDashboard() {
               </div>
             )}
           </div>
+
+          <div className="card elev-sm" style={{ marginTop: 'var(--space-4)' }}>
+            <h3 className="card-title">Match Report Archive ({reportArchive.length})</h3>
+            <p className="card-meta" style={{ marginBottom: 'var(--space-2)' }}>
+              Every report your referees have filed, kept as the permanent record of the match.
+            </p>
+            {reportArchive.length === 0 ? (
+              <p className="card-meta">No match reports have been filed yet.</p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Match</th>
+                      <th>Played</th>
+                      <th>Referee</th>
+                      <th>Submitted</th>
+                      <th>Status</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportArchive.map((f: any) => (
+                      <tr key={f.id}>
+                        <td style={{ fontFamily: 'var(--font-heading)' }}>
+                          {f.homeClub.name} {f.homeScore ?? '\u2013'}&ndash;{f.awayScore ?? '\u2013'} {f.awayClub.name}
+                        </td>
+                        <td>{formatDate(f.fixtureDate)}</td>
+                        <td>
+                          {f.refereeAssignment?.referee
+                            ? `${f.refereeAssignment.referee.firstName} ${f.refereeAssignment.referee.lastName}`
+                            : '\u2014'}
+                        </td>
+                        <td>{f.reportSubmittedAt ? formatDate(f.reportSubmittedAt) : '\u2014'}</td>
+                        <td>
+                          <span className={`tag ${f.reportStatus === 'APPROVED' ? 'tag-accent' : 'tag-neutral'}`}>{f.reportStatus}</span>
+                        </td>
+                        <td>
+                          <button className="btn btn-ghost" onClick={() => setViewingReportId(f.id)}>View</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {viewingReportId && (
+            <MatchReportViewer fixtureId={viewingReportId} onClose={() => setViewingReportId(null)} />
+          )}
 
           <div style={{ marginTop: 'var(--space-4)' }}>
             <AnnouncementsPanel canCompose audienceOptions={[{ value: 'REFEREE', label: 'Referees only' }]} />

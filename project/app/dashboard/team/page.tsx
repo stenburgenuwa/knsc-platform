@@ -18,6 +18,33 @@ function formatDate(value?: string) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+// `<input type="date">` wants YYYY-MM-DD; the API returns an ISO timestamp.
+function dateInputValue(value?: string | null) {
+  if (!value) return '';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+}
+
+const POSITIONS = ['Goalkeeper', 'Defender', 'Midfielder', 'Winger', 'Forward'];
+
+type PlayerForm = {
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  playerNumber: string;
+  position: string;
+  dateOfBirth: string;
+  photoUrl: string | null;
+  idNumber: string;
+  height: string;
+  weight: string;
+};
+
+const EMPTY_PLAYER: PlayerForm = {
+  firstName: '', middleName: '', lastName: '', playerNumber: '', position: '',
+  dateOfBirth: '', photoUrl: null, idNumber: '', height: '', weight: '',
+};
+
 export default function TeamManagerDashboard() {
   const clubId = useAuthStore((s) => s.user?.clubId as string | undefined);
   const clubName = useAuthStore((s) => s.user?.clubName as string | undefined);
@@ -26,18 +53,15 @@ export default function TeamManagerDashboard() {
   const [upcomingFixtures, setUpcomingFixtures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [playerForm, setPlayerForm] = useState<{
-    firstName: string;
-    lastName: string;
-    playerNumber: string;
-    position: string;
-    dateOfBirth: string;
-    photoUrl: string | null;
-    idNumber: string;
-    height: string;
-    weight: string;
-  }>({ firstName: '', lastName: '', playerNumber: '', position: '', dateOfBirth: '', photoUrl: null, idNumber: '', height: '', weight: '' });
+  const [playerForm, setPlayerForm] = useState<PlayerForm>(EMPTY_PLAYER);
   const [playerStatus, setPlayerStatus] = useState<string | null>(null);
+
+  // Correcting a rejected registration happens in place on the squad row, so
+  // the Team Manager can see the League Manager's reason while they fix it.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<PlayerForm>(EMPTY_PLAYER);
+  const [editStatus, setEditStatus] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const load = async () => {
     try {
@@ -67,28 +91,81 @@ export default function TeamManagerDashboard() {
       setPlayerStatus('Your account is not linked to a club yet.');
       return;
     }
-    if (!playerForm.dateOfBirth || !playerForm.photoUrl || !playerForm.height || !playerForm.weight || !playerForm.position || !playerForm.idNumber) {
-      setPlayerStatus('Date of birth, photo, height, weight, ID/passport number and position are all required.');
+    // Mandatory: first name, last name, ID/passport, date of birth. Middle
+    // name and position are optional and must never block a registration.
+    if (!playerForm.firstName.trim() || !playerForm.lastName.trim() || !playerForm.idNumber.trim() || !playerForm.dateOfBirth) {
+      setPlayerStatus('First name, last name, ID / passport number and date of birth are required.');
       return;
     }
     try {
       await registerPlayer({
         clubId,
-        firstName: playerForm.firstName,
-        lastName: playerForm.lastName,
+        firstName: playerForm.firstName.trim(),
+        middleName: playerForm.middleName.trim() || undefined,
+        lastName: playerForm.lastName.trim(),
         playerNumber: playerForm.playerNumber ? Number(playerForm.playerNumber) : undefined,
-        position: playerForm.position,
+        position: playerForm.position || undefined,
         dateOfBirth: playerForm.dateOfBirth,
         photoUrl: playerForm.photoUrl,
-        idNumber: playerForm.idNumber,
-        height: Number(playerForm.height),
-        weight: Number(playerForm.weight),
+        idNumber: playerForm.idNumber.trim(),
+        height: playerForm.height ? Number(playerForm.height) : undefined,
+        weight: playerForm.weight ? Number(playerForm.weight) : undefined,
       });
       setPlayerStatus('Player submitted for approval.');
-      setPlayerForm({ firstName: '', lastName: '', playerNumber: '', position: '', dateOfBirth: '', photoUrl: null, idNumber: '', height: '', weight: '' });
+      setPlayerForm(EMPTY_PLAYER);
       load();
     } catch (err: any) {
       setPlayerStatus(err?.response?.data?.error || 'Failed to register player.');
+    }
+  };
+
+  const startEdit = (p: any) => {
+    setEditStatus(null);
+    setEditingId(p.id);
+    setEditForm({
+      firstName: p.firstName || '',
+      middleName: p.middleName || '',
+      lastName: p.lastName || '',
+      playerNumber: p.playerNumber != null ? String(p.playerNumber) : '',
+      position: p.position || '',
+      dateOfBirth: dateInputValue(p.dateOfBirth),
+      photoUrl: p.photoUrl ?? null,
+      idNumber: p.idNumber || '',
+      height: p.height != null ? String(p.height) : '',
+      weight: p.weight != null ? String(p.weight) : '',
+    });
+  };
+
+  // `resubmit` puts a corrected registration back in the League Manager's
+  // queue and clears the rejection reason; a plain save just corrects details.
+  const saveEdit = async (playerId: string, resubmit: boolean) => {
+    if (!editForm.firstName.trim() || !editForm.lastName.trim() || !editForm.idNumber.trim() || !editForm.dateOfBirth) {
+      setEditStatus('First name, last name, ID / passport number and date of birth are required.');
+      return;
+    }
+    setSavingEdit(true);
+    setEditStatus(null);
+    try {
+      await updatePlayer(playerId, {
+        firstName: editForm.firstName.trim(),
+        middleName: editForm.middleName.trim(),
+        lastName: editForm.lastName.trim(),
+        playerNumber: editForm.playerNumber ? Number(editForm.playerNumber) : undefined,
+        position: editForm.position,
+        dateOfBirth: editForm.dateOfBirth,
+        photoUrl: editForm.photoUrl,
+        idNumber: editForm.idNumber.trim(),
+        height: editForm.height ? Number(editForm.height) : undefined,
+        weight: editForm.weight ? Number(editForm.weight) : undefined,
+        ...(resubmit ? { resubmit: true } : {}),
+      });
+      setEditingId(null);
+      setEditStatus(null);
+      load();
+    } catch (err: any) {
+      setEditStatus(err?.response?.data?.error || 'Failed to save changes.');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -126,36 +203,13 @@ export default function TeamManagerDashboard() {
                   <input id="p-first" className="input" required value={playerForm.firstName} onChange={(e) => setPlayerForm({ ...playerForm, firstName: e.target.value })} />
                 </div>
                 <div className="field">
-                  <label htmlFor="p-last">Last name</label>
-                  <input id="p-last" className="input" required value={playerForm.lastName} onChange={(e) => setPlayerForm({ ...playerForm, lastName: e.target.value })} />
+                  <label htmlFor="p-middle">Middle name <span className="text-muted">(optional)</span></label>
+                  <input id="p-middle" className="input" value={playerForm.middleName} onChange={(e) => setPlayerForm({ ...playerForm, middleName: e.target.value })} />
                 </div>
               </div>
-              <div className="grid grid-cols-2" style={{ gap: 'var(--space-2)' }}>
-                <div className="field">
-                  <label htmlFor="p-number">Shirt number</label>
-                  <input id="p-number" type="number" className="input" value={playerForm.playerNumber} onChange={(e) => setPlayerForm({ ...playerForm, playerNumber: e.target.value })} />
-                </div>
-                <div className="field">
-                  <label htmlFor="p-position">Position</label>
-                  <select id="p-position" className="input" required value={playerForm.position} onChange={(e) => setPlayerForm({ ...playerForm, position: e.target.value })}>
-                    <option value="">Select&hellip;</option>
-                    <option value="Goalkeeper">Goalkeeper</option>
-                    <option value="Defender">Defender</option>
-                    <option value="Midfielder">Midfielder</option>
-                    <option value="Winger">Winger</option>
-                    <option value="Forward">Forward</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2" style={{ gap: 'var(--space-2)' }}>
-                <div className="field">
-                  <label htmlFor="p-height">Height (cm)</label>
-                  <input id="p-height" type="number" className="input" required value={playerForm.height} onChange={(e) => setPlayerForm({ ...playerForm, height: e.target.value })} />
-                </div>
-                <div className="field">
-                  <label htmlFor="p-weight">Weight (kg)</label>
-                  <input id="p-weight" type="number" className="input" required value={playerForm.weight} onChange={(e) => setPlayerForm({ ...playerForm, weight: e.target.value })} />
-                </div>
+              <div className="field">
+                <label htmlFor="p-last">Last name</label>
+                <input id="p-last" className="input" required value={playerForm.lastName} onChange={(e) => setPlayerForm({ ...playerForm, lastName: e.target.value })} />
               </div>
               <div className="field">
                 <label htmlFor="p-id">ID / passport number</label>
@@ -165,9 +219,35 @@ export default function TeamManagerDashboard() {
                 <label htmlFor="p-dob">Date of birth</label>
                 <input id="p-dob" type="date" className="input" required value={playerForm.dateOfBirth} onChange={(e) => setPlayerForm({ ...playerForm, dateOfBirth: e.target.value })} />
               </div>
+
+              <p className="card-kicker" style={{ marginTop: 'var(--space-3)' }}>Optional details</p>
+              <div className="grid grid-cols-2" style={{ gap: 'var(--space-2)' }}>
+                <div className="field">
+                  <label htmlFor="p-position">Position</label>
+                  <select id="p-position" className="input" value={playerForm.position} onChange={(e) => setPlayerForm({ ...playerForm, position: e.target.value })}>
+                    <option value="">Not recorded</option>
+                    {POSITIONS.map((pos) => <option key={pos} value={pos}>{pos}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="p-number">Shirt number</label>
+                  <input id="p-number" type="number" className="input" value={playerForm.playerNumber} onChange={(e) => setPlayerForm({ ...playerForm, playerNumber: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2" style={{ gap: 'var(--space-2)' }}>
+                <div className="field">
+                  <label htmlFor="p-height">Height (cm)</label>
+                  <input id="p-height" type="number" className="input" value={playerForm.height} onChange={(e) => setPlayerForm({ ...playerForm, height: e.target.value })} />
+                </div>
+                <div className="field">
+                  <label htmlFor="p-weight">Weight (kg)</label>
+                  <input id="p-weight" type="number" className="input" value={playerForm.weight} onChange={(e) => setPlayerForm({ ...playerForm, weight: e.target.value })} />
+                </div>
+              </div>
               <ImageUpload
                 label="Player photo"
                 kind="player"
+                rounded="square"
                 name={`${playerForm.firstName} ${playerForm.lastName}`.trim()}
                 value={playerForm.photoUrl}
                 onChange={(url) => setPlayerForm({ ...playerForm, photoUrl: url })}
@@ -183,22 +263,112 @@ export default function TeamManagerDashboard() {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {squad.map((p, i) => (
-                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-2) 0', borderBottom: i < squad.length - 1 ? '1px solid var(--color-divider)' : 'none' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
-                        <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={40} />
-                        <div style={{ minWidth: 0 }}>
-                          <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>
-                            {p.playerNumber ? `#${p.playerNumber} ` : ''}{p.firstName} {p.lastName}
-                          </p>
-                          <p className="card-meta">
-                            {[p.position, p.dateOfBirth ? `Born ${formatDate(p.dateOfBirth)}` : null, p.registrationNumber].filter(Boolean).join(' · ')}
-                          </p>
+                    <div key={p.id} style={{ padding: 'var(--space-2) 0', borderBottom: i < squad.length - 1 ? '1px solid var(--color-divider)' : 'none' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
+                          <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={40} rounded="square" />
+                          <div style={{ minWidth: 0 }}>
+                            <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>
+                              {p.playerNumber ? `#${p.playerNumber} ` : ''}
+                              {[p.firstName, p.middleName, p.lastName].filter(Boolean).join(' ')}
+                            </p>
+                            <p className="card-meta">
+                              {[p.position, p.dateOfBirth ? `Born ${formatDate(p.dateOfBirth)}` : null].filter(Boolean).join(' · ')}
+                            </p>
+                            {/* The registration number is issued by the approval
+                                process and is the player's permanent identifier. */}
+                            {p.registrationNumber && (
+                              <p className="card-meta" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-ink)' }}>
+                                {p.registrationNumber}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flex: 'none' }}>
+                          <PhotoButton id={p.id} currentUrl={p.photoUrl} kind="player" onChange={handleSquadPhoto} />
+                          {p.rejectedAt ? (
+                            <span className="tag tag-accent-2">Rejected</span>
+                          ) : p.approved ? (
+                            <span className="tag tag-accent">Approved</span>
+                          ) : (
+                            <span className="tag tag-neutral">Pending</span>
+                          )}
+                          <button
+                            className="btn btn-ghost"
+                            style={{ fontSize: 12 }}
+                            onClick={() => (editingId === p.id ? setEditingId(null) : startEdit(p))}
+                          >
+                            {editingId === p.id ? 'Cancel' : 'Edit'}
+                          </button>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                        <PhotoButton id={p.id} currentUrl={p.photoUrl} kind="player" onChange={handleSquadPhoto} />
-                        {p.approved ? <span className="tag tag-accent">Approved</span> : <span className="tag tag-neutral">Pending</span>}
-                      </div>
+
+                      {p.rejectedAt && p.rejectionReason && editingId !== p.id && (
+                        <p
+                          className="card-meta"
+                          style={{ marginTop: 'var(--space-1)', paddingLeft: 52, color: 'var(--color-accent-800)' }}
+                        >
+                          Rejected by the League Manager: {p.rejectionReason} &mdash; correct the details and resubmit.
+                        </p>
+                      )}
+
+                      {editingId === p.id && (
+                        <div style={{ marginTop: 'var(--space-2)', paddingLeft: 52 }}>
+                          {p.rejectionReason && (
+                            <p className="card-meta" style={{ color: 'var(--color-accent-800)' }}>
+                              Reason for rejection: {p.rejectionReason}
+                            </p>
+                          )}
+                          <div className="grid grid-cols-2" style={{ gap: 'var(--space-2)' }}>
+                            <div className="field">
+                              <label htmlFor={`e-first-${p.id}`}>First name</label>
+                              <input id={`e-first-${p.id}`} className="input" value={editForm.firstName} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} />
+                            </div>
+                            <div className="field">
+                              <label htmlFor={`e-middle-${p.id}`}>Middle name <span className="text-muted">(optional)</span></label>
+                              <input id={`e-middle-${p.id}`} className="input" value={editForm.middleName} onChange={(e) => setEditForm({ ...editForm, middleName: e.target.value })} />
+                            </div>
+                          </div>
+                          <div className="field">
+                            <label htmlFor={`e-last-${p.id}`}>Last name</label>
+                            <input id={`e-last-${p.id}`} className="input" value={editForm.lastName} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} />
+                          </div>
+                          <div className="grid grid-cols-2" style={{ gap: 'var(--space-2)' }}>
+                            <div className="field">
+                              <label htmlFor={`e-id-${p.id}`}>ID / passport number</label>
+                              <input id={`e-id-${p.id}`} className="input" value={editForm.idNumber} onChange={(e) => setEditForm({ ...editForm, idNumber: e.target.value })} />
+                            </div>
+                            <div className="field">
+                              <label htmlFor={`e-dob-${p.id}`}>Date of birth</label>
+                              <input id={`e-dob-${p.id}`} type="date" className="input" value={editForm.dateOfBirth} onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })} />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2" style={{ gap: 'var(--space-2)' }}>
+                            <div className="field">
+                              <label htmlFor={`e-pos-${p.id}`}>Position <span className="text-muted">(optional)</span></label>
+                              <select id={`e-pos-${p.id}`} className="input" value={editForm.position} onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}>
+                                <option value="">Not recorded</option>
+                                {POSITIONS.map((pos) => <option key={pos} value={pos}>{pos}</option>)}
+                              </select>
+                            </div>
+                            <div className="field">
+                              <label htmlFor={`e-num-${p.id}`}>Shirt number</label>
+                              <input id={`e-num-${p.id}`} type="number" className="input" value={editForm.playerNumber} onChange={(e) => setEditForm({ ...editForm, playerNumber: e.target.value })} />
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                            <button className="btn btn-secondary" disabled={savingEdit} onClick={() => saveEdit(p.id, false)}>
+                              {savingEdit ? 'Saving…' : 'Save changes'}
+                            </button>
+                            {p.rejectedAt && (
+                              <button className="btn btn-primary" disabled={savingEdit} onClick={() => saveEdit(p.id, true)}>
+                                Resubmit for Approval
+                              </button>
+                            )}
+                          </div>
+                          {editStatus && <p className="card-meta">{editStatus}</p>}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

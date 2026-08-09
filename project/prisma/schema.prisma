@@ -34,6 +34,7 @@ enum AssignmentStatus {
 
 enum MatchEventType {
   GOAL
+  OWN_GOAL
   YELLOW_CARD
   RED_CARD
 }
@@ -131,6 +132,7 @@ model Player {
   clubId                 String
   club                   Club      @relation(fields: [clubId], references: [id])
   firstName              String
+  middleName             String?
   lastName               String
   playerNumber           Int?
   position               String?
@@ -151,6 +153,12 @@ model Player {
   registrationNumber     String?   @unique
   leagueManagerApproved  Boolean   @default(false)
   platformOwnerApproved  Boolean   @default(false)
+  // Set when a League Manager rejects a registration. The reason is shown to
+  // the Team Manager, who corrects the record and resubmits — which clears
+  // both fields. A rejection never clears an already-issued registration
+  // number: numbers are permanent once assigned.
+  rejectionReason        String?   @db.Text
+  rejectedAt             DateTime?
   createdAt              DateTime  @default(now())
 
   matchEvents       MatchEvent[]
@@ -242,6 +250,10 @@ model TeamSheetEntry {
   player      Player        @relation(fields: [playerId], references: [id])
   role        TeamSheetRole
   isCaptain   Boolean       @default(false)
+  // The shirt the player wears in THIS match. Distinct from Player.playerNumber,
+  // which is the squad number: a player can be handed a different shirt for a
+  // given fixture, and the referee's team sheet must show what is on the pitch.
+  jerseyNumber Int?
 
   @@unique([teamSheetId, playerId])
   @@index([teamSheetId])
@@ -260,9 +272,19 @@ model DisciplinaryCase {
   decisionDate DateTime?
   status       DisciplinaryStatus  @default(OPEN)
   notes        String?             @db.Text
+  // Automatic card-driven suspensions reuse this model rather than adding a
+  // parallel one. `suspensionType` is null for cases a League Manager opened by
+  // hand, and set for the three rules the engine derives from match events
+  // (see lib/suspensions.ts). The unique constraint below makes recalculation
+  // idempotent — Postgres treats NULLs as distinct, so manual cases never
+  // collide with each other or with the automatic ones.
+  suspensionType String?
+  matchesBanned  Int?
+  matchesServed  Int                @default(0)
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
 
+  @@unique([playerId, fixtureId, suspensionType])
   @@index([playerId])
   @@index([clubId])
   @@index([status])

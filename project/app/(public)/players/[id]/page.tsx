@@ -7,7 +7,12 @@ import { Breadcrumbs, EmptyState, SectionHead, formatDate } from '@/components/p
 
 export const dynamic = 'force-dynamic';
 
-const EVENT_LABEL: Record<string, string> = { GOAL: 'Goal', YELLOW_CARD: 'Yellow card', RED_CARD: 'Red card' };
+const EVENT_LABEL: Record<string, string> = {
+  GOAL: 'Goal',
+  OWN_GOAL: 'Own goal',
+  YELLOW_CARD: 'Yellow card',
+  RED_CARD: 'Red card',
+};
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const player = await getPublicPlayer(params.id);
@@ -61,10 +66,17 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
       <section className="bleed on-dark">
         <div className="bleed-inner" style={{ paddingTop: 'var(--space-8)', paddingBottom: 'var(--space-6)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
-            <Avatar src={player.photoUrl} name={name} size={100} />
+            <Avatar src={player.photoUrl} name={name} size={100} rounded="square" />
             <div style={{ minWidth: 0 }}>
               <p className="eyebrow" style={{ marginBottom: 4 }}>
                 {[player.position, player.registrationNumber].filter(Boolean).join(' · ') || 'Registered player'}
+              </p>
+              {/* Availability is derived from cards, not stored by hand — a
+                  suspended player is a fact of the match record. */}
+              <p style={{ margin: '0 0 6px' }}>
+                <span className={`tag ${player.suspension.suspended ? 'tag-accent-2' : 'tag-accent'}`}>
+                  {player.suspension.label}
+                </span>
               </p>
               <h1 style={{ margin: 0, display: 'flex', alignItems: 'baseline', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
                 {player.playerNumber != null && (
@@ -96,6 +108,21 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
 
       <div className="page-shell-narrow">
         <Breadcrumbs items={[{ name: 'Home', href: '/' }, { name: 'Players', href: '/players' }, { name, href: `/players/${player.id}` }]} />
+
+        {player.suspension.suspended && player.suspension.active && (
+          <section style={{ marginBottom: 'var(--space-6)' }}>
+            <SectionHead title="Suspension" />
+            <p style={{ margin: 0, fontSize: 15 }}>
+              <strong>{player.suspension.active.reason}</strong> — {player.suspension.active.matchesServed} of{' '}
+              {player.suspension.active.matchesBanned}{' '}
+              {player.suspension.active.matchesBanned === 1 ? 'match' : 'matches'} served.
+            </p>
+            <p className="text-muted" style={{ margin: '4px 0 0', fontSize: 14 }}>
+              The ban is served in {player.club.name} matches, not in days. {player.firstName} returns once the
+              remaining {player.suspension.matchesRemaining === 1 ? 'match has' : 'matches have'} been played.
+            </p>
+          </section>
+        )}
 
         <section style={{ marginBottom: 'var(--space-8)' }}>
           <SectionHead title="Profile" />

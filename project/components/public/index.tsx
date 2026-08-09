@@ -300,7 +300,7 @@ export function ClubCard({ club }: { club: any }) {
 export function PlayerCard({ player }: { player: any }) {
   return (
     <Link href={`/players/${player.id}`} className="card" style={{ color: 'inherit', textDecoration: 'none', alignItems: 'center', textAlign: 'center', gap: 'var(--space-2)' }}>
-      <Avatar src={player.photoUrl} name={`${player.firstName} ${player.lastName}`} size={72} />
+      <Avatar src={player.photoUrl} name={`${player.firstName} ${player.lastName}`} size={72} rounded="square" />
       <h3 className="card-title" style={{ margin: 0, fontSize: 16 }}>{player.firstName} {player.lastName}</h3>
       <p className="card-meta" style={{ justifyContent: 'center', margin: 0 }}>
         {[player.club?.name, player.position].filter(Boolean).join(' · ')}

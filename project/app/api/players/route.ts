@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
           id: true,
           clubId: true,
           firstName: true,
+          middleName: true,
           lastName: true,
           playerNumber: true,
           position: true,
@@ -64,6 +65,8 @@ export async function GET(request: NextRequest) {
           registrationNumber: true,
           leagueManagerApproved: true,
           platformOwnerApproved: true,
+          rejectionReason: true,
+          rejectedAt: true,
           createdAt: true,
           idNumber: canSeePrivate,
           club: true,
@@ -94,11 +97,21 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { clubId, firstName, lastName, playerNumber, position, dateOfBirth, photoUrl, idNumber, height, weight, county } = body;
+    const { clubId, firstName, middleName, lastName, playerNumber, position, dateOfBirth, photoUrl, idNumber, height, weight, county } = body;
 
-    if (!clubId || !firstName || !lastName) {
+    // Mandatory identity fields, enforced here rather than only in the form so
+    // the rule holds for any caller. Middle name and position are optional and
+    // must never block a registration.
+    const missing = [
+      !clubId && 'club',
+      !firstName?.trim() && 'first name',
+      !lastName?.trim() && 'last name',
+      !idNumber?.trim() && 'ID / passport number',
+      !dateOfBirth && 'date of birth',
+    ].filter(Boolean);
+    if (missing.length > 0) {
       return NextResponse.json(
-        { success: false, error: 'clubId, firstName and lastName are required' },
+        { success: false, error: `Required: ${missing.join(', ')}.` },
         { status: 400 }
       );
     }
@@ -119,6 +132,7 @@ export async function POST(request: NextRequest) {
         data: {
           clubId,
           firstName,
+          middleName: middleName?.trim() || null,
           lastName,
           playerNumber: playerNumber ? Number(playerNumber) : null,
           position: position || null,

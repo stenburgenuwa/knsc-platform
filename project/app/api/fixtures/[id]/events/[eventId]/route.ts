@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth-guard';
+import { syncSuspensionCases } from '@/lib/suspensions';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,12 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     prisma.matchEvent.delete({ where: { id: params.eventId } }),
     ...(event.type === 'GOAL' ? [prisma.player.update({ where: { id: event.playerId }, data: { goals: { decrement: 1 } } })] : []),
   ]);
+
+  // Removing a card has to withdraw any ban it caused, or a correction would
+  // leave the player suspended for an offence that is no longer on record.
+  if (event.type === 'YELLOW_CARD' || event.type === 'RED_CARD') {
+    await syncSuspensionCases([event.playerId]);
+  }
 
   return NextResponse.json({ success: true });
 }

@@ -10,8 +10,8 @@ import {
   recordMatchEvent,
   deleteMatchEvent,
   getTeamSheets,
+  type MatchEventType,
 } from '@/lib/admin-api';
-import { getPlayers } from '@/lib/public-api';
 import StatCard from '@/components/StatCard';
 import Avatar from '@/components/Avatar';
 import { getMe, updateMyAvailability } from '@/lib/auth-service';
@@ -31,18 +31,28 @@ function formatDate(value?: string) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-const EVENT_LABELS: Record<string, string> = { GOAL: 'Goal', YELLOW_CARD: 'Yellow card', RED_CARD: 'Red card' };
+const EVENT_LABELS: Record<string, string> = {
+  GOAL: 'Goal',
+  OWN_GOAL: 'Own goal',
+  YELLOW_CARD: 'Yellow card',
+  RED_CARD: 'Red card',
+};
+
+const EVENT_TYPES = ['GOAL', 'OWN_GOAL', 'YELLOW_CARD', 'RED_CARD'] as const;
+
+const fullName = (p: { firstName: string; middleName?: string | null; lastName: string }) =>
+  [p.firstName, p.middleName, p.lastName].filter(Boolean).join(' ');
 
 export default function RefereeDashboard() {
   const [data, setData] = useState<any>(null);
   const [assignments, setAssignments] = useState<any[]>([]);
-  const [squads, setSquads] = useState<Record<string, any[]>>({});
   const [events, setEvents] = useState<Record<string, any[]>>({});
   const [teamSheets, setTeamSheets] = useState<Record<string, { home: any; away: any }>>({});
   const [teamSheetsOpen, setTeamSheetsOpen] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState<Record<string, { home: string; away: string }>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
+  // Keyed by `${fixtureId}:HOME` / `:AWAY` so the two sides never share a draft.
   const [eventForm, setEventForm] = useState<Record<string, { playerId: string; type: string; minute: string }>>({});
   const [status, setStatus] = useState<string | null>(null);
   const [availability, setAvailability] = useState<string>('AVAILABLE');
@@ -57,17 +67,6 @@ export default function RefereeDashboard() {
       setAssignments(list);
 
       const accepted = list.filter((a: any) => a.status === 'ACCEPTED' || a.status === 'COMPLETED');
-      const squadEntries = await Promise.all(
-        accepted.map(async (a: any) => {
-          const [homeRes, awayRes] = await Promise.all([
-            getPlayers(1, 50, { clubId: a.fixture.homeClubId }),
-            getPlayers(1, 50, { clubId: a.fixture.awayClubId }),
-          ]);
-          const players = [...(homeRes.data?.data || []), ...(awayRes.data?.data || [])];
-          return [a.fixture.id, players] as const;
-        })
-      );
-      setSquads(Object.fromEntries(squadEntries));
 
       const eventEntries = await Promise.all(
         accepted.map(async (a: any) => {
@@ -115,8 +114,9 @@ export default function RefereeDashboard() {
     }
   };
 
-  const handleAddEvent = async (fixtureId: string) => {
-    const form = eventForm[fixtureId];
+  const handleAddEvent = async (fixtureId: string, side: 'HOME' | 'AWAY') => {
+    const key = `${fixtureId}:${side}`;
+    const form = eventForm[key];
     if (!form?.playerId || !form?.type) {
       setStatus('Pick a player and an event type first.');
       return;
@@ -124,11 +124,11 @@ export default function RefereeDashboard() {
     try {
       await recordMatchEvent(fixtureId, {
         playerId: form.playerId,
-        type: form.type as 'GOAL' | 'YELLOW_CARD' | 'RED_CARD',
+        type: form.type as MatchEventType,
         minute: form.minute ? Number(form.minute) : undefined,
       });
       setStatus(null);
-      setEventForm({ ...eventForm, [fixtureId]: { playerId: '', type: 'GOAL', minute: '' } });
+      setEventForm({ ...eventForm, [key]: { playerId: '', type: 'GOAL', minute: '' } });
       load();
     } catch (err: any) {
       setStatus(err?.response?.data?.error || 'Failed to record event.');
@@ -197,9 +197,13 @@ export default function RefereeDashboard() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
                 {assignments.map((a) => {
-                  const squad = squads[a.fixture.id] || [];
+                  const sheets = teamSheets[a.fixture.id] || { home: null, away: null };
+                  // Only the players their Team Manager named — 11 starters
+                  // plus 7 substitutes — can appear in the match record.
+                  const selected = (sheet: any) => (sheet ? [...sheet.starters, ...sheet.substitutes] : []);
+                  const homeSelected = selected(sheets.home);
+                  const awaySelected = selected(sheets.away);
                   const fixtureEvents = events[a.fixture.id] || [];
-                  const form = eventForm[a.fixture.id] || { playerId: '', type: 'GOAL', minute: '' };
                   const reportStatus = a.fixture.reportStatus;
                   const reportLocked = reportStatus === 'SUBMITTED' || reportStatus === 'APPROVED';
                   const canEnterResult = a.status === 'ACCEPTED' && (a.fixture.status === 'UPCOMING' || reportStatus === 'RETURNED');
@@ -241,33 +245,43 @@ export default function RefereeDashboard() {
                           </button>
 
                           {teamSheetsOpen[a.fixture.id] && (
-                            <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
                               {[
-                                { label: a.fixture.homeClub.name, sheet: teamSheets[a.fixture.id]?.home },
-                                { label: a.fixture.awayClub.name, sheet: teamSheets[a.fixture.id]?.away },
+                                { label: `Home — ${a.fixture.homeClub.name}`, sheet: sheets.home },
+                                { label: `Away — ${a.fixture.awayClub.name}`, sheet: sheets.away },
                               ].map(({ label, sheet }) => (
-                                <div key={label} className="card" style={{ padding: 'var(--space-2)' }}>
+                                <div key={label}>
                                   <p className="card-kicker">{label}</p>
                                   {!sheet ? (
                                     <p className="card-meta">Team sheet not submitted yet.</p>
                                   ) : (
-                                    <>
-                                      <p className="card-meta" style={{ marginBottom: 4 }}>Starting XI</p>
-                                      {sheet.starters.map((p: any) => (
-                                        <div key={p.playerId} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 2 }}>
-                                          <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={20} />
-                                          {p.playerNumber ? `#${p.playerNumber} ` : ''}{p.firstName} {p.lastName}
-                                          {p.isCaptain && <span className="tag tag-accent-2">C</span>}
-                                        </div>
-                                      ))}
-                                      <p className="card-meta" style={{ margin: '6px 0 4px' }}>Substitutes</p>
-                                      {sheet.substitutes.map((p: any) => (
-                                        <div key={p.playerId} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 2 }}>
-                                          <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={20} />
-                                          {p.playerNumber ? `#${p.playerNumber} ` : ''}{p.firstName} {p.lastName}
-                                        </div>
-                                      ))}
-                                    </>
+                                    <div style={{ overflowX: 'auto' }}>
+                                      <table className="table">
+                                        <thead>
+                                          <tr>
+                                            <th style={{ width: 36 }}>#</th>
+                                            <th style={{ width: 52 }}>Photo</th>
+                                            <th>Player name</th>
+                                            <th>Registration number</th>
+                                            <th>Jersey number</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {[...sheet.starters, ...sheet.substitutes].map((p: any, idx: number) => (
+                                            <tr key={p.playerId}>
+                                              <td>{idx + 1}</td>
+                                              <td><Avatar src={p.photoUrl} name={fullName(p)} size={34} rounded="square" /></td>
+                                              <td>
+                                                {fullName(p)}
+                                                {p.isCaptain && <span className="tag tag-accent-2" style={{ marginLeft: 6 }}>C</span>}
+                                              </td>
+                                              <td>{p.registrationNumber || '—'}</td>
+                                              <td>{p.jerseyNumber ?? '—'}</td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
                                   )}
                                 </div>
                               ))}
@@ -276,65 +290,99 @@ export default function RefereeDashboard() {
 
                           <p className="card-kicker" style={{ marginBottom: 'var(--space-2)' }}>Match Events</p>
 
-                          {fixtureEvents.length > 0 && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', marginBottom: 'var(--space-2)' }}>
-                              {fixtureEvents.map((ev: any) => (
-                                <div key={ev.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
-                                  <span>
-                                    {ev.minute ? `${ev.minute}' ` : ''}
-                                    <strong>{EVENT_LABELS[ev.type] || ev.type}</strong> &mdash; {ev.player.firstName} {ev.player.lastName} ({ev.player.club.name})
-                                  </span>
+                          {/* Home and away are kept apart so the referee is
+                              always recording against the right team. */}
+                          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+                            {([
+                              { side: 'HOME', club: a.fixture.homeClub, players: homeSelected },
+                              { side: 'AWAY', club: a.fixture.awayClub, players: awaySelected },
+                            ] as const).map(({ side, club, players }) => {
+                              const sideEvents = fixtureEvents.filter((ev: any) => ev.player.clubId === club.id);
+                              const sideForm =
+                                eventForm[`${a.fixture.id}:${side}`] || { playerId: '', type: 'GOAL', minute: '' };
+                              const key = `${a.fixture.id}:${side}`;
+                              return (
+                                <div key={side}>
+                                  <p className="card-meta" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-ink)', marginBottom: 4 }}>
+                                    {side === 'HOME' ? 'Home' : 'Away'} &mdash; {club.name}
+                                  </p>
+
+                                  {sideEvents.length === 0 ? (
+                                    <p className="card-meta">No events recorded.</p>
+                                  ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 'var(--space-2)' }}>
+                                      {sideEvents.map((ev: any) => (
+                                        <div key={ev.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, gap: 6 }}>
+                                          <span>
+                                            {ev.minute ? `${ev.minute}' ` : ''}
+                                            <strong>{EVENT_LABELS[ev.type] || ev.type}</strong> &mdash; {fullName(ev.player)}
+                                          </span>
+                                          {!reportLocked && (
+                                            <button className="btn btn-ghost" style={{ fontSize: 12, flex: 'none' }} onClick={() => handleRemoveEvent(a.fixture.id, ev.id)}>
+                                              Remove
+                                            </button>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
                                   {!reportLocked && (
-                                    <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => handleRemoveEvent(a.fixture.id, ev.id)}>
-                                      Remove
-                                    </button>
+                                    players.length === 0 ? (
+                                      <p className="card-meta">
+                                        {club.name} have not submitted a team sheet, so there are no selected players to record against.
+                                      </p>
+                                    ) : (
+                                      <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                                        <div className="field" style={{ marginBottom: 0, minWidth: 150 }}>
+                                          <label htmlFor={`player-${key}`}>Player</label>
+                                          <select
+                                            id={`player-${key}`}
+                                            className="input"
+                                            value={sideForm.playerId}
+                                            onChange={(e) => setEventForm({ ...eventForm, [key]: { ...sideForm, playerId: e.target.value } })}
+                                          >
+                                            <option value="">Select player&hellip;</option>
+                                            {players.map((p: any) => (
+                                              <option key={p.playerId} value={p.playerId}>
+                                                {p.jerseyNumber ? `${p.jerseyNumber}. ` : ''}{fullName(p)}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                        <div className="field" style={{ marginBottom: 0 }}>
+                                          <label htmlFor={`type-${key}`}>Event</label>
+                                          <select
+                                            id={`type-${key}`}
+                                            className="input"
+                                            value={sideForm.type}
+                                            onChange={(e) => setEventForm({ ...eventForm, [key]: { ...sideForm, type: e.target.value } })}
+                                          >
+                                            {EVENT_TYPES.map((t) => <option key={t} value={t}>{EVENT_LABELS[t]}</option>)}
+                                          </select>
+                                        </div>
+                                        <div className="field" style={{ marginBottom: 0 }}>
+                                          <label htmlFor={`min-${key}`}>Minute</label>
+                                          <input
+                                            id={`min-${key}`}
+                                            type="number"
+                                            className="input"
+                                            style={{ width: 70 }}
+                                            value={sideForm.minute}
+                                            onChange={(e) => setEventForm({ ...eventForm, [key]: { ...sideForm, minute: e.target.value } })}
+                                          />
+                                        </div>
+                                        <button className="btn btn-secondary" onClick={() => handleAddEvent(a.fixture.id, side)}>Add Event</button>
+                                      </div>
+                                    )
                                   )}
                                 </div>
-                              ))}
-                            </div>
-                          )}
+                              );
+                            })}
+                          </div>
 
-                          {reportLocked ? (
+                          {reportLocked && (
                             <p className="card-meta">Match events are locked while the report is {reportStatus === 'APPROVED' ? 'approved' : 'awaiting review'}.</p>
-                          ) : (
-                            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                              <div className="field" style={{ marginBottom: 0, minWidth: 180 }}>
-                                <label>Player</label>
-                                <select
-                                  className="input"
-                                  value={form.playerId}
-                                  onChange={(e) => setEventForm({ ...eventForm, [a.fixture.id]: { ...form, playerId: e.target.value } })}
-                                >
-                                  <option value="">Select player&hellip;</option>
-                                  {squad.map((p: any) => (
-                                    <option key={p.id} value={p.id}>{p.firstName} {p.lastName} ({p.club?.name})</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div className="field" style={{ marginBottom: 0 }}>
-                                <label>Event</label>
-                                <select
-                                  className="input"
-                                  value={form.type}
-                                  onChange={(e) => setEventForm({ ...eventForm, [a.fixture.id]: { ...form, type: e.target.value } })}
-                                >
-                                  <option value="GOAL">Goal</option>
-                                  <option value="YELLOW_CARD">Yellow card</option>
-                                  <option value="RED_CARD">Red card</option>
-                                </select>
-                              </div>
-                              <div className="field" style={{ marginBottom: 0 }}>
-                                <label>Minute</label>
-                                <input
-                                  type="number"
-                                  className="input"
-                                  style={{ width: 70 }}
-                                  value={form.minute}
-                                  onChange={(e) => setEventForm({ ...eventForm, [a.fixture.id]: { ...form, minute: e.target.value } })}
-                                />
-                              </div>
-                              <button className="btn btn-secondary" onClick={() => handleAddEvent(a.fixture.id)}>Add Event</button>
-                            </div>
                           )}
                         </div>
                       )}

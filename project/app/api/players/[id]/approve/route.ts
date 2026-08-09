@@ -19,7 +19,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const player = await prisma.$transaction(async (tx) => {
       const updated = await tx.player.update({
         where: { id: params.id },
-        data: { approved: true, [approvalField]: true },
+        data: { approved: true, [approvalField]: true, rejectionReason: null, rejectedAt: null },
       });
       await maybeAssignRegistrationNumber(tx, updated);
       return tx.player.findUniqueOrThrow({ where: { id: params.id }, include: { club: true } });

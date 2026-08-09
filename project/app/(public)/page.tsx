@@ -144,7 +144,7 @@ export default async function HomePage() {
                     href={`/players/${topScorer.id}`}
                     style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', color: 'inherit', textDecoration: 'none' }}
                   >
-                    <Avatar src={topScorer.photoUrl} name={`${topScorer.firstName} ${topScorer.lastName}`} size={52} />
+                    <Avatar src={topScorer.photoUrl} name={`${topScorer.firstName} ${topScorer.lastName}`} size={52} rounded="square" />
                     <span>
                       <span style={{ display: 'block', fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 17 }}>
                         {topScorer.firstName} {topScorer.lastName}

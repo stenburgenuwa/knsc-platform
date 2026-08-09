@@ -8,6 +8,7 @@ import {
   createFixture,
   getPendingPlayers,
   approvePlayer,
+  rejectPlayer,
   updateFixture,
   updateClub,
   createUser,
@@ -20,6 +21,7 @@ import { getClubs, getFixtures, getPlayers } from '@/lib/public-api';
 import StatCard from '@/components/StatCard';
 import Avatar from '@/components/Avatar';
 import AnnouncementsPanel from '@/components/AnnouncementsPanel';
+import MatchReportViewer from '@/components/MatchReportViewer';
 
 function formatDate(value?: string) {
   if (!value) return '';
@@ -37,6 +39,15 @@ export default function LeagueManagerDashboard() {
   const [pending, setPending] = useState<any[]>([]);
   const [fixtures, setFixtures] = useState<any[]>([]);
   const [reportQueue, setReportQueue] = useState<any[]>([]);
+  // Every report ever filed, not just the ones awaiting review — the archive
+  // is the league's evidence for disputes long after approval.
+  const [reportArchive, setReportArchive] = useState<any[]>([]);
+  const [viewingReportId, setViewingReportId] = useState<string | null>(null);
+
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejecting, setRejecting] = useState(false);
+  const [approvalStatus, setApprovalStatus] = useState<string | null>(null);
   const [players, setPlayers] = useState<any[]>([]);
   const [cases, setCases] = useState<any[]>([]);
   const [caseForm, setCaseForm] = useState({ clubId: '', playerId: '', reason: '', decision: '' });
@@ -59,7 +70,7 @@ export default function LeagueManagerDashboard() {
 
   const load = async () => {
     try {
-      const [summary, clubsRes, pendingRes, fixturesRes, queueRes, playersRes, casesRes] = await Promise.all([
+      const [summary, clubsRes, pendingRes, fixturesRes, queueRes, playersRes, casesRes, archiveRes] = await Promise.all([
         getDashboardSummary(),
         getClubs(1, 100),
         getPendingPlayers(),
@@ -67,6 +78,7 @@ export default function LeagueManagerDashboard() {
         getFixtures(1, 50, { reportStatus: 'SUBMITTED' }),
         getPlayers(1, 500),
         getDisciplinaryCases(),
+        getFixtures(1, 100, { status: 'all', reportStatus: 'SUBMITTED,APPROVED,RETURNED' }),
       ]);
       setData(summary.data?.data);
       const clubList = clubsRes.data?.data || [];
@@ -76,6 +88,7 @@ export default function LeagueManagerDashboard() {
       setReportQueue(queueRes.data?.data || []);
       setPlayers(playersRes.data?.data || []);
       setCases(casesRes.data?.data || []);
+      setReportArchive(archiveRes.data?.data || []);
       setFixtureForm((f) => ({
         ...f,
         homeClubId: f.homeClubId || clubList[0]?.id || '',
@@ -114,8 +127,33 @@ export default function LeagueManagerDashboard() {
   };
 
   const handleApprove = async (id: string) => {
-    await approvePlayer(id);
-    load();
+    setApprovalStatus(null);
+    try {
+      await approvePlayer(id);
+      setRejectingId(null);
+      load();
+    } catch (err: any) {
+      setApprovalStatus(err?.response?.data?.error || 'Failed to approve player.');
+    }
+  };
+
+  // A rejection without a reason gives the Team Manager nothing to act on, so
+  // the button stays disabled until one is written and the API rejects it too.
+  const handleReject = async (id: string) => {
+    if (rejectReason.trim().length === 0) return;
+    setRejecting(true);
+    setApprovalStatus(null);
+    try {
+      await rejectPlayer(id, rejectReason.trim());
+      setRejectingId(null);
+      setRejectReason('');
+      setApprovalStatus('Player rejected — the reason is now on their Team Manager’s dashboard.');
+      load();
+    } catch (err: any) {
+      setApprovalStatus(err?.response?.data?.error || 'Failed to reject player.');
+    } finally {
+      setRejecting(false);
+    }
   };
 
   const startEditFixture = (f: any) => {
@@ -307,24 +345,78 @@ export default function LeagueManagerDashboard() {
 
             <div className="card elev-sm">
               <h3 className="card-title">Pending Player Approvals</h3>
+              <p className="card-meta" style={{ marginBottom: 'var(--space-2)' }}>
+                Check the photo against the name, ID number and date of birth before approving.
+              </p>
               {pending.length === 0 ? (
                 <p className="card-meta">No players awaiting approval.</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {pending.map((p, i) => (
-                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-2) 0', borderBottom: i < pending.length - 1 ? '1px solid var(--color-divider)' : 'none' }}>
-                      <div>
-                        <p style={{ fontFamily: 'var(--font-heading)', margin: 0 }}>{p.firstName} {p.lastName}</p>
-                        <p className="card-meta">
-                          {p.club?.name}
-                          {p.platformOwnerApproved ? ' · Platform Owner approved' : ' · Awaiting Platform Owner'}
-                        </p>
+                    <div key={p.id} style={{ padding: 'var(--space-3) 0', borderBottom: i < pending.length - 1 ? '1px solid var(--color-divider)' : 'none' }}>
+                      <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                        {/* Large and square: this is an identity check, and a
+                            thumbnail in a disc is not enough to make one. */}
+                        <Avatar
+                          src={p.photoUrl}
+                          name={`${p.firstName} ${p.lastName}`}
+                          size={112}
+                          rounded="square"
+                        />
+                        <div style={{ minWidth: 200, flex: 1 }}>
+                          <p style={{ fontFamily: 'var(--font-heading)', fontSize: 18, margin: 0 }}>
+                            {[p.firstName, p.middleName, p.lastName].filter(Boolean).join(' ')}
+                          </p>
+                          <p className="card-meta" style={{ margin: '2px 0' }}>{p.club?.name}</p>
+                          <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '2px var(--space-3)', margin: 'var(--space-2) 0 0', fontSize: 13 }}>
+                            <dt className="text-muted">ID / passport</dt>
+                            <dd style={{ margin: 0 }}>{p.idNumber || <span className="text-muted">Not provided</span>}</dd>
+                            <dt className="text-muted">Date of birth</dt>
+                            <dd style={{ margin: 0 }}>{p.dateOfBirth ? formatDate(p.dateOfBirth) : <span className="text-muted">Not provided</span>}</dd>
+                            <dt className="text-muted">Position</dt>
+                            <dd style={{ margin: 0 }}>{p.position || <span className="text-muted">Not recorded</span>}</dd>
+                          </dl>
+                          <p className="card-meta" style={{ marginTop: 'var(--space-1)' }}>
+                            {p.platformOwnerApproved ? 'Platform Owner approved' : 'Awaiting Platform Owner'}
+                          </p>
+                        </div>
                       </div>
-                      <button className="btn btn-primary" onClick={() => handleApprove(p.id)}>Approve</button>
+
+                      <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)', flexWrap: 'wrap' }}>
+                        <button className="btn btn-primary" onClick={() => handleApprove(p.id)}>Approve</button>
+                        {rejectingId === p.id ? (
+                          <button className="btn btn-ghost" onClick={() => { setRejectingId(null); setRejectReason(''); }}>Cancel</button>
+                        ) : (
+                          <button className="btn btn-secondary" onClick={() => { setRejectingId(p.id); setRejectReason(''); setApprovalStatus(null); }}>Reject</button>
+                        )}
+                      </div>
+
+                      {rejectingId === p.id && (
+                        <div style={{ marginTop: 'var(--space-2)' }}>
+                          <div className="field">
+                            <label htmlFor={`reject-${p.id}`}>Reason for rejection</label>
+                            <textarea
+                              id={`reject-${p.id}`}
+                              className="input"
+                              placeholder="Tell the Team Manager what to correct — the photo is unclear, the ID number does not match, and so on."
+                              value={rejectReason}
+                              onChange={(e) => setRejectReason(e.target.value)}
+                            />
+                          </div>
+                          <button
+                            className="btn btn-primary"
+                            disabled={rejectReason.trim().length === 0 || rejecting}
+                            onClick={() => handleReject(p.id)}
+                          >
+                            {rejecting ? 'Sending…' : 'Confirm Rejection'}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
+              {approvalStatus && <p className="card-meta">{approvalStatus}</p>}
             </div>
           </div>
 
@@ -351,12 +443,63 @@ export default function LeagueManagerDashboard() {
                         onChange={(e) => setReturnNotes({ ...returnNotes, [f.id]: e.target.value })}
                       />
                       <button className="btn btn-secondary" onClick={() => handleReviewReport(f.id, 'RETURN')}>Return for Correction</button>
+                      <button className="btn btn-ghost" onClick={() => setViewingReportId(f.id)}>View Full Report</button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
+
+          {/* The permanent record. Reports stay here after approval so the
+              league can verify them and settle disputes later. */}
+          <div className="card elev-sm" style={{ marginBottom: 'var(--space-4)' }}>
+            <h3 className="card-title">Match Report Archive ({reportArchive.length})</h3>
+            {reportArchive.length === 0 ? (
+              <p className="card-meta">No match reports have been filed yet.</p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Match</th>
+                      <th>Played</th>
+                      <th>Referee</th>
+                      <th>Submitted</th>
+                      <th>Status</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportArchive.map((f) => (
+                      <tr key={f.id}>
+                        <td style={{ fontFamily: 'var(--font-heading)' }}>
+                          {f.homeClub.name} {f.homeScore ?? '–'}&ndash;{f.awayScore ?? '–'} {f.awayClub.name}
+                        </td>
+                        <td>{formatDate(f.fixtureDate)}</td>
+                        <td>
+                          {f.refereeAssignment?.referee
+                            ? `${f.refereeAssignment.referee.firstName} ${f.refereeAssignment.referee.lastName}`
+                            : '—'}
+                        </td>
+                        <td>{f.reportSubmittedAt ? formatDate(f.reportSubmittedAt) : '—'}</td>
+                        <td>
+                          <span className={`tag ${f.reportStatus === 'APPROVED' ? 'tag-accent' : 'tag-neutral'}`}>{f.reportStatus}</span>
+                        </td>
+                        <td>
+                          <button className="btn btn-ghost" onClick={() => setViewingReportId(f.id)}>View</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {viewingReportId && (
+            <MatchReportViewer fixtureId={viewingReportId} onClose={() => setViewingReportId(null)} />
+          )}
 
           <div className="card elev-sm" style={{ marginBottom: 'var(--space-4)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

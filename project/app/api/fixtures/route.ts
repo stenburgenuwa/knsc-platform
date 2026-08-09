@@ -16,11 +16,15 @@ export async function GET(request: NextRequest) {
     // status=all to manage completed and postponed ones too.
     const statusParam = searchParams.get('status');
     const clubId = searchParams.get('clubId') || undefined;
-    const reportStatus = searchParams.get('reportStatus') || undefined;
+    // Accepts one status or a comma-separated set, so the match report archive
+    // can ask for everything that has ever been filed (SUBMITTED,APPROVED,
+    // RETURNED) in one call rather than three.
+    const reportStatusParam = searchParams.get('reportStatus') || undefined;
+    const reportStatuses = reportStatusParam?.split(',').map((s) => s.trim()).filter(Boolean);
     const where = {
       ...(statusParam === 'all' ? {} : { status: (statusParam as any) || 'UPCOMING' }),
       ...(clubId ? { OR: [{ homeClubId: clubId }, { awayClubId: clubId }] } : {}),
-      ...(reportStatus ? { reportStatus: reportStatus as any } : {}),
+      ...(reportStatuses?.length ? { reportStatus: { in: reportStatuses as any } } : {}),
     };
 
     const [fixtures, total] = await Promise.all([

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { computeStandings, type StandingsRow } from '@/lib/standings';
+import { getPlayerSuspensionStatus } from '@/lib/suspensions';
 
 // Server-only: imports Prisma, so it can only be used from server components
 // and route handlers.
@@ -447,6 +448,10 @@ export async function getPublicPlayer(id: string) {
 
   const matchHistory = Array.from(byFixture.values());
 
+  // Derived from match events, so it is always in step with the record — see
+  // lib/suspensions.ts for the three rules.
+  const suspension = await getPlayerSuspensionStatus(id);
+
   return {
     ...player,
     age: calculateAge(player.dateOfBirth),
@@ -456,6 +461,7 @@ export async function getPublicPlayer(id: string) {
       yellowCards,
       redCards,
     },
+    suspension,
     matchHistory,
   };
 }

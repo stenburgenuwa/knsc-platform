@@ -7,7 +7,8 @@ export async function getFixtures(
   opts?: {
     status?: 'all' | 'UPCOMING' | 'COMPLETED' | 'POSTPONED';
     clubId?: string;
-    reportStatus?: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'RETURNED';
+    /** One status, or a comma-separated set (e.g. 'SUBMITTED,APPROVED,RETURNED'). */
+    reportStatus?: string;
   }
 ) {
   const client = getApiClient();

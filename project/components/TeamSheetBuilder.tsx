@@ -21,6 +21,9 @@ function formatDate(value?: string) {
 export default function TeamSheetBuilder({ fixture, clubId, squad }: { fixture: any; clubId: string; squad: any[] }) {
   const [slots, setSlots] = useState<Record<string, Slot>>({});
   const [captainId, setCaptainId] = useState<string>('');
+  // The shirt each selected player wears in this match. Separate from their
+  // squad number, which is only the default.
+  const [jerseys, setJerseys] = useState<Record<string, string>>({});
   const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
@@ -45,6 +48,11 @@ export default function TeamSheetBuilder({ fixture, clubId, squad }: { fixture: 
         setSlots(next);
         const captain = sheet.starters.find((p: any) => p.isCaptain);
         setCaptainId(captain?.playerId || '');
+        const shirts: Record<string, string> = {};
+        for (const p of [...sheet.starters, ...sheet.substitutes]) {
+          if (p.jerseyNumber != null) shirts[p.playerId] = String(p.jerseyNumber);
+        }
+        setJerseys(shirts);
         setSubmittedAt(sheet.submittedAt);
       }
     } catch (error) {
@@ -94,10 +102,28 @@ export default function TeamSheetBuilder({ fixture, clubId, squad }: { fixture: 
       return;
     }
 
+    const selectedIds = [...starters, ...substitutes];
+    const jerseyNumbers: Record<string, number> = {};
+    for (const id of selectedIds) {
+      const raw = jerseys[id] ?? (squad.find((p) => p.id === id)?.playerNumber ?? '');
+      if (raw === '' || raw === null || raw === undefined) continue;
+      const n = Number(raw);
+      if (!Number.isInteger(n) || n < 1 || n > 99) {
+        setStatus('Jersey numbers must be whole numbers between 1 and 99.');
+        return;
+      }
+      jerseyNumbers[id] = n;
+    }
+    const shirts = Object.values(jerseyNumbers);
+    if (new Set(shirts).size !== shirts.length) {
+      setStatus('Two players cannot wear the same jersey number.');
+      return;
+    }
+
     setSaving(true);
     setStatus(null);
     try {
-      const res = await saveTeamSheet(fixture.id, { clubId, starters, substitutes, captainId });
+      const res = await saveTeamSheet(fixture.id, { clubId, starters, substitutes, captainId, jerseyNumbers });
       setSubmittedAt(res.data?.data?.submittedAt || new Date().toISOString());
       setStatus('Team sheet saved.');
     } catch (err: any) {
@@ -155,12 +181,32 @@ export default function TeamSheetBuilder({ fixture, clubId, squad }: { fixture: 
                       }}
                     >
                       <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
-                        <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={28} />
+                        <Avatar src={p.photoUrl} name={`${p.firstName} ${p.lastName}`} size={28} rounded="square" />
                         {p.playerNumber ? `#${p.playerNumber} ` : ''}{p.firstName} {p.lastName}
                         {captainId === p.id && <span className="tag tag-accent-2">C</span>}
                       </span>
-                      <span className="tag tag-neutral">
-                        {slot === 'NONE' ? 'Not selected' : slot === 'STARTER' ? 'Starting XI' : 'Substitute'}
+                      <span
+                        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flex: 'none' }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {slot !== 'NONE' && (
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+                            <span className="text-muted">Shirt</span>
+                            <input
+                              type="number"
+                              className="input"
+                              style={{ width: 64, padding: '2px 6px' }}
+                              min={1}
+                              max={99}
+                              aria-label={`Jersey number for ${p.firstName} ${p.lastName}`}
+                              value={jerseys[p.id] ?? (p.playerNumber != null ? String(p.playerNumber) : '')}
+                              onChange={(e) => setJerseys({ ...jerseys, [p.id]: e.target.value })}
+                            />
+                          </label>
+                        )}
+                        <span className="tag tag-neutral">
+                          {slot === 'NONE' ? 'Not selected' : slot === 'STARTER' ? 'Starting XI' : 'Substitute'}
+                        </span>
                       </span>
                     </div>
                   );

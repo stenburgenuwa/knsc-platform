@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth-guard';
+import { syncSuspensionCases } from '@/lib/suspensions';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +58,16 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         data: { status: 'COMPLETED' },
       });
     }
+
+    // Completing a match serves a match of every outstanding ban at both
+    // clubs, so the disciplinary register is brought back in step here. The
+    // suspension engine derives status on read regardless, but the stored
+    // cases back the League Manager's register and the report archive.
+    const affected = await prisma.player.findMany({
+      where: { clubId: { in: [fixture.homeClubId, fixture.awayClubId] } },
+      select: { id: true },
+    });
+    await syncSuspensionCases(affected.map((p) => p.id));
 
     return NextResponse.json({ success: true, data: fixture });
   } catch (error) {

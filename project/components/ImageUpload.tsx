@@ -2,9 +2,10 @@
 
 import { useRef, useState } from 'react';
 import { Upload, X } from 'lucide-react';
-import { resizeImage } from '@/lib/image-resize';
+import { resizeImage, resizeBlob } from '@/lib/image-resize';
 import { uploadImage } from '@/lib/admin-api';
 import Avatar from '@/components/Avatar';
+import ImageCropper from '@/components/ImageCropper';
 
 export default function ImageUpload({
   value,
@@ -19,24 +20,53 @@ export default function ImageUpload({
   label: string;
   kind: 'player' | 'club' | 'announcement';
   name: string;
-  rounded?: 'circle' | 'soft';
+  rounded?: 'circle' | 'soft' | 'square';
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
-  const handleFile = async (file: File) => {
+  // Player photos are framed by hand before they are saved; crests and
+  // announcement images keep the existing straight-to-upload path.
+  const cropFirst = kind === 'player';
+
+  const upload = async (blob: Blob) => {
     setError(null);
     setBusy(true);
     try {
-      const resized = await resizeImage(file);
-      const res = await uploadImage(resized, kind);
+      const res = await uploadImage(blob, kind);
       onChange(res.data?.data?.url ?? null);
     } catch (err: any) {
       setError(err?.response?.data?.error || err?.message || 'Upload failed.');
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  const handleFile = async (file: File) => {
+    if (cropFirst) {
+      setError(null);
+      setPendingFile(file);
+      return;
+    }
+    try {
+      await upload(await resizeImage(file));
+    } catch (err: any) {
+      setError(err?.message || 'Upload failed.');
+      setBusy(false);
+    }
+  };
+
+  const handleCropped = async (blob: Blob) => {
+    setPendingFile(null);
+    if (inputRef.current) inputRef.current.value = '';
+    try {
+      await upload(await resizeBlob(blob));
+    } catch (err: any) {
+      setError(err?.message || 'Upload failed.');
+      setBusy(false);
     }
   };
 
@@ -69,6 +99,17 @@ export default function ImageUpload({
         />
       </div>
       {error && <p className="card-meta" style={{ color: 'var(--color-accent-800)' }}>{error}</p>}
+
+      {pendingFile && (
+        <ImageCropper
+          file={pendingFile}
+          onCancel={() => {
+            setPendingFile(null);
+            if (inputRef.current) inputRef.current.value = '';
+          }}
+          onCrop={handleCropped}
+        />
+      )}
     </div>
   );
 }

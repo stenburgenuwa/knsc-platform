@@ -128,13 +128,31 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 
   try {
-    const { firstName, lastName, playerNumber, position, dateOfBirth, photoUrl, idNumber, height, weight, county, preferredFoot, featured } =
+    const { firstName, middleName, lastName, playerNumber, position, dateOfBirth, photoUrl, idNumber, height, weight, county, preferredFoot, featured, resubmit } =
       await request.json();
+
+    // Resubmission after a rejection: the correction clears the reason and
+    // sends the record back to the League Manager's queue. An already-issued
+    // registration number is deliberately left alone — numbers are permanent.
+    const resubmitting = resubmit === true && Boolean(existing.rejectedAt);
+    if (resubmitting) {
+      const nowFirst = firstName ?? existing.firstName;
+      const nowLast = lastName ?? existing.lastName;
+      const nowId = idNumber ?? existing.idNumber;
+      const nowDob = dateOfBirth !== undefined ? dateOfBirth : existing.dateOfBirth;
+      if (!nowFirst?.trim() || !nowLast?.trim() || !nowId?.trim() || !nowDob) {
+        return NextResponse.json(
+          { success: false, error: 'First name, last name, ID / passport number and date of birth are required before resubmitting.' },
+          { status: 400 }
+        );
+      }
+    }
 
     const player = await prisma.player.update({
       where: { id: params.id },
       data: {
         ...(firstName !== undefined ? { firstName } : {}),
+        ...(middleName !== undefined ? { middleName: middleName || null } : {}),
         ...(lastName !== undefined ? { lastName } : {}),
         ...(playerNumber !== undefined ? { playerNumber: playerNumber ? Number(playerNumber) : null } : {}),
         ...(position !== undefined ? { position: position || null } : {}),
@@ -146,13 +164,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         ...(county !== undefined ? { county: county || null } : {}),
         ...(preferredFoot !== undefined ? { preferredFoot: preferredFoot || null } : {}),
         ...(featured !== undefined ? { featured: Boolean(featured) } : {}),
+        ...(resubmitting ? { rejectionReason: null, rejectedAt: null, leagueManagerApproved: false } : {}),
       },
       include: { club: true },
     });
 
     await logAudit({
       userId: auth.user.sub,
-      action: 'PLAYER_UPDATED',
+      action: resubmitting ? 'PLAYER_RESUBMITTED' : 'PLAYER_UPDATED',
       module: 'players',
       targetId: player.id,
       detail: `${player.firstName} ${player.lastName}`,

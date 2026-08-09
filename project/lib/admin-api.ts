@@ -90,13 +90,17 @@ export async function updatePlayer(
   data: {
     photoUrl?: string | null;
     firstName?: string;
+    middleName?: string;
     lastName?: string;
     playerNumber?: number;
     position?: string;
+    dateOfBirth?: string;
     idNumber?: string;
     height?: number;
     weight?: number;
     county?: string;
+    /** Clears a rejection and returns the player to the approval queue. */
+    resubmit?: boolean;
   }
 ) {
   const client = getApiClient();
@@ -128,9 +132,15 @@ export async function approvePlayer(id: string) {
   return client.patch(`/players/${id}/approve`);
 }
 
+export async function rejectPlayer(id: string, reason: string) {
+  const client = getApiClient();
+  return client.patch(`/players/${id}/reject`, { reason });
+}
+
 export async function registerPlayer(data: {
   clubId: string;
   firstName: string;
+  middleName?: string;
   lastName: string;
   playerNumber?: number;
   position?: string;
@@ -286,6 +296,8 @@ export async function respondToAssignment(id: string, status: 'ACCEPTED' | 'DECL
   return client.patch(`/referee-assignments/${id}`, { status });
 }
 
+export type MatchEventType = 'GOAL' | 'OWN_GOAL' | 'YELLOW_CARD' | 'RED_CARD';
+
 export async function getMatchEvents(fixtureId: string) {
   const client = getApiClient();
   return client.get(`/fixtures/${fixtureId}/events`);
@@ -293,7 +305,7 @@ export async function getMatchEvents(fixtureId: string) {
 
 export async function recordMatchEvent(
   fixtureId: string,
-  data: { playerId: string; type: 'GOAL' | 'YELLOW_CARD' | 'RED_CARD'; minute?: number }
+  data: { playerId: string; type: MatchEventType; minute?: number }
 ) {
   const client = getApiClient();
   return client.post(`/fixtures/${fixtureId}/events`, data);
@@ -334,8 +346,20 @@ export async function getTeamSheets(fixtureId: string) {
 
 export async function saveTeamSheet(
   fixtureId: string,
-  data: { clubId: string; starters: string[]; substitutes: string[]; captainId: string }
+  data: {
+    clubId: string;
+    starters: string[];
+    substitutes: string[];
+    captainId: string;
+    /** Shirt worn in this match, keyed by player id. Optional per player. */
+    jerseyNumbers?: Record<string, number>;
+  }
 ) {
   const client = getApiClient();
   return client.put(`/fixtures/${fixtureId}/team-sheets`, data);
+}
+
+export async function getMatchReport(fixtureId: string) {
+  const client = getApiClient();
+  return client.get(`/fixtures/${fixtureId}/report`);
 }

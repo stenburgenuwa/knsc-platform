@@ -11,7 +11,9 @@ export default function Avatar({
   src?: string | null;
   name: string;
   size?: number;
-  rounded?: 'circle' | 'soft';
+  /** Player photos use `square` — a passport photo is not a circle, and
+      cropping one into a disc cuts off the top of the head. */
+  rounded?: 'circle' | 'soft' | 'square';
 }) {
   const initials = name
     .split(/\s+/)
@@ -20,7 +22,7 @@ export default function Avatar({
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('');
 
-  const borderRadius = rounded === 'circle' ? '50%' : 'var(--radius-md)';
+  const borderRadius = rounded === 'circle' ? '50%' : rounded === 'square' ? '0' : 'var(--radius-md)';
 
   const shared: React.CSSProperties = {
     width: size,

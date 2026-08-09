@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { Camera } from 'lucide-react';
 import { resizeImage } from '@/lib/image-resize';
 import { uploadImage } from '@/lib/admin-api';
+import ImageCropper from '@/components/ImageCropper';
 
 // Compact "set the image on this existing row" control for list views, where a
 // full ImageUpload block with its own preview would be too heavy.
@@ -20,11 +21,12 @@ export default function PhotoButton({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
-  const handleFile = async (file: File) => {
+  const upload = async (blob: Blob) => {
     setBusy(true);
     try {
-      const resized = await resizeImage(file);
+      const resized = await resizeImage(blob);
       const res = await uploadImage(resized, kind);
       onChange(id, res.data?.data?.url ?? null);
     } catch {
@@ -34,6 +36,15 @@ export default function PhotoButton({
       setBusy(false);
       if (inputRef.current) inputRef.current.value = '';
     }
+  };
+
+  // Player photos are framed before saving; crests go straight up.
+  const handleFile = async (file: File) => {
+    if (kind === 'player') {
+      setPendingFile(file);
+      return;
+    }
+    await upload(file);
   };
 
   const noun = kind === 'club' ? 'crest' : 'photo';
@@ -60,6 +71,19 @@ export default function PhotoButton({
           if (file) handleFile(file);
         }}
       />
+      {pendingFile && (
+        <ImageCropper
+          file={pendingFile}
+          onCancel={() => {
+            setPendingFile(null);
+            if (inputRef.current) inputRef.current.value = '';
+          }}
+          onCrop={async (blob) => {
+            setPendingFile(null);
+            await upload(blob);
+          }}
+        />
+      )}
     </>
   );
 }
