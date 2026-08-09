@@ -9,6 +9,42 @@
 
 ---
 
+## SCOPE NOTE — accepted placeholder data
+
+*Added 9 August 2026, after the initial audit.*
+
+Several records identified in Section 1 have been confirmed by the project owner
+as **intentional temporary placeholder and seed data**. Specifically:
+
+- The **"Real Madrid" club record** is placeholder data.
+- The **EPL / international football news articles** are placeholder data.
+- **Other clearly identified seed or placeholder club and content records** —
+  including the club-name-derived manager fields — are placeholder data.
+
+These records:
+
+- Are **out of scope** for the current UX/UI redesign.
+- Will be cleaned up later by the project owner through the Platform Owner / CMS.
+- Must **not** be treated as blockers for the visual redesign.
+- Must **not** be modified or deleted as part of design work.
+- Should not consume further analysis time.
+
+**Design implication.** The redesign is to be designed for the *intended
+production state*, not for the current placeholder state. That means designing
+for real KNSCL clubs with real crests, complete squads, named managers, assigned
+home venues, a full fixture list, published results and genuine league news.
+
+Concretely, this means the interface must **not** be optimised around today's
+sparse figures — 15 of 16 clubs showing "0 players", most venues showing "TBC",
+a league table of zeros. Those states must be handled gracefully, but the design
+should look its best when the data is complete, not when it is empty.
+
+Section 1 is retained unaltered as an accurate record of what was observed.
+Section 3 has been re-ranked so these accepted items are no longer presented as
+active design blockers. **For redesign work, Section 2 is the working document.**
+
+---
+
 ## Executive summary
 
 The redesign is deployed and working. The masthead, typography, colour system,
@@ -27,6 +63,13 @@ Section 2. Those are real and should be fixed — but they are not why a first-t
 visitor would distrust the site today.
 
 **Rough split of the problem: ~70% content and data, ~30% design.**
+
+> **Revised 9 August 2026.** The content findings above have since been accepted as
+> intentional temporary placeholder data — see the Scope Note. They are described
+> accurately and are retained for the record, but they are no longer treated as
+> design blockers, and the rankings in Section 3 have been revised accordingly.
+> With those set aside, the remaining work is the genuine UX/UI problem set in
+> Section 2, and that is now the active scope.
 
 ---
 
@@ -233,50 +276,68 @@ identity — which cannot be finalised without the league's actual brand assets.
 
 # 3. PROBLEMS RANKED BY IMPACT
 
-## CRITICAL — immediately damages credibility
+*Revised 9 August 2026. Item IDs are stable and unchanged — only the tier each
+item sits in has been revised, so earlier references to `C1`, `H3`, `M4` and so
+on remain valid.*
+
+## ACCEPTED — temporary placeholder data (out of scope, not blockers)
+
+| # | Item | Disposition |
+|---|---|---|
+| C1 | EPL/international news presented as KNSCL league news | Placeholder — owner will clear via CMS |
+| C2 | "Real Madrid" listed as a member club with the genuine crest | Placeholder — owner will clear via CMS |
+| C3 | Manager fields populated with lowercase club names | Placeholder — owner will replace with real names |
+
+These are **not** design blockers and require no design work. They are excluded
+from the tiers below. See the Scope Note.
+
+*One residual design input:* because C3 will be replaced with real people's names,
+the clubs directory must be designed for genuine personal names — varying lengths,
+proper capitalisation — rather than the uniform lowercase slugs visible today.
+
+## CRITICAL — immediately damages credibility or usability
 
 | # | Problem | Type |
 |---|---|---|
-| C1 | EPL/international news presented as KNSCL league news, with an Arsenal photo as the homepage lead | Content |
-| C2 | "Real Madrid" listed as a member club, using the genuine crest (also a trademark/copyright exposure) | Content |
-| C3 | Manager fields populated with lowercase club names instead of people | Content |
-
-These three are visible within the first five seconds of landing on the site and
-each independently signals "this is not real". **Nothing else should be worked on
-before these are resolved.**
+| H3 | Homepage leads with an empty results block and an all-zero table; the first content below the hero is absence | UX |
+| — | Aggregate generic appearance: home, clubs and players are all card grids, producing the "AI-generated" read | UX |
 
 ## HIGH — significantly affects perceived quality
 
 | # | Problem | Type |
 |---|---|---|
-| H1 | 15 of 16 clubs have zero registered players | Content |
-| H2 | 14 of 16 clubs have no home venue; fixtures inherit "Venue TBC" | Content |
-| H3 | Homepage leads with an empty results block and an all-zero table | UX |
 | H4 | Clubs directory is a repetitive 16-card grid with no identity | UX |
 | H5 | Players presented as circular profile avatars with no football context | UX |
-| H6 | No league photography anywhere on the site | Content + UX |
+| H6 | No league photography anywhere on the site | UX *(blocked on assets)* |
+| — | Weak editorial composition; no rhythm between sections (§2.6) | UX |
 
 ## MEDIUM — address after the major issues
 
 | # | Problem | Type |
 |---|---|---|
-| M1 | Implausible or missing founding years (1900, 1909, 1926, two absent) | Content |
-| M2 | Missing player position, shirt number and statistics | Content |
 | M3 | Weak information hierarchy on directory pages | UX |
 | M4 | Over-reliance on cards as the default container | UX |
-| M5 | Generic placeholder hero copy | Content |
-| M6 | Footer/contact details not configured in Site Content | Content |
-| M7 | Player photographs inconsistent, with background-removal artefacts | Content |
+| M5 | Generic placeholder hero copy | Content + UX |
+| H1 | 15 of 16 clubs have zero registered players | Content — *design for the filled state* |
+| H2 | 14 of 16 clubs have no home venue | Content — *design for the filled state* |
+| M2 | Missing player position, shirt number and statistics | Content — *design for the filled state* |
+
+`H1`, `H2` and `M2` are demoted from High: they are data completeness, not design
+faults. They are retained here only because they define the shape the interface
+must be designed to hold.
 
 ## LOW — polish
 
 | # | Problem | Type |
 |---|---|---|
-| L1 | "Divison" spelling error in a news headline (removed with C1) | Content |
+| L4 | Brand identity (mark, colours) still inferred rather than official | Design *(blocked on assets)* |
+| M7 | Player photographs inconsistent, with background-removal artefacts | Content |
+| M6 | Footer/contact details not configured in Site Content | Content |
+| M1 | Implausible or missing founding years | Content |
 | L2 | Possible club-name misspelling — "Green Berrets" / "green berrest" | Content |
 | L3 | No sponsors recorded; Partners section absent | Content |
-| L4 | Brand identity (mark, colours) still inferred rather than official | Design |
 | L5 | Investigate whether fixtures created before venue assignment retain "TBC" | Technical |
+| L1 | "Divison" spelling error in a news headline | Content — *within C1, out of scope* |
 
 ---
 
@@ -285,15 +346,19 @@ before these are resolved.**
 The ordering follows §23 of the design direction — **remove before adding** — and
 front-loads the work that changes perception most per unit of effort.
 
-### Stage 1 — Remove what is damaging *(content; hours, not days)*
+> **Revised 9 August 2026.** Stages 1 and 2 are content work owned by the project
+> owner and are now **deferred** — they no longer gate design work. Design work
+> begins at Stage 3 and proceeds in parallel. See the Scope Note.
+
+### Stage 1 — Remove what is damaging *(deferred — owner, via CMS)*
 1. Delete all four EPL/international news items (**C1**).
 2. Delete or rename the "Real Madrid" club entry (**C2**).
 3. Replace the manager fields with real people's names (**C3**).
 
-> Stage 1 requires no code changes and no deployment. It is the single highest-value
-> block of work available and should be completed before anything else begins.
+> Still the highest-value content work available, and still requires no code
+> changes or deployment — but it is no longer a prerequisite for the redesign.
 
-### Stage 2 — Complete the essential record *(content)*
+### Stage 2 — Complete the essential record *(deferred — owner/club officials)*
 4. Assign home venues to the remaining 14 clubs (**H2**), then re-check that
    upcoming fixtures pick them up (**L5**).
 5. Register squads for the remaining 15 clubs (**H1**), including position and
@@ -338,7 +403,11 @@ front-loads the work that changes perception most per unit of effort.
 | 5 — Identity and imagery | League (assets) → Development | Yes |
 
 **Stages 1 and 2 are not blocked by anything and do not require a developer.**
-They will improve the site more than Stages 3 and 4 combined.
+They will improve the site more than Stages 3 and 4 combined — but as of the
+Scope Note revision they run in parallel with design work rather than ahead of it.
+
+**Design work now begins at Stage 3.** The detailed direction for the homepage
+portion of Stage 3 is in `KNSCL_HOMEPAGE_UX_DIRECTION.md`.
 
 ---
 
