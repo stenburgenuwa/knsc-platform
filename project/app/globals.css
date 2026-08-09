@@ -803,3 +803,87 @@ a.home-list-item:hover .home-list-teams { color: var(--color-accent-300); }
 /* When the page closes on an ink section it should meet the footer directly,
    with no paper band between two dark grounds. */
 .home-flush { margin-bottom: calc(-1 * var(--space-12)); }
+
+/* ── Crest treatment ─────────────────────────────────────────────────
+   A real badge is the object: full size, no frame, nothing around it.
+   The fallback is a quiet monogram — it must never read as a logo, or it
+   would compete with the real crests beside it in the wall. */
+
+.home-crest-img { display: block; object-fit: contain; }
+
+.home-crest-fallback {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: none; background: none;
+  border: 1px solid var(--color-divider); border-radius: 2px;
+  font-family: var(--font-heading); font-weight: 700; letter-spacing: 0.02em;
+  color: var(--color-neutral-500);
+}
+.home-crest-cell:hover .home-crest-fallback { color: rgb(255 255 255 / 0.55); border-color: rgb(255 255 255 / 0.25); }
+.on-dark .home-crest-fallback { color: rgb(255 255 255 / 0.55); border-color: rgb(255 255 255 / 0.22); }
+
+/* ── Refinement pass ─────────────────────────────────────────────────
+   Negative space that exists for a reason is kept; space that existed only
+   because a container stretched is removed. */
+
+/* Partners: the ruled block hugs the partners that actually exist. One
+   partner gets one cell, not a cell trailing a long empty rule. */
+.home-partners { width: fit-content; max-width: 100%; }
+.home-partner { flex: 0 1 200px; }
+
+/* Mobile masthead: identity → navigation → match, with less furniture in
+   between. Nothing is removed; the density is simply reduced. */
+@media (max-width: 640px) {
+  .masthead-utility-inner { padding: 5px var(--space-4); }
+  .masthead-utility { font-size: 10px; letter-spacing: 0.08em; }
+  .masthead-main { padding: var(--space-2) var(--space-4); }
+  .wordmark-mark { width: 30px; height: 30px; font-size: 12px; }
+  .wordmark-name { font-size: 15px; }
+  .wordmark-sub { font-size: 9px; letter-spacing: 0.12em; }
+  .masthead-toggle { width: 34px; height: 34px; }
+}
+
+/* The crest carries club identity in the wall; the name supports it. */
+.home-crest-cell { gap: var(--space-3); }
+
+/* Columns size to their own content rather than stretching to the tallest,
+   so a short rail does not leave dead space beside it. */
+@media (min-width: 900px) { .home-split { align-items: start; } }
+
+/* ════════════════════════════════════════════════════════════════════
+   Step 10 refinements
+   Three corrections found only at production scale (16 crested clubs).
+   ════════════════════════════════════════════════════════════════ */
+
+/* 1 — Matchday primacy.
+   With sixteen real crests the wall carries more visual mass than two
+   isolated hero crests, inverting match → competition → clubs → news.
+   Corrected by relative scale alone: the hero crest grows, the wall crest
+   shrinks. Both scale with the viewport so the ratio holds everywhere. */
+
+.crest-hero { width: clamp(56px, 8vw, 118px); height: clamp(56px, 8vw, 118px); }
+.crest-wall { width: clamp(40px, 5vw, 52px); height: clamp(40px, 5vw, 52px); }
+.home-crest-fallback.crest-hero { font-size: clamp(15px, 2.1vw, 30px); }
+.home-crest-fallback.crest-wall { font-size: clamp(11px, 1.4vw, 14px); }
+
+/* The wall cell tightens with its crest so the grid does not carry dead
+   space around a smaller mark. */
+.home-crest-cell { min-height: 96px; gap: var(--space-2); padding: var(--space-3) var(--space-2); }
+
+/* 2 — Mobile matchday composition.
+   Previously the club rows were flush left while the score was centred, so
+   the score floated free of the clubs it belongs to. Everything now shares
+   one centred axis; the crest drops to ~56px and the block tightens. */
+
+@media (max-width: 720px) {
+  .home-match { padding: var(--space-4) 0 var(--space-3); }
+  .home-match-club {
+    flex-direction: row; justify-content: center; align-items: center;
+    text-align: left; gap: var(--space-3);
+  }
+  .home-score-slot { padding: var(--space-3) 0; margin: var(--space-3) 0; }
+  .home-md-foot { font-size: 12px; }
+}
+
+/* 3 — Pre-season competition rail: figures stack in the narrow column. */
+.home-figures-stack { grid-template-columns: 1fr; gap: var(--space-4); }
+@media (min-width: 700px) { .home-figures-stack { grid-template-columns: 1fr; } }

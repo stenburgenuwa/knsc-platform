@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Avatar from '@/components/Avatar';
 import { formatDate } from '@/components/public';
 
 /*
@@ -27,6 +26,47 @@ type Fixture = {
   awayClub: Club;
   venue?: { name: string } | null;
 };
+
+/* ── Club crest ──────────────────────────────────────────────────────
+   Where a real badge exists it is rendered at full size with no frame, so
+   the crest itself is the object. Where one does not, the fallback is
+   deliberately quiet — a restrained monogram that never competes with a
+   real crest sitting next to it in the same wall. No logo is invented. */
+
+export function ClubCrest({
+  club,
+  size,
+  variant,
+}: {
+  club: { name: string; shortName?: string | null; logoUrl?: string | null };
+  /** Fixed pixel size. Omit when using a variant, which sizes from CSS. */
+  size?: number;
+  /** `hero` and `wall` scale with the viewport so the balance between the
+      matchday board and the crest wall holds at every breakpoint. */
+  variant?: 'hero' | 'wall';
+}) {
+  const cls = variant ? ` crest-${variant}` : '';
+  const style = size ? { width: size, height: size } : undefined;
+
+  if (club.logoUrl) {
+    // eslint-disable-next-line @next/next/no-img-element -- data URLs / Blob CDN, not statically known
+    return <img src={club.logoUrl} alt="" className={`home-crest-img${cls}`} style={style} loading="lazy" />;
+  }
+
+  const initials =
+    club.shortName?.slice(0, 3).toUpperCase() ||
+    club.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('');
+
+  return (
+    <span
+      aria-hidden="true"
+      className={`home-crest-fallback${cls}`}
+      style={size ? { ...style, fontSize: Math.max(11, Math.round(size * 0.26)) } : undefined}
+    >
+      {initials || '—'}
+    </span>
+  );
+}
 
 /* ── Matchday temperature ────────────────────────────────────────────
    A fixture is an appointment, and relative time is most of what separates
@@ -72,7 +112,7 @@ export function Form({ form }: { form?: ('W' | 'D' | 'L')[] }) {
 function MatchSide({ club, beaten, form }: { club: Club; beaten?: boolean; form?: ('W' | 'D' | 'L')[] }) {
   return (
     <Link href={`/clubs/${club.id}`} className={`home-match-club${beaten ? ' is-beaten' : ''}`}>
-      <Avatar src={club.logoUrl} name={club.name} size={80} rounded="soft" />
+      <ClubCrest club={club} variant="hero" />
       <span style={{ minWidth: 0 }}>
         <span className="home-match-name" style={{ display: 'block' }}>{club.name}</span>
         <span style={{ display: 'block', marginTop: 6 }}><Form form={form} /></span>
@@ -192,7 +232,7 @@ export function CompetitionTable({ rows }: { rows: Standing[] }) {
             <td className="col-pos">{row.position}</td>
             <td>
               <Link href={`/clubs/${row.id}`} className="home-club-cell">
-                <Avatar src={row.logoUrl} name={row.clubName} size={22} rounded="soft" />
+                <ClubCrest club={{ name: row.clubName, logoUrl: row.logoUrl }} size={24} />
                 <span>{row.clubName}</span>
               </Link>
             </td>
@@ -211,9 +251,16 @@ export function CompetitionTable({ rows }: { rows: Standing[] }) {
 
 // Only non-zero figures are passed in — a statistic with no value is not
 // information, so the caller omits it rather than rendering a zero.
-export function SeasonFigures({ figures }: { figures: { value: number | string; label: string }[] }) {
+export function SeasonFigures({
+  figures,
+  stack = false,
+}: {
+  figures: { value: number | string; label: string }[];
+  /** Single column, for the narrow competition rail. */
+  stack?: boolean;
+}) {
   return (
-    <div className="home-figures">
+    <div className={`home-figures${stack ? ' home-figures-stack' : ''}`}>
       {figures.map((f) => (
         <div key={f.label}>
           <span className="home-figure-value">{f.value}</span>
@@ -238,7 +285,7 @@ export function CrestWall({
           {club.position != null && (
             <span className="home-crest-pos" aria-hidden="true">{club.position}</span>
           )}
-          <Avatar src={club.logoUrl} name={club.name} size={48} rounded="soft" />
+          <ClubCrest club={club} variant="wall" />
           <span className="home-crest-name">{club.name}</span>
         </Link>
       ))}

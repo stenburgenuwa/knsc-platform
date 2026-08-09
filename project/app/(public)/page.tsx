@@ -2,7 +2,6 @@ import Link from 'next/link';
 import Avatar from '@/components/Avatar';
 import { getHomepageData } from '@/lib/public-data';
 import { buildMetadata } from '@/lib/seo';
-import { formatDate } from '@/components/public';
 import {
   CompetitionTable,
   CrestWall,
@@ -74,7 +73,7 @@ export default async function HomePage() {
               <div>
                 <p className="home-label">
                   <span>{active ? 'Around the league' : 'Opening fixtures'}</span>
-                  <Link href={active ? '/results' : '/fixtures'}>All &rarr;</Link>
+                  <Link href={active ? '/results' : '/fixtures'}>{active ? 'All results' : 'All fixtures'} &rarr;</Link>
                 </p>
                 {railFixtures.length > 0 ? (
                   <MatchList fixtures={railFixtures as any} />
@@ -107,19 +106,33 @@ export default async function HomePage() {
           <div className="home-split">
             <div>
               <p className="home-label">
-                <span>{active ? 'Table' : 'The season'}</span>
-                {active && <Link href="/table">Full table &rarr;</Link>}
+                <span>{active ? 'Table' : 'The season ahead'}</span>
+                <Link href={active ? '/table' : '/fixtures'}>
+                  {active ? 'Full table' : 'Fixture list'} &rarr;
+                </Link>
               </p>
 
               {active ? (
                 <CompetitionTable rows={standings as any} />
-              ) : (
-                <>
-                  <SeasonFigures figures={figures} />
-                  <p style={{ marginTop: 'var(--space-6)' }}>
-                    <Link href="/fixtures" className="btn btn-secondary">Fixture list</Link>
+              ) : heroFixture ? (
+                /* Pre-season, this slot answers "what happens next in this
+                   league?" — the opening date carries the numeral weight the
+                   table would carry in-season, and the fixture names the
+                   football. Statistics move to the rail as support. */
+                <div>
+                  <p className="home-figure-value" style={{ fontSize: 'clamp(40px, 6vw, 72px)' }}>
+                    {new Date(heroFixture.fixtureDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
                   </p>
-                </>
+                  <p className="home-figure-label" style={{ marginTop: 'var(--space-2)' }}>
+                    Season opens · {heroFixture.kickoffTime || 'Kickoff TBC'}
+                  </p>
+                  <p style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-3)', borderTop: '1px solid var(--color-divider)', fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 17 }}>
+                    {heroFixture.homeClub.name} <span className="text-muted" style={{ fontWeight: 500 }}>v</span> {heroFixture.awayClub.name}
+                  </p>
+                  <p className="story-meta">{heroFixture.venue?.name || 'Venue TBC'}</p>
+                </div>
+              ) : (
+                <SeasonFigures figures={figures} />
               )}
             </div>
 
@@ -151,25 +164,10 @@ export default async function HomePage() {
                 </>
               ) : (
                 <>
-                  <p className="home-label"><span>First matchday</span></p>
-                  {heroFixture ? (
-                    <>
-                      <p style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 22, letterSpacing: '-0.02em', margin: 0 }}>
-                        {formatDate(heroFixture.fixtureDate)}
-                      </p>
-                      <p className="story-meta" style={{ marginTop: 6 }}>
-                        {heroFixture.homeClub.name} v {heroFixture.awayClub.name}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-muted" style={{ fontSize: 14, margin: 0 }}>
-                      The opening fixtures will be announced shortly.
-                    </p>
-                  )}
-                  <p style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-divider)' }}>
-                    <span className="home-figure-value">{season}</span>
-                    <span className="home-figure-label">Season</span>
-                  </p>
+                  {/* Statistics become the support beside the opening date,
+                      rather than being the section's whole content. */}
+                  <p className="home-label"><span>Registered</span></p>
+                  <SeasonFigures figures={figures} stack />
                 </>
               )}
             </div>
@@ -195,7 +193,7 @@ export default async function HomePage() {
       {/* ── 05 NEWS ─────────────────────────────────────────────────── */}
       {leadStory && (
         <section className="bleed">
-          <div className="bleed-inner" style={{ paddingBottom: 'var(--space-12)' }}>
+          <div className="bleed-inner" style={{ paddingBottom: 'var(--space-8)' }}>
             <p className="home-label">
               <span>News</span>
               <Link href="/news">Newsroom &rarr;</Link>

@@ -23,9 +23,9 @@ export default async function PublicLayout({ children }: { children: React.React
 
       {/* The footer closes the page on the same dark ground the masthead opens
           it on, so the site reads as one object rather than a stack of pages. */}
-      <footer className="on-dark" style={{ marginTop: 'var(--space-12)' }}>
-        <div className="bleed-inner" style={{ paddingTop: 'var(--space-8)', paddingBottom: 'var(--space-6)' }}>
-          <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: 'var(--space-6)' }}>
+      <footer className="on-dark" style={{ marginTop: 'var(--space-8)' }}>
+        <div className="bleed-inner" style={{ paddingTop: 'var(--space-6)', paddingBottom: 'var(--space-4)' }}>
+          <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: 'var(--space-4) var(--space-6)' }}>
             <div className="col-span-2 md:col-span-1">
               <p className="wordmark-name" style={{ marginBottom: 6 }}>Kilifi North</p>
               <p className="wordmark-sub" style={{ marginBottom: 'var(--space-3)' }}>Sub County League</p>
@@ -83,7 +83,7 @@ export default async function PublicLayout({ children }: { children: React.React
           <div
             className="bleed-inner"
             style={{
-              paddingTop: 'var(--space-3)', paddingBottom: 'var(--space-3)',
+              paddingTop: 'var(--space-2)', paddingBottom: 'var(--space-2)',
               display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)',
               justifyContent: 'space-between', alignItems: 'center',
               fontSize: 12, color: 'rgb(255 255 255 / 0.55)',
