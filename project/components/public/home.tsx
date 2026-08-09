@@ -42,8 +42,9 @@ export function ClubCrest({
   /** Fixed pixel size. Omit when using a variant, which sizes from CSS. */
   size?: number;
   /** `hero` and `wall` scale with the viewport so the balance between the
-      matchday board and the crest wall holds at every breakpoint. */
-  variant?: 'hero' | 'wall';
+      matchday board and the crest wall holds at every breakpoint.
+      `register` is the Clubs page record crest. */
+  variant?: 'hero' | 'wall' | 'register';
 }) {
   const cls = variant ? ` crest-${variant}` : '';
   const style = size ? { width: size, height: size } : undefined;

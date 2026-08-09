@@ -887,3 +887,126 @@ a.home-list-item:hover .home-list-teams { color: var(--color-accent-300); }
 /* 3 — Pre-season competition rail: figures stack in the narrow column. */
 .home-figures-stack { grid-template-columns: 1fr; gap: var(--space-4); }
 @media (min-width: 700px) { .home-figures-stack { grid-template-columns: 1fr; } }
+
+/* ════════════════════════════════════════════════════════════════════
+   CLUBS — THE LEAGUE REGISTER
+   Scoped under `clubs-` so no other page inherits these decisions.
+   See KNSCL_CLUBS_UX_VISUAL_DIRECTION.md. Records share hairlines; the
+   crest column is the crest index, read down rather than across.
+   ════════════════════════════════════════════════════════════════ */
+
+.crest-register { width: 56px; height: 56px; }
+.home-crest-fallback.crest-register { font-size: 15px; }
+
+.clubs-register { width: 100%; }
+.clubs-table { width: 100%; border-collapse: collapse; }
+
+.clubs-table th {
+  padding: 0 var(--space-3) var(--space-2);
+  border-bottom: 2px solid var(--color-ink);
+  font-family: var(--font-body); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.09em; text-transform: uppercase; color: var(--color-neutral-600);
+  text-align: left; white-space: nowrap;
+}
+.clubs-table td {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-divider);
+  vertical-align: middle;
+}
+/* The whole record responds, but the name carries the link. */
+.clubs-table tbody tr { transition: background-color 0.12s ease; }
+.clubs-table tbody tr:hover { background: var(--color-ink); }
+.clubs-table tbody tr:hover td { color: rgb(255 255 255 / 0.72); border-bottom-color: rgb(255 255 255 / 0.18); }
+.clubs-table tbody tr:hover .clubs-name { color: #fff; }
+.clubs-table tbody tr:hover .clubs-tbc,
+.clubs-table tbody tr:hover .clubs-manager { color: rgb(255 255 255 / 0.5); }
+.clubs-table tbody tr:hover .home-crest-fallback { color: rgb(255 255 255 / 0.55); border-color: rgb(255 255 255 / 0.25); }
+
+.clubs-table .col-pos {
+  width: 44px; text-align: left;
+  font-family: var(--font-numeric); font-variant-numeric: tabular-nums;
+  font-weight: 700; font-size: 15px; color: var(--color-neutral-600);
+}
+.clubs-table .col-crest { width: 76px; text-align: center; padding-left: 0; padding-right: 0; }
+.clubs-table .col-crest .home-crest-img,
+.clubs-table .col-crest .home-crest-fallback { margin: 0 auto; }
+
+.clubs-name {
+  display: block;
+  font-family: var(--font-heading); font-weight: 600; font-size: 20px;
+  letter-spacing: -0.015em; line-height: 1.2;
+  color: var(--color-ink); text-decoration: none;
+}
+.clubs-manager {
+  display: block; margin-top: 3px;
+  font-size: 12px; color: var(--color-neutral-600);
+}
+/* Shown only once the dedicated ground column retires. */
+.clubs-ground-inline { display: none; }
+
+.clubs-table .col-ground { width: 280px; font-size: 13px; color: var(--color-neutral-600); }
+.clubs-tbc { color: var(--color-neutral-500); }
+
+.clubs-table .col-squad {
+  width: 80px; text-align: right;
+  font-family: var(--font-numeric); font-variant-numeric: tabular-nums;
+  font-weight: 700; font-size: 17px; color: var(--color-ink);
+}
+.clubs-table tbody tr:hover .col-squad { color: #fff; }
+.clubs-table .col-form { width: 110px; }
+
+/* ── Tablet: the ground column retires under the club name ───────── */
+@media (max-width: 900px) {
+  .clubs-table .col-ground, .clubs-table .col-form { display: none; }
+  .clubs-ground-inline {
+    display: block; margin-top: 3px;
+    font-size: 12px; color: var(--color-neutral-600);
+  }
+  .clubs-table .col-crest { width: 64px; }
+  .crest-register { width: 48px; height: 48px; }
+  .clubs-name { font-size: 18px; }
+  .clubs-table .col-squad { width: 64px; font-size: 16px; }
+}
+
+/* ── Mobile: still a register. Records run edge to edge so the rules
+      read as continuous, never as card borders. ─────────────────── */
+@media (max-width: 640px) {
+  .clubs-table th { font-size: 10px; padding-bottom: var(--space-2); }
+  .clubs-table td { padding: var(--space-3) var(--space-2); }
+  .clubs-table .col-pos { width: 26px; font-size: 13px; }
+  .clubs-table .col-crest { width: 56px; }
+  .crest-register { width: 44px; height: 44px; }
+  .home-crest-fallback.crest-register { font-size: 12px; }
+  .clubs-name { font-size: 16px; }
+  .clubs-manager { display: none; }
+  .clubs-table .col-squad { width: 44px; font-size: 15px; }
+}
+
+/* Column classes are shared by header and cell, so the numeric and metadata
+   styling must be scoped to `td` or it overrides the header rule. */
+.clubs-table th.col-pos,
+.clubs-table th.col-ground,
+.clubs-table th.col-squad,
+.clubs-table th.col-form {
+  font-family: var(--font-body); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.09em; text-transform: uppercase; color: var(--color-neutral-600);
+}
+.clubs-table th.col-squad { text-align: right; }
+
+/* The whole record is the target, but there is still exactly one anchor per
+   row: the club name is stretched over the record rather than duplicated.
+   If a browser ignores `position: relative` on a row, the name stays a link. */
+.clubs-table tbody tr { position: relative; }
+.clubs-name::after { content: ''; position: absolute; inset: 0; }
+.clubs-table tbody tr:focus-within { outline: 2px solid var(--color-accent-2); outline-offset: -2px; }
+.clubs-name:focus { outline: none; }
+.clubs-name:focus-visible { outline: none; }
+
+/* Accessibility fix. `Ground TBC` sat at neutral-500 (3.37:1) which fails
+   WCAG AA and breaks the direction's own rule that metadata never goes
+   lighter than neutral-600. The real ground steps down to neutral-700 so the
+   "quieter than a real ground" hierarchy survives while both pass: 8.09:1
+   for a recorded ground, 5.23:1 for TBC. */
+.clubs-table .col-ground { color: var(--color-neutral-700); }
+.clubs-ground-inline { color: var(--color-neutral-700); }
+.clubs-tbc { color: var(--color-neutral-600); }

@@ -271,6 +271,53 @@ export async function getPublicClubs() {
   });
 }
 
+// The Clubs register: every club with the competition context it needs, in one
+// query pair. Ordered by league position once football has been played and
+// alphabetically before that, so no club is given a meaningless rank.
+//
+// NOTE: the manager selection deliberately omits `email`. The club directory is
+// an editorial page, and a Team Manager's address is administrative contact
+// information — it is excluded here at the data layer, not hidden in the view.
+export async function getClubsRegister() {
+  const [clubs, standings, playedCount] = await Promise.all([
+    prisma.club.findMany({
+      select: {
+        ...PUBLIC_CLUB_SUMMARY,
+        homeVenue: { select: { name: true } },
+        managers: { where: { role: 'TEAM_MANAGER' }, select: { firstName: true, lastName: true } },
+        _count: { select: { players: { where: { approved: true } } } },
+      },
+      orderBy: { name: 'asc' },
+    }),
+    getStandings(),
+    prisma.fixture.count({ where: { status: 'COMPLETED' } }),
+  ]);
+
+  const active = playedCount > 0;
+  const byClub = new Map(standings.map((row) => [row.id, row]));
+
+  const register = clubs.map((club) => {
+    const standing = byClub.get(club.id);
+    return {
+      id: club.id,
+      name: club.name,
+      shortName: club.shortName,
+      logoUrl: club.logoUrl,
+      venue: club.homeVenue?.name ?? null,
+      manager: club.managers[0] ? `${club.managers[0].firstName} ${club.managers[0].lastName}` : null,
+      squad: club._count.players,
+      position: active ? standing?.position ?? null : null,
+      form: active ? standing?.form ?? [] : [],
+    };
+  });
+
+  if (active) {
+    register.sort((a, b) => (a.position ?? 99) - (b.position ?? 99) || a.name.localeCompare(b.name));
+  }
+
+  return { register, active, total: clubs.length };
+}
+
 export async function getPublicClub(id: string) {
   const club = await prisma.club.findUnique({
     where: { id },
